@@ -1,9 +1,17 @@
 # fx-bug-toolkit
 
-A Claude Code plugin for **investigating Firefox A/V bugs**. It bundles the
-per-bug investigation cluster — diagnose a bug, analyze profiles and logs, check
-spec conformance, navigate the Gecko codebase, and write up findings — behind a
+A Claude Code plugin for **investigating Firefox bugs**. It bundles the per-bug
+investigation cluster — diagnose a bug, analyze profiles and logs, check spec
+conformance, navigate the Gecko codebase, and write up findings — behind a
 single hub skill, `bug-start`.
+
+The **mechanics are component-agnostic** — nothing here is gated to a particular
+area, so it works for any Firefox bug. The bundled domain knowledge currently
+runs deepest for **A/V / media** (the `check-firefox-log` knowledge pages,
+codec-spec coverage in `spec-check`, and many media examples), simply because
+that's where it grew up. Coverage for other components deepens the same way: by
+adding component knowledge (wiki pages, analogous `check-firefox-log/knowledge/`
+files), not by changing code.
 
 This toolkit **investigates and diagnoses**; it does not implement or land
 patches. The shared knowledge wiki is an *optional* accelerator, not a

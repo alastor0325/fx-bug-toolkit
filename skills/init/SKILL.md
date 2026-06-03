@@ -1,82 +1,122 @@
 ---
 name: init
-description: One-time setup for the fx-bug-toolkit plugin — creates the data directories it writes to, and checks for the external CLIs/services each skill needs (reporting which feature degrades without each). Triggers on "init fx-bug-toolkit", "set up the toolkit", "fx-bug-toolkit setup".
+description: One-time setup for the fx-bug-toolkit plugin — creates the data directories it writes to, installs the external CLIs it depends on (with your confirmation), and guides you through the paths/env vars and the dependencies that can't be auto-installed. Triggers on "init fx-bug-toolkit", "set up the toolkit", "fx-bug-toolkit setup".
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
-# fx-bug-toolkit — setup / health check
+# fx-bug-toolkit — setup / install
 
-Run this once on a new machine. It is **idempotent** — safe to re-run any time
-to re-check the environment. It only *creates data directories* and *reports*
-on dependencies; it never installs system packages without asking.
+Run this once on a new machine. **Idempotent** — safe to re-run to re-check or
+to install anything still missing. The flow is: create data dirs → detect what's
+present → offer to install each missing piece (asking first) → guide the parts
+that can't be auto-installed → confirm env/PATH.
 
-## Step 1 — Create the data directories
+**Never install software without confirming first.** For each missing
+dependency, show the exact command and use AskUserQuestion (Yes/No) before
+running it.
 
-These are the per-user locations the toolkit reads and writes. They are local
-and private (investigations never leave the machine).
+## Step 1 — Create the data directories (no confirmation needed)
+
+Local, private; investigations never leave the machine.
 
 ```bash
-mkdir -p ~/firefox-bug-investigation
-mkdir -p ~/.cache/firefox-download-guard
-echo "data dirs ready:"
+mkdir -p ~/firefox-bug-investigation ~/.cache/firefox-download-guard
 ls -d ~/firefox-bug-investigation ~/.cache/firefox-download-guard
 ```
 
-## Step 2 — Check the external dependencies
-
-For each, report ✅ found (with version/path) or ⚠️ missing, and **which
-feature degrades** if absent. Do NOT fail the whole setup on a missing optional
-dep — just report it.
+## Step 2 — Detect what's already installed
 
 ```bash
-check() { command -v "$1" >/dev/null 2>&1 && echo "✅ $1 — $(command -v "$1")" || echo "⚠️  $1 — MISSING ($2)"; }
-
-# Required for core investigation
-check bmo-to-md        "can't pull Bugzilla bug content — blocks most of bug-start"
-check searchfox-cli    "no code search — bug-start / spec-check / gecko-navigator degrade"
-check git              "source-links and local repo lookups degrade"
-check python3          "minor helper scripts degrade"
-
-# Feature-specific
-check node             "profiler analysis can't run (analyze-profile)"
-check mach             "no local build / spec checks against a checkout (spec-check, bug-start)"
-```
-
-### profiler-cli (drives `/analyze-profile`)
-
-The location is `$PROFILER_CLI` (default `~/projects/profiler-cli/dist/index.js`).
-
-```bash
+report() { command -v "$1" >/dev/null 2>&1 && echo "✅ $1 ($(command -v "$1"))" || echo "⚠️  $1 MISSING"; }
+for t in cargo node npm git python3 bmo-to-md searchfox-cli mach; do report "$t"; done
 PCLI="${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}"
-if [ -f "$PCLI" ]; then echo "✅ profiler-cli — $PCLI";
-else echo "⚠️  profiler-cli MISSING at $PCLI — /analyze-profile won't run."
-     echo "    Install it and either place it at the default path or set PROFILER_CLI."
-fi
+[ -f "$PCLI" ] && echo "✅ profiler-cli ($PCLI)" || echo "⚠️  profiler-cli MISSING ($PCLI)"
 ```
 
-### moz MCP server (Bugzilla / Phabricator lookups)
+## Step 3 — Installer prerequisites (toolchains)
 
-`bug-start` uses `mcp__moz__get_bugzilla_bug`. There is **no auto-config** — the
-coworker must register the `moz` MCP server in their Claude Code settings.
-Report whether `mcp__moz__*` tools are available; if not, tell the user the
-toolkit still works via `bmo-to-md`, but MCP-based lookups are unavailable.
+The CLIs below are installed via Rust (`cargo`) and Node (`npm`). If those are
+missing, guide the user first — do not attempt to install the toolchains
+silently:
 
-## Step 3 — Optional: the shared wiki
+- **Rust/cargo** missing → point to <https://rustup.rs> (`curl --proto '=https'
+  --tlsv1.2 -sSf https://sh.rustup.rs | sh`). Needed for `bmo-to-md` and
+  `searchfox-cli`.
+- **Node/npm** missing → recommend nvm (<https://github.com/nvm-sh/nvm>) then
+  `nvm install --lts`. Needed to build `profiler-cli`.
 
-The `firefox-wiki` plugin is an **optional accelerator**. The toolkit gates
-every wiki touchpoint on this check and degrades silently when absent:
+## Step 4 — Install the CLI dependencies (confirm each)
 
+For each MISSING tool, AskUserQuestion (Yes/No) showing the command, then run it.
+
+**`bmo-to-md`** — pulls Bugzilla bug content (core; without it `bug-start` can't
+fetch bugs):
+```bash
+cargo install --git https://github.com/padenot/bmo-to-md
+```
+
+**`searchfox-cli`** — code search (core; `bug-start` / `spec-check` /
+`gecko-navigator` degrade without it):
+```bash
+cargo install searchfox-cli
+```
+
+After installing, ensure `~/.cargo/bin` is on `PATH`:
+```bash
+case ":$PATH:" in *":$HOME/.cargo/bin:"*) echo "PATH ok";; *) echo 'Add to your shell rc: export PATH="$HOME/.cargo/bin:$PATH"';; esac
+```
+
+## Step 5 — profiler-cli (drives `/analyze-profile`)
+
+⚠️ **Sharing note:** profiler-cli currently lives in a **private** repo
+(`alastor0325/profiler-cli`). A coworker can only install it if it has been made
+public or shared with them. If the user is the owner, confirm the repo URL they
+want coworkers to use; otherwise treat `/analyze-profile` as unavailable and say
+so. **Do not hardcode a private clone URL into a shared instruction without
+checking access.**
+
+If the user has access, with their confirmation:
+```bash
+# adjust the URL to whatever the user confirms is reachable
+git clone <profiler-cli-repo-url> "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
+cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build
+# verify dist/index.js exists; the build script may differ — check the repo README
+```
+Then set `PROFILER_CLI` if the binary isn't at the default
+`~/projects/profiler-cli/dist/index.js`:
+```bash
+echo 'export PROFILER_CLI="$HOME/projects/profiler-cli/dist/index.js"  # adjust if relocated'
+```
+
+## Step 6 — Can't be auto-installed (guide only)
+
+- **`mach`** — comes with a mozilla-central checkout, not a package. If the user
+  does Firefox dev they already have it; otherwise point to the Firefox build
+  docs (<https://firefox-source-docs.mozilla.org/setup/>). `spec-check` and some
+  `bug-start` steps degrade without a local checkout, but the toolkit still works
+  via searchfox.
+- **`moz` MCP server** (`mcp__moz__get_bugzilla_bug`, …) — must be registered in
+  the user's Claude Code MCP settings; there is no auto-config. Ask the user to
+  register their `moz` MCP server (e.g. via `claude mcp add`). Without it,
+  Bugzilla/Phabricator MCP lookups are unavailable, but `bmo-to-md` covers the
+  core Bugzilla path.
+
+## Step 7 — Optional: the shared wiki
+
+The `firefox-wiki` plugin is an optional accelerator. Toolkit gates every wiki
+touchpoint on this and degrades silently when absent:
 ```bash
 test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" \
-  && echo "✅ wiki installed at ${WIKI_PATH:-$HOME/firefox-wiki}" \
-  || echo "ℹ️  wiki not installed — toolkit works without it (searches code directly)."
+  && echo "✅ wiki at ${WIKI_PATH:-$HOME/firefox-wiki}" \
+  || echo "ℹ️  no wiki — toolkit works without it (searches code directly)."
 ```
+If wanted: install the `firefox-wiki` plugin and clone its content to
+`~/firefox-wiki` (or set `WIKI_PATH`).
 
-If the user wants it, point them to install the `firefox-wiki` plugin and clone
-the wiki content to `~/firefox-wiki` (or set `WIKI_PATH`).
+## Step 8 — Summary
 
-## Step 4 — Summary
-
-Print a short table: each dependency, found/missing, and the degraded feature.
-End with a one-line verdict: "Core investigation ready" if `bmo-to-md` +
-`searchfox-cli` are present, else list what to install first.
+Print a table: each dependency → installed / still-missing → what it gates, and
+any env var the user still needs to set (`PROFILER_CLI`, `WIKI_PATH`, the
+`~/.cargo/bin` PATH entry). Verdict: **"Core investigation ready"** once
+`bmo-to-md` + `searchfox-cli` resolve on `PATH`; otherwise list what to install
+first.

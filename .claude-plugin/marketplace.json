@@ -2,13 +2,13 @@
   "name": "fx-bug-toolkit",
   "owner": { "name": "Alastor Wu", "email": "alastor0325@users.noreply.github.com" },
   "metadata": {
-    "description": "Firefox A/V bug investigation toolkit for Firefox engineers"
+    "description": "Firefox bug investigation toolkit for Firefox engineers"
   },
   "plugins": [
     {
       "name": "fx-bug-toolkit",
       "source": "./",
-      "description": "Investigate Firefox A/V bugs: bug-start hub, profile/log analysis, spec checking, gecko-navigator code navigation, and investigation write-up. The firefox-wiki plugin is an optional accelerator."
+      "description": "Investigate any Firefox bug: bug-start hub, profile/log analysis, spec checking, gecko-navigator code navigation, and investigation write-up. Component-agnostic mechanics; domain knowledge runs deepest for A/V/media. The firefox-wiki plugin is an optional accelerator."
     }
   ]
 }
