@@ -68,22 +68,16 @@ case ":$PATH:" in *":$HOME/.cargo/bin:"*) echo "PATH ok";; *) echo 'Add to your 
 
 ## Step 5 — profiler-cli (drives `/analyze-profile`)
 
-⚠️ **Sharing note:** profiler-cli currently lives in a **private** repo
-(`alastor0325/profiler-cli`). A coworker can only install it if it has been made
-public or shared with them. If the user is the owner, confirm the repo URL they
-want coworkers to use; otherwise treat `/analyze-profile` as unavailable and say
-so. **Do not hardcode a private clone URL into a shared instruction without
-checking access.**
-
-If the user has access, with their confirmation:
+profiler-cli is public (<https://github.com/dpalmeiro/profiler-cli>). It's a
+TypeScript/Node project built with `tsc` to `dist/index.js`. With the user's
+confirmation (needs Node/npm from Step 3):
 ```bash
-# adjust the URL to whatever the user confirms is reachable
-git clone <profiler-cli-repo-url> "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
+git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
 cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build
-# verify dist/index.js exists; the build script may differ — check the repo README
+test -f dist/index.js && echo "✅ built dist/index.js" || echo "⚠️  build did not produce dist/index.js — check the repo README"
 ```
-Then set `PROFILER_CLI` if the binary isn't at the default
-`~/projects/profiler-cli/dist/index.js`:
+The default `PROFILER_CLI` is `~/projects/profiler-cli/dist/index.js`. If you
+cloned elsewhere, set it in your shell rc:
 ```bash
 echo 'export PROFILER_CLI="$HOME/projects/profiler-cli/dist/index.js"  # adjust if relocated'
 ```
