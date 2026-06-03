@@ -1,4 +1,5 @@
 ---
+name: source-links
 description: >
   Rule for hyperlinking source code and documentation references.
   Apply whenever mentioning files, functions, line numbers, specs, or any

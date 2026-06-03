@@ -1,3 +1,9 @@
+---
+name: analyze-profile
+description: Analyze a Firefox Profiler capture (share.firefox.dev or profiler.firefox.com/public links) for performance and media-pipeline issues, producing a structured findings report consumed by bug-start and triage. Triggers on "analyze profile", "analyze this profile", "/analyze-profile", or a Firefox Profiler URL.
+allowed-tools: [Bash, Read, WebFetch]
+---
+
 # /analyze-profile — Firefox Profiler Analysis
 
 Analyze a Firefox Profiler capture for media pipeline issues. Produces a
