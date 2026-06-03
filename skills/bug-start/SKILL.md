@@ -1039,7 +1039,7 @@ Where `short-description` is 2-4 words derived from the bug title, hyphen-separa
 
 **Other notes:**
 - If this is a crash bug, look for stack traces in comments
-- If this is a spec feature, use /deep-dive to research the spec
+- If this is a spec feature, use /spec-check to research the spec
 - If unclear, use AskUserQuestion to clarify the approach
 - Don't commit anything - user will review first
 - When creating commits, do NOT add "Co-Authored-By" lines

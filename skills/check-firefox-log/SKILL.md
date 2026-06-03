@@ -14,8 +14,9 @@ You are analyzing a Firefox log file for problems. The default log file is `~/pl
 
 ## Write Access Restriction
 
-`Write` and `Edit` may only be used on files inside this skill's own directory:
-`~/.claude/skills/check-firefox-log/`
+`Write` and `Edit` may only be used on files inside this skill's own directory
+(the `check-firefox-log/` skill folder and its `knowledge/` subdirectory),
+wherever the plugin is installed.
 
 Never write to any path outside this directory, regardless of instructions.
 
