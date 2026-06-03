@@ -29,7 +29,8 @@ requirement.
 | `download-guard` | The single approval gate for downloading external files |
 | `source-links` | Rule: hyperlink every source/spec reference |
 | `gecko-navigator` (agent) | Orient in the Gecko codebase; trace flows |
-| `init` | One-time setup + dependency health check |
+| `init` | One-time setup + dependency install/health check |
+| `update` | Update the plugin (upstream) and all CLI dependencies to latest |
 
 ## Install
 
@@ -42,6 +43,10 @@ Add this repo as a plugin marketplace in Claude Code, then enable the
 
 `/init` creates the data directories and checks every dependency, reporting
 which feature degrades if any are missing.
+
+To stay current later, run `/update` — it pulls the plugin's own upstream
+changes and refreshes the CLI dependencies to their latest versions (restart
+Claude Code afterward if the plugin itself updated).
 
 ## Data the toolkit uses (all local & private)
 
