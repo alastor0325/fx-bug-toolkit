@@ -1,0 +1,7 @@
+{
+  "name": "fx-bug-toolkit",
+  "description": "Firefox A/V bug investigation toolkit — bug-start hub plus profile/log analysis, spec checking, code navigation, and investigation write-up. Shared wiki is an optional accelerator.",
+  "version": "0.1.0",
+  "author": { "name": "Alastor Wu" },
+  "repository": "https://github.com/alastor0325/fx-bug-toolkit"
+}
