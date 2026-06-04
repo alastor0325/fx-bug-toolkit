@@ -65,12 +65,6 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
       **bash**, a file sourced for non-interactive shells (e.g. via `BASH_ENV`).
       Setting it only in `~/.zshrc`/`~/.bashrc` means the skills won't see it and
       will fall back to the default.
-- [ ] **`PROFILER_CLI`** — **OPTIONAL** (default
-      `~/projects/profiler-cli/dist/index.js`). Path to the profiler-cli binary.
-      ```bash
-      echo "PROFILER_CLI=${PROFILER_CLI:-(unset → default ~/projects/profiler-cli/dist/index.js)}"
-      ```
-      Set it only if profiler-cli is built somewhere other than the default.
 - [ ] **`WIKI_PATH`** — **OPTIONAL** (default `~/firefox-wiki`). Location of the
       optional shared wiki.
       ```bash
@@ -101,8 +95,8 @@ auto-installs).
 - [ ] **`node` + `npm`** — **[installable via nvm]**, needed for
       `/analyze-profile`. Check: `command -v node && command -v npm`.
 - [ ] **`profiler-cli`** — **[installable]** (needs node/npm + git), powers
-      `/analyze-profile`. Check:
-      `test -f "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}"`.
+      `/analyze-profile`. Check: `command -v profiler-cli` (it's put on PATH via
+      `npm link` during install).
 - [ ] **`mach` + a mozilla-central checkout** — **OPTIONAL**, **[guide-only]**.
       Local build / spec checks. Check: `command -v mach`. If missing, guide:
       <https://firefox-source-docs.mozilla.org/setup/>. (It's a whole checkout,
@@ -152,11 +146,12 @@ unselected ones):
    cargo install --git https://github.com/padenot/bmo-to-md   # bmo-to-md
    cargo install searchfox-cli                                 # searchfox-cli
    ```
-4. **profiler-cli** (if selected) — requires node/npm + git:
+4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build, then
+   `npm link` so the `profiler-cli` command lands on `PATH` (next to `node`):
    ```bash
    git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
-   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build
-   test -f dist/index.js && echo "✅ built dist/index.js" || echo "⚠️  build failed — check the repo README"
+   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build && npm link
+   command -v profiler-cli && echo "✅ profiler-cli on PATH" || echo "⚠️  not on PATH — ensure the npm global bin dir is on PATH"
    ```
 
 **Ordering guard:** never run a step whose toolchain is absent. If the user
@@ -179,7 +174,6 @@ item exactly once, in the group below. For Status use `✅`, `⚠️ <why>`, or
    - `~/.cargo/bin` on `$PATH` — so the Rust CLIs resolve — REQUIRED
 2. **Configurable locations** _(env vars)_
    - `FX_BUG_INVESTIGATION_DIR` — where investigation files are stored — OPTIONAL
-   - `PROFILER_CLI` — profiler-cli binary location — OPTIONAL
    - `WIKI_PATH` — shared-wiki location — OPTIONAL
 3. **Core CLIs** _(the toolkit's working tools)_
    - `bmo-to-md` — pull Bugzilla bug content — REQUIRED

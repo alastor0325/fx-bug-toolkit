@@ -117,7 +117,6 @@ things live:
 | Variable | Default | What it controls |
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
-| `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | location of the profiler-cli binary |
 | `WIKI_PATH` | `~/firefox-wiki` | location of the optional shared wiki |
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**

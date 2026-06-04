@@ -30,24 +30,23 @@ only the CSS shell with no profile data.
 
 ## Step 1 — Run standard query set
 
-The profiler-cli binary location is given by `$PROFILER_CLI` (default
-`~/projects/profiler-cli/dist/index.js`); the `init` skill checks for it and
-warns if it is missing. Always invoke as:
+`profiler-cli` is on your `PATH` (the `init` skill installs it via `npm link`).
+Always invoke as:
 ```bash
-node "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}" <url> <flags>
+profiler-cli <url> <flags>
 ```
 
 Run all of the following in parallel:
 
 ```bash
 # CPU hotspots
-node "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}" <url> --calltree 20
+profiler-cli <url> --calltree 20
 
 # Top markers by duration (IPC stalls, GC pauses, long tasks)
-node "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}" <url> --top-markers 20
+profiler-cli <url> --top-markers 20
 
 # All media log markers (about:logging output)
-node "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}" <url> --log-markers
+profiler-cli <url> --log-markers
 ```
 
 Then run targeted keyword searches based on the bug symptom:
