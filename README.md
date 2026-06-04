@@ -106,7 +106,9 @@ things live:
 | Variable | Default | What it controls |
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
-| `WIKI_PATH` | `~/firefox-wiki` | location of the optional shared wiki |
+
+(The optional shared wiki has its own `WIKI_PATH` setting — see
+[Optional: the shared wiki](#optional-the-shared-wiki).)
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
 > shell, so `export` the variable in a file those shells read — not only an
@@ -167,7 +169,16 @@ extend the toolkit's knowledge and sharpen the skills over time, without changin
 the skills themselves.
 
 It has two halves: the **plugin** (adds the `/firefox-wiki:*` commands) and its
-**content** (clone it to `~/firefox-wiki`, or point `WIKI_PATH` elsewhere).
+**content** (a git repo of knowledge). Clone the content to `~/firefox-wiki`, or
+keep it anywhere and point `WIKI_PATH` at it:
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `WIKI_PATH` | `~/firefox-wiki` | location of the shared-wiki content (optional — leave unset to use the default) |
+
+Like the other toolkit variable, `export` it where **non-interactive** shells
+read it — Claude Code runs skill commands non-interactively, so an
+interactive-only startup file won't be seen.
 
 **Entirely optional.** Every skill gates wiki access on a presence check
 (`${WIKI_PATH:-~/firefox-wiki}/INDEX.md`): if the wiki is there it's used; if not,
