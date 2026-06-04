@@ -100,8 +100,12 @@ These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
 
 > **Triage extras (only for `/triage`):** triage needs [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli)
-> for Bugzilla I/O and a `$TRIAGE_OWNER` env var (the Bugzilla email to CC/needinfo
-> on §1b-ready bugs). The **dashboard** is a separate web app installed **lazily**
+> for Bugzilla I/O and a `$TRIAGE_OWNER` — the triage owner's Bugzilla email. The
+> owner is CC'd/needinfo'd on a draft only when they **opt in** via the dashboard's
+> per-draft **"CC me" / "NI me"** checkboxes (**default off**); the skill no longer
+> auto-adds the owner. `$TRIAGE_OWNER` is **required and has no default** — the first
+> `/triage` run prompts you for it and persists your answer, so you never set it
+> by hand. The **dashboard** is a separate web app installed **lazily**
 > the first time you run `/triage` or `/triage-dashboard` (a one-time venv + pip
 > bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
 
@@ -115,9 +119,17 @@ things live:
 | Variable | Default | What it controls |
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
+| `TRIAGE_OWNER` | _(none — required for `/triage`)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off) |
+| `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
 [Optional: the shared wiki](#optional-the-shared-wiki).)
+
+> **`TRIAGE_OWNER` has no default.** The **first time you run `/triage`**, if
+> it's unset the skill asks you for the Bugzilla email (defaulting to your own
+> account) and persists it to `~/.fx-bug-toolkit.env.sh` so later runs reuse it.
+> `/triage` will not proceed without one, since it CCs/needinfo's that address on
+> every draft.
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
 > shell, so `export` the variable in a file those shells read — not only an
