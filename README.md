@@ -156,13 +156,23 @@ server, and the shared wiki are optional extras.
 
 ## Optional: the shared wiki
 
-The separate **[firefox-wiki-plugin](https://github.com/alastor0325/firefox-wiki-plugin)**
-makes investigations faster and smarter — Claude checks known component behavior
-before reading code, and contributes new findings back so the whole team benefits.
+The skills get smarter when paired with the separate
+**[firefox-wiki-plugin](https://github.com/alastor0325/firefox-wiki-plugin)** — a
+growing, shared knowledge base of Firefox component behavior, spec deviations, and
+debugging patterns. When it's present, skills like `/bug-start`,
+`/analyze-profile`, and `/check-log` **consult the wiki before reading code** and
+**contribute new findings back** (via `/firefox-wiki:add`), so each investigation
+makes the next one faster — for you and anyone sharing the wiki. This is how you
+extend the toolkit's knowledge and sharpen the skills over time, without changing
+the skills themselves.
 
-To use it: install the plugin and clone its content to `~/firefox-wiki` (or set
-`WIKI_PATH`). The toolkit detects it automatically and works perfectly fine
-**without** it.
+It has two halves: the **plugin** (adds the `/firefox-wiki:*` commands) and its
+**content** (clone it to `~/firefox-wiki`, or point `WIKI_PATH` elsewhere).
+
+**Entirely optional.** Every skill gates wiki access on a presence check
+(`${WIKI_PATH:-~/firefox-wiki}/INDEX.md`): if the wiki is there it's used; if not,
+the wiki steps are skipped silently — no setup, no errors, and `WIKI_PATH` is
+never required. The toolkit works fully on its own.
 
 ---
 
