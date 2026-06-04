@@ -34,6 +34,20 @@ or strip.
 
 ---
 
+## 🟢 Cross-platform polish (win/mac/linux)
+
+Verified: the executable code (`build_index.py`, `serve.py`) is cross-platform,
+and the viewer is browser-based. The launcher was bash; now `serve.py`
+(per-OS detach/kill). Remaining is unix-worded *guidance*:
+- [ ] `init`: add Windows install notes — `rustup-init.exe`, `nvm-windows`,
+      `%USERPROFILE%\.cargo\bin` on PATH. The tools themselves (cargo, npm, git,
+      python) are cross-platform; only the install instructions are unix-only.
+- [ ] Skill bash snippets (`command -v`, `~/`, `curl`, `||`) assume a POSIX
+      shell — fine under Claude Code's bundled git-bash on Windows; document that
+      Windows users need git-bash (Claude Code's default).
+- [ ] Optional: `serve.py` could auto-open the browser per-OS
+      (`open`/`xdg-open`/`start`).
+
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
 - [ ] Consider moving the download-guard cache under the toolkit namespace too
@@ -82,6 +96,11 @@ or strip.
   removed the personal `~/playready.txt` default log path.
 - `check-log` §7 history log moved to the fixed namespaced path
   `~/.fx-bug-toolkit/log-analysis.log` (internal state — not user-configurable).
+- Built the `/browse` investigation viewer (viewer.html + viewer.logic.js +
+  build_index.py), deep-linkable, served via cross-platform `serve.py`.
+- Test suite: `tests/` — Python (indexer unit + build/serve integration +
+  plugin-structure contracts), Node (`viewer.logic` units), Playwright
+  (`viewer.e2e.cjs` browser UI). Caught 5 real bugs during the review.
 - Renamed `check-firefox-log` → `check-log`.
 - Marked `spec-check`, `download-guard`, `source-links` as `user-invocable:
   false` (internal — Claude invokes them from other skills, hidden from the `/`
