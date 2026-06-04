@@ -21,6 +21,7 @@ from pathlib import Path
 
 VIEWER = Path(__file__).resolve().parents[1] / "viewer"
 ASSETS = ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg"]
+LAUNCHER_FILES = ASSETS + ["serve.py", "build_index.py"]
 
 
 def free_port() -> int:
@@ -95,5 +96,50 @@ class TestServeIntegration(unittest.TestCase):
                 srv.wait(timeout=5)
 
 
+class TestServeLauncher(unittest.TestCase):
+    """serve.py start/stop end-to-end, isolated in a temp copy on a free port."""
+
+    def test_serve_py_start_and_stop(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            inv = root / "inv"; inv.mkdir()
+            web = root / "web"; web.mkdir()
+            (inv / "bug-800001-investigation.md").write_text(
+                "---\nbug_id: 800001\nsummary: Launcher headline\n---\n# Bug 800001\nbody\n")
+            for f in LAUNCHER_FILES:
+                shutil.copy(VIEWER / f, web / f)
+
+            port = free_port()
+            env = dict(os.environ, FX_BUG_INVESTIGATION_DIR=str(inv), FX_VIEWER_PORT=str(port))
+            serve = str(web / "serve.py")
+
+            try:
+                r = subprocess.run([sys.executable, serve, "start"], env=env,
+                                   capture_output=True, text=True, timeout=30)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn(f":{port}", r.stdout)
+
+                base = f"http://127.0.0.1:{port}"
+                for _ in range(50):
+                    try:
+                        get(base + "/viewer.html"); break
+                    except Exception:
+                        time.sleep(0.1)
+                else:
+                    self.fail("serve.py did not come up")
+
+                self.assertEqual(get(base + "/viewer.html")[0], 200)
+                _, raw = get(base + "/index.json")
+                self.assertEqual(json.loads(raw)[0]["bug_id"], 800001)
+
+                st = subprocess.run([sys.executable, serve, "status"], env=env,
+                                    capture_output=True, text=True, timeout=10)
+                self.assertIn("running", st.stdout)
+            finally:
+                subprocess.run([sys.executable, serve, "stop"], env=env,
+                               capture_output=True, text=True, timeout=10)
+
+
 if __name__ == "__main__":
     unittest.main()
+

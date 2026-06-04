@@ -1036,17 +1036,18 @@ the user can read this write-up in a browser, then end your chat report with a
 deep link to this bug:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}/viewer/serve.sh" start
+SERVE="${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}/viewer/serve.py"
+python3 "$SERVE" start 2>/dev/null || python "$SERVE" start
 ```
 
-`serve.sh` rebuilds the index (so this bug appears) and prints the base URL
-(default `http://127.0.0.1:8777/viewer.html`). Make the **closing line** of your
-report a deep link — append the bug id as a URL fragment:
+`serve.py` (cross-platform) rebuilds the index (so this bug appears) and prints
+the base URL (default `http://127.0.0.1:8777/viewer.html`). Make the **closing
+line** of your report a deep link — append the bug id as a URL fragment:
 
     View this investigation → http://127.0.0.1:8777/viewer.html#{bug_id}
 
-If `serve.sh` fails (e.g. no `python3`), skip silently — the viewer is a
-convenience, not a requirement. The server binds to `127.0.0.1` only.
+If it fails (e.g. no `python`), skip silently — the viewer is a convenience, not
+a requirement. The server binds to `127.0.0.1` only.
 
 ## 11. Rename Session
 
