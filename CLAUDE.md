@@ -7,7 +7,8 @@ start of every implementation task.
 Non-negotiables (see the skill for the full loop):
 
 - **Tests must pass before committing.** `python3 -m unittest discover -s tests`
-  and `node --test tests/`; plus `node tests/viewer.e2e.cjs` when viewer DOM
+  and `node --test` (from the repo root — not `node --test tests/`, which fails
+  on Node ≥ 21); plus `node tests/viewer.e2e.cjs` when viewer DOM
   behavior changed.
 - **Extract pure logic so it's unit-testable** (`viewer/viewer.logic.js`;
   named functions in `build_index.py`). Every changed function gets a test.

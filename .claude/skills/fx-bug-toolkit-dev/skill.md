@@ -43,7 +43,7 @@ Add/adjust tests under `tests/`, then run — all must be green:
 
 ```bash
 python3 -m unittest discover -s tests      # indexer units + build/serve integration + plugin structure
-node --test tests/                          # viewer pure-logic units
+node --test                                 # viewer pure-logic units (from repo root; not `node --test tests/`)
 ```
 
 If you changed **viewer DOM behavior** (rendering, selection, search, keyboard,

@@ -9,6 +9,34 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.1.3] — 2026-06-04
+
+### Fixed
+- **`/analyze-profile` crashed on first use** (#5): `init` now runs `npx
+  playwright install firefox` after building `profiler-cli` (it drives a headless
+  Playwright Firefox), and `update` re-asserts the browser on rebuild. Without it
+  the first run died with `browserType.launch: Executable doesn't exist`.
+- **`/browse` & `bug-start` viewer launcher failed on other machines** (#4):
+  `${CLAUDE_PLUGIN_ROOT}` is neither substituted nor exported in skill Bash
+  ([claude-code#9354](https://github.com/anthropics/claude-code/issues/9354)).
+  The launcher now locates `serve.py` itself — via `CLAUDE_PLUGIN_ROOT` if set,
+  else the plugin's `bin/` on `PATH`, else the plugin cache — using Python so it
+  behaves identically in bash, zsh, and sh. No hardcoded maintainer path, and a
+  clear message instead of `python: command not found` when only `python3` exists.
+- **`update` masked failed CLI updates as "not installed"** (#6): replaced
+  `cmd -v && install || echo "not installed"` with explicit `if`/`else`, so a
+  failed `cargo install` now surfaces as a failure.
+
+### Changed
+- **`node --test tests/` → `node --test`** (#3): the directory positional is
+  `require()`d as a module on Node ≥ 21 and the run fails before any test. The
+  README, CI, dev-loop, and `test:logic` script now run `node --test` from the
+  repo root (auto-discovers `tests/*.test.js`).
+- **`spec-check` reads large specs reliably** (#7): Step 3 now points at the
+  smallest section-scoped URL (e.g. the HTML Standard `multipage/` chapter +
+  fragment) and names the exact algorithm in the WebFetch prompt, instead of
+  fetching the multi-MB single-page spec that WebFetch truncates.
+
 ## [0.1.2] — 2026-06-04
 
 ### Fixed
@@ -58,7 +86,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.2...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...HEAD
+[0.1.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.2...fx-bug-toolkit--v0.1.3
 [0.1.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.1...fx-bug-toolkit--v0.1.2
 [0.1.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.0...fx-bug-toolkit--v0.1.1
 [0.1.0]: https://github.com/alastor0325/fx-bug-toolkit/releases/tag/fx-bug-toolkit--v0.1.0

@@ -1,5 +1,5 @@
-/* Unit tests for viewer/viewer.logic.js — run with zero deps:
- *   node --test tests/
+/* Unit tests for viewer/viewer.logic.js — run with zero deps (from repo root):
+ *   node --test
  */
 const test = require("node:test");
 const assert = require("node:assert");

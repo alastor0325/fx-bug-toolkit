@@ -12,11 +12,15 @@ on macOS, Linux, and Windows. The browser E2E needs Playwright.
 # Python: indexer unit tests, end-to-end build, serve integration, plugin structure
 python3 -m unittest discover -s tests
 
-# Node: viewer pure-logic unit tests
-node --test tests/
+# Node: viewer pure-logic unit tests (run from the repo root)
+node --test
 ```
 
 (Requires `python3` with `pyyaml`, and `node` — both already toolkit deps.)
+
+> `node --test` with no path argument auto-discovers `tests/*.test.js`. Don't
+> pass a directory (`node --test tests/`) — on Node ≥ 21 the positional is
+> treated as a module to `require()` and the run fails before any test executes.
 
 ## Run the browser E2E (optional — needs Playwright)
 

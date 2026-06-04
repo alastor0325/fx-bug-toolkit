@@ -185,6 +185,10 @@ This pulls the plugin's latest changes and refreshes its CLI dependencies.
 - **`init` says `mach` is missing but I have a Firefox checkout.** That's
   expected — `mach` runs as `./mach` from your checkout, not as a global command.
   It's optional anyway.
+- **`/analyze-profile` fails with `browserType.launch: Executable doesn't
+  exist … Please run: npx playwright install`.** `profiler-cli` drives a headless
+  Playwright Firefox; install it once with `npx playwright install firefox` (run
+  in the `profiler-cli` directory) or just re-run `/init`, which now does this.
 - **On Windows, `init` reports installed tools as MISSING** (cargo, node,
   bmo-to-md, …). Claude Code's Bash tool (MSYS2/Git-bash) uses a minimal PATH
   that omits `~/.cargo/bin`, `C:\Program Files\nodejs`, and the npm global bin —

@@ -27,7 +27,7 @@ jobs:
         run: python -m unittest discover -s tests -v
       # viewer pure-logic units
       - name: Node logic tests
-        run: node --test tests/
+        run: node --test
 
   e2e:
     name: browser e2e (viewer + tutorial)

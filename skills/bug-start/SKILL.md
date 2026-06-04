@@ -1036,17 +1036,48 @@ the user can read this write-up in a browser, then end your chat report with a
 deep link to this bug:
 
 ```bash
-SERVE="${CLAUDE_PLUGIN_ROOT}/viewer/serve.py"
-python3 "$SERVE" start 2>/dev/null || python "$SERVE" start
+PY="$(command -v python3 || command -v python)"
+if [ -z "$PY" ]; then
+  echo "The viewer needs Python 3, which isn't on PATH (see /init)."
+else
+  SERVE="$("$PY" - <<'PYEOF'
+import os, glob
+def first_existing(paths):
+    for p in paths:
+        if p and os.path.isfile(p):
+            return p
+    return ""
+cands = []
+root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+if root:
+    cands.append(os.path.join(root, "viewer", "serve.py"))
+for d in os.environ.get("PATH", "").split(os.pathsep):
+    d = d.rstrip("/\\")
+    if os.path.basename(d) == "bin":
+        cands.append(os.path.join(os.path.dirname(d), "viewer", "serve.py"))
+hit = first_existing(cands)
+if not hit:
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    m = glob.glob(os.path.join(base, "plugins", "cache", "**", "viewer", "serve.py"), recursive=True)
+    hit = max(m, key=os.path.getmtime) if m else ""
+print(hit)
+PYEOF
+)"
+  [ -n "$SERVE" ] && "$PY" "$SERVE" start
+fi
 ```
 
 `serve.py` (cross-platform) rebuilds the index (so this bug appears) and prints
-the base URL (default `http://127.0.0.1:8777/viewer.html`). Make the **closing
-line** of your report a deep link — append the bug id as a URL fragment:
+the base URL (default `http://127.0.0.1:8777/viewer.html`). The launcher finds
+`serve.py` itself — `${CLAUDE_PLUGIN_ROOT}` is unreliable in skill Bash
+([claude-code#9354](https://github.com/anthropics/claude-code/issues/9354)), so
+it falls back to the plugin's `bin/` on `PATH`, then the plugin cache; Python
+does the lookup so it behaves the same in bash/zsh/sh. Make the **closing line**
+of your report a deep link — append the bug id as a URL fragment:
 
     View this investigation → http://127.0.0.1:8777/viewer.html#{bug_id}
 
-If it fails (e.g. no `python`), skip silently — the viewer is a convenience, not
+If it fails or prints nothing, skip silently — the viewer is a convenience, not
 a requirement. The server binds to `127.0.0.1` only.
 
 ## 11. Rename Session

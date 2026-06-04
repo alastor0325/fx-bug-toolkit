@@ -34,26 +34,43 @@ Tell the user to **restart Claude Code** afterward so the updated skills load.
 Only run each block if the tool is already installed (`command -v` succeeds).
 Skip-and-note otherwise.
 
+Use an explicit `if`/`else` for each — **not** `command -v … && install || echo
+"not installed"`. With `A && B || C`, a *failed* install (`B`) falls through to
+`C` and falsely reports the tool as "not installed", masking a real update
+failure. Surface install failures as failures:
+
 **`bmo-to-md`** (from git — re-pull and rebuild latest):
 ```bash
-command -v bmo-to-md >/dev/null && \
-  cargo install --git https://github.com/padenot/bmo-to-md --force || \
+if command -v bmo-to-md >/dev/null; then
+  cargo install --git https://github.com/padenot/bmo-to-md --force \
+    || echo "⚠️  bmo-to-md update FAILED"
+else
   echo "skip bmo-to-md (not installed — run /init)"
+fi
 ```
 
 **`searchfox-cli`** (from crates.io — latest published):
 ```bash
-command -v searchfox-cli >/dev/null && \
-  cargo install searchfox-cli --force || \
+if command -v searchfox-cli >/dev/null; then
+  cargo install searchfox-cli --force \
+    || echo "⚠️  searchfox-cli update FAILED"
+else
   echo "skip searchfox-cli (not installed — run /init)"
+fi
 ```
 
-**`profiler-cli`** (git pull + rebuild):
+**`profiler-cli`** (git pull + rebuild). `profiler-cli` drives a headless
+Playwright **Firefox** to load the profiler SPA, so re-assert the browser is
+installed after rebuilding (Playwright versions can bump):
 ```bash
 PDIR="${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
 if [ -d "$PDIR/.git" ]; then
-  git -C "$PDIR" pull --ff-only && (cd "$PDIR" && npm install && npm run build) && \
-    echo "✅ profiler-cli rebuilt" || echo "⚠️  profiler-cli update failed — check $PDIR"
+  if git -C "$PDIR" pull --ff-only \
+       && ( cd "$PDIR" && npm install && npm run build && npx playwright install firefox ); then
+    echo "✅ profiler-cli rebuilt"
+  else
+    echo "⚠️  profiler-cli update FAILED — check $PDIR"
+  fi
 else
   echo "skip profiler-cli (not cloned at $PDIR — run /init)"
 fi

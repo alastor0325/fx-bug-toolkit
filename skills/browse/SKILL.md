@@ -8,15 +8,52 @@ allowed-tools: [Bash]
 
 Build the index from the current investigation files and serve the local viewer,
 then give the user the URL. The launcher is `serve.py` (cross-platform —
-Windows/macOS/Linux):
+Windows/macOS/Linux). Run this exactly as-is:
 
 ```bash
-SERVE="${CLAUDE_PLUGIN_ROOT}/viewer/serve.py"
-python3 "$SERVE" start 2>/dev/null || python "$SERVE" start
+PY="$(command -v python3 || command -v python)"
+if [ -z "$PY" ]; then
+  echo "The viewer needs Python 3, which isn't on PATH (see /init)."
+else
+  SERVE="$("$PY" - <<'PYEOF'
+import os, glob
+def first_existing(paths):
+    for p in paths:
+        if p and os.path.isfile(p):
+            return p
+    return ""
+cands = []
+root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+if root:
+    cands.append(os.path.join(root, "viewer", "serve.py"))
+for d in os.environ.get("PATH", "").split(os.pathsep):
+    d = d.rstrip("/\\")
+    if os.path.basename(d) == "bin":
+        cands.append(os.path.join(os.path.dirname(d), "viewer", "serve.py"))
+hit = first_existing(cands)
+if not hit:
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    m = glob.glob(os.path.join(base, "plugins", "cache", "**", "viewer", "serve.py"), recursive=True)
+    hit = max(m, key=os.path.getmtime) if m else ""
+print(hit)
+PYEOF
+)"
+  if [ -n "$SERVE" ]; then
+    "$PY" "$SERVE" start
+  else
+    echo "Could not locate the fx-bug-toolkit viewer (serve.py). Make sure the plugin is installed and Claude Code was restarted (then try /update)."
+  fi
+fi
 ```
 
-(`${CLAUDE_PLUGIN_ROOT}` is substituted with the plugin's real install path when
-this skill loads — works wherever the plugin lives.)
+Why this shape (don't "simplify" it): `${CLAUDE_PLUGIN_ROOT}` is **not** reliably
+substituted or exported into skill Bash ([claude-code#9354](https://github.com/anthropics/claude-code/issues/9354)),
+so the launcher locates `serve.py` itself — via `CLAUDE_PLUGIN_ROOT` if it
+happens to be set, else the plugin's own `bin/` on `PATH`, else the Claude Code
+plugin cache. Python (needed to run the viewer anyway) does the lookup so it
+works the same in bash, zsh, and sh. Pick `python3`/`python` once — never
+`… || python`, which prints a confusing `python: command not found` when only
+`python3` exists.
 
 Then:
 - Tell the user it's at **http://127.0.0.1:8777/viewer.html** (the launcher

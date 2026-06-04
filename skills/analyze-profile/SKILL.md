@@ -31,6 +31,12 @@ only the CSS shell with no profile data.
 ## Step 1 — Run standard query set
 
 `profiler-cli` is on your `PATH` (the `init` skill installs it via `npm link`).
+It drives a headless Playwright **Firefox** to load the profiler SPA, so that
+browser must be installed too (`init` runs `npx playwright install firefox`). If
+a run fails with `browserType.launch: Executable doesn't exist … Please run: npx
+playwright install`, the browser is missing — run `npx playwright install
+firefox` (in the profiler-cli dir) or re-run `/init`, then retry.
+
 Always invoke as:
 ```bash
 profiler-cli <url> <flags>

@@ -165,10 +165,17 @@ Then install **only the selected** items, in this dependency order:
    cargo install --git https://github.com/padenot/bmo-to-md   # bmo-to-md
    cargo install searchfox-cli                                 # searchfox-cli
    ```
-4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build, `npm link`:
+4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build,
+   `npm link`, then install its headless browser. profiler-cli drives a headless
+   Playwright **Firefox** to load the profiler SPA, so `npx playwright install
+   firefox` is **required** — without it the *first* `/analyze-profile` run
+   crashes with `browserType.launch: Executable doesn't exist … Please run: npx
+   playwright install`:
    ```bash
    git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
-   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build && npm link
+   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" \
+     && npm install && npm run build && npm link \
+     && npx playwright install firefox
    ```
    Verify with the `have` resolver from Checklist B (not bare `command -v`, which
    misses Windows' npm global bin): `report profiler-cli profiler-cli`.
