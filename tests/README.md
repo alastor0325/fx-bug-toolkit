@@ -37,6 +37,7 @@ node viewer.e2e.cjs
 | Plugin structure | `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; folder == `name`; invocable-vs-internal contract; agent frontmatter |
 | Viewer logic | `viewer.logic.test.js` | unit | `escapeHtml`, `sfUrl`, `bz`, `depthMeta`, chip builders, `matchesQuery`, `byDate` |
 | Viewer UI | `viewer.e2e.cjs` | e2e (browser) | every feature: render + newest-first, result count, depth/complexity/folder chips, sparse rows, search + empty state + clear, sort toggle, click→detail (heading, root cause, bugzilla link, searchfox affected-file links, related-bug links, rendered markdown, links open new-tab), hash updates on select, deep-link by `#hash`, hashchange on open page, `/`+`Esc`, `s`/`w`/`j`/`k` nav, `b` + `\` + toggle-button fold |
+| Tutorial UI | `tutorial.e2e.cjs` | e2e (browser) | the tutorial page: display title, all chapter links, repo + wiki links, TOC chapter→hash, scrollspy hash-sync (bookmarkable), foldable TOC toggle (inside the rail), click-to-enlarge lightbox open/backdrop-close/Esc-close |
 
 The DOM-free logic lives in `viewer/viewer.logic.js` so it can be unit-tested in
 Node and reused by the page; the DOM wiring is covered by the browser E2E.
