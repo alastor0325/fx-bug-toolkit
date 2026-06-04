@@ -18,7 +18,8 @@ SKILLS = ROOT / "skills"
 
 # skills deliberately marked `user-invocable: false` (helpers Claude calls, not
 # user slash-commands). Keep this in sync with the design.
-EXPECTED_INTERNAL = {"spec-check", "download-guard", "source-links", "update-investigation"}
+EXPECTED_INTERNAL = {"spec-check", "download-guard", "source-links", "update-investigation",
+                     "triage-apply-feedback"}
 
 
 def parse_frontmatter(path: Path) -> dict:
