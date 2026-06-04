@@ -100,12 +100,16 @@ To publish a shippable change:
    - **patch** (`0.1.0 → 0.1.1`): bug fixes, small internal tweaks to shipped files
    - **minor** (`0.1.0 → 0.2.0`): a new command/skill or feature
    - **major** (`0.1.0 → 1.0.0`): breaking change (renamed/removed command, changed default/env-var)
-2. **Commit** the bump (with the change, or as its own `release: vX.Y.Z` commit).
-3. **Tag + push** (validates `plugin.json` ↔ marketplace entry agree):
+2. **Update `CHANGELOG.md`** — move the `[Unreleased]` items under a new
+   `## [X.Y.Z] — YYYY-MM-DD` heading, and refresh the compare/tag links at the
+   bottom.
+3. **Commit** the bump + changelog (with the change, or as its own
+   `release: vX.Y.Z` commit).
+4. **Tag + push** (validates `plugin.json` ↔ marketplace entry agree):
    ```bash
    claude plugin tag --push -m "fx-bug-toolkit %s"
    ```
-4. **(Optional) GitHub release** for a changelog:
+5. **(Optional) GitHub release** — reuse the changelog section as the notes:
    ```bash
    gh release create fx-bug-toolkit--vX.Y.Z --title vX.Y.Z --notes "…"
    ```

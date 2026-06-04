@@ -194,3 +194,6 @@ Code lives in `viewer/` (the indexer + the browse UI); the skills are in
 changes follow the **fx-bug-toolkit Dev Loop**
 ([`.claude/skills/fx-bug-toolkit-dev/skill.md`](.claude/skills/fx-bug-toolkit-dev/skill.md)):
 extract pure logic, unit-test it, and run the suite before committing.
+
+Releases are versioned (`plugin.json` + a `fx-bug-toolkit--vX.Y.Z` tag); see the
+[changelog](CHANGELOG.md).
