@@ -5,7 +5,7 @@ Fully isolated — copies the viewer assets into a temp dir and serves on an
 ephemeral port, so it never touches the user's real ~/.fx-bug-toolkit data or a
 running /browse server.
 
-    python3 -m unittest discover -s tests
+    python3 -m unittest discover -s viewer/tests
 """
 import json
 import os
@@ -19,7 +19,7 @@ import unittest
 import urllib.request
 from pathlib import Path
 
-VIEWER = Path(__file__).resolve().parents[1] / "viewer"
+VIEWER = Path(__file__).resolve().parents[1]  # viewer/tests -> viewer/
 ASSETS = ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg"]
 LAUNCHER_FILES = ASSETS + ["serve.py", "build_index.py"]
 

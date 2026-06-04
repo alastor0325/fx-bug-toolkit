@@ -1,52 +1,53 @@
 # Tests
 
-Covers the only executable code in the plugin — the investigation **viewer** and
-its **indexer** (everything else is prompt text; its structure is checked too).
+Tests are split into two suites **by coupling**, not by language:
 
-Cross-platform: the Python and Node suites use only the standard library and run
-on macOS, Linux, and Windows. The browser E2E needs Playwright.
+| Suite | Location | Scope |
+|---|---|---|
+| **Plugin + seam** | `tests/` (this dir) | plugin structure contracts and the **skill↔viewer seam** |
+| **Viewer** | [`viewer/tests/`](../viewer/tests/) | the viewer component, in isolation — travels with `viewer/` |
+
+The split mirrors how the plugin is packaged: a component owns its internal
+tests; the top-level suite owns the *contracts between* components (the things
+that break when a component moves or its interface drifts).
+
+One Node package at the **repo root** (`package.json` + `node_modules`) serves
+both suites, so `require("playwright")` resolves from either location.
+
+## This suite (`tests/`)
+
+| File | Kind | Covers |
+|---|---|---|
+| `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; `folder == name`; invocable-vs-internal contract; agent frontmatter |
+| `test_serve_locator.py` | contract (**seam**) | the inline Python locator embedded in `browse`/`bug-start` that finds the shipped `viewer/serve.py` — via `$CLAUDE_PLUGIN_ROOT`, the plugin's `bin/` on `$PATH`, then the plugin cache |
+| `tutorial.e2e.cjs` | e2e (browser) | the tutorial page: title, chapter links, repo + wiki links, TOC chapter→hash, scrollspy hash-sync, foldable TOC toggle, click-to-enlarge lightbox open/backdrop/Esc |
 
 ## Run (no extra installs)
 
 ```bash
-# Python: indexer unit tests, end-to-end build, serve integration, plugin structure
+# Plugin structure + serve-locator seam
 python3 -m unittest discover -s tests
 
-# Node: viewer pure-logic unit tests (run from the repo root)
+# Viewer indexer + build/serve integration (the other suite)
+python3 -m unittest discover -s viewer/tests
+
+# Viewer pure-logic units (node --test finds *.test.js recursively, anywhere)
 node --test
 ```
 
 (Requires `python3` with `pyyaml`, and `node` — both already toolkit deps.)
 
-> `node --test` with no path argument auto-discovers `tests/*.test.js`. Don't
-> pass a directory (`node --test tests/`) — on Node ≥ 21 the positional is
+> `node --test` with no path argument auto-discovers `*.test.js` recursively.
+> Don't pass a directory (`node --test tests/`) — on Node ≥ 21 the positional is
 > treated as a module to `require()` and the run fails before any test executes.
 
 ## Run the browser E2E (optional — needs Playwright)
 
 ```bash
-cd tests
-npm install
+npm install                          # from the repo root
 npx playwright install chromium
-node viewer.e2e.cjs          # viewer DOM behaviour (assets from a test server)
-node viewer.serve.e2e.cjs    # full chain: real serve.py + build_index.py + browser
+node tests/tutorial.e2e.cjs          # the tutorial-page E2E lives in this suite
 ```
 
-(`viewer.serve.e2e.cjs` also needs `python3` with `pyyaml`, since it runs the
-real `serve.py`/`build_index.py`.)
-
-## What's covered
-
-| Suite | File | Kind | Covers |
-|---|---|---|---|
-| Indexer | `test_build_index.py` | unit + e2e | frontmatter parsing, `clean_md` (keeps identifier `_`), `card_label`, `preview` fallback chain, recursive scan, numeric vs slug ids, folders, exclusions, sort |
-| Serve (static) | `test_serve.py` | integration | builds the index + serves the real assets on an ephemeral port; every asset returns 200; served index is valid |
-| Serve (launcher) | `test_serve.py` | integration | `serve.py` start / status / restart / stop end-to-end on a free port, isolated copy |
-| Plugin structure | `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; folder == `name`; invocable-vs-internal contract; agent frontmatter |
-| Viewer logic | `viewer.logic.test.js` | unit | `escapeHtml`, `sfUrl`, `bz`, `depthMeta`, chip builders, `matchesQuery`, `byDate` |
-| Viewer UI | `viewer.e2e.cjs` | e2e (browser) | every feature: render + newest-first, result count, depth/complexity/folder chips, sparse rows, search + empty state + clear, sort toggle, click→detail (heading, root cause, bugzilla link, searchfox affected-file links, related-bug links, rendered markdown, links open new-tab), hash updates on select, deep-link by `#hash`, hashchange on open page, `/`+`Esc`, `s`/`w`/`j`/`k` nav, `b` + `\` + toggle-button fold |
-| Viewer (full chain) | `viewer.serve.e2e.cjs` | e2e (browser) | the **shipped `serve.py`** builds the index from real `.md` frontmatter (via `build_index.py`) and serves it; a real browser loads the served page and asserts render, search, clear, and click→detail. Covers serve.py → build_index → HTTP → browser end-to-end (needs `python3`+`pyyaml`) |
-| Tutorial UI | `tutorial.e2e.cjs` | e2e (browser) | the tutorial page: display title, all chapter links, repo + wiki links, TOC chapter→hash, scrollspy hash-sync (bookmarkable), foldable TOC toggle (inside the rail), click-to-enlarge lightbox open/backdrop-close/Esc-close |
-
-The DOM-free logic lives in `viewer/viewer.logic.js` so it can be unit-tested in
-Node and reused by the page; the DOM wiring is covered by the browser E2E.
+The viewer browser E2E lives in the viewer suite — see
+[`viewer/tests/README.md`](../viewer/tests/README.md).

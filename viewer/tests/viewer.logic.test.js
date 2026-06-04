@@ -5,7 +5,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const path = require("node:path");
 
-const VL = require(path.join(__dirname, "..", "viewer", "viewer.logic.js"));
+const VL = require(path.join(__dirname, "..", "viewer.logic.js"));
 
 test("escapeHtml escapes the dangerous characters incl. quotes", () => {
   assert.strictEqual(VL.escapeHtml('a<b>&"c'), "a&lt;b&gt;&amp;&quot;c");

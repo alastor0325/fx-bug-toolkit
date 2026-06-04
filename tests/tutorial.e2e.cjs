@@ -3,7 +3,7 @@
  * (scrollspy + anchor jumps), the click-to-enlarge lightbox, and the repo/wiki
  * links.
  *
- *   cd tests && npm install && npx playwright install chromium
+ *   npm install && npx playwright install chromium   (from the repo root)
  *   node tests/tutorial.e2e.cjs
  *
  * Runs all checks (a failure doesn't hide later ones); exits non-zero if any failed.

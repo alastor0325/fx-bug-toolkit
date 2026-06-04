@@ -21,11 +21,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      # indexer units + build/serve integration + serve.py launcher (exercises
-      # the per-OS detach/kill branches) + plugin-structure contracts
-      - name: Python tests
+      # plugin-structure contracts + the skill<->viewer serve-locator seam
+      - name: Plugin + seam tests
         run: python -m unittest discover -s tests -v
-      # viewer pure-logic units
+      # viewer indexer units + build/serve integration + serve.py launcher
+      # (exercises the per-OS detach/kill branches)
+      - name: Viewer Python tests
+        run: python -m unittest discover -s viewer/tests -v
+      # viewer pure-logic units (node --test finds *.test.js recursively)
       - name: Node logic tests
         run: node --test
 
@@ -42,13 +45,12 @@ jobs:
         with:
           node-version: "20"
       - name: Install Playwright + Chromium
-        working-directory: tests
         run: |
           npm install
           npx playwright install --with-deps chromium
       - name: Viewer E2E
-        run: node tests/viewer.e2e.cjs
+        run: node viewer/tests/viewer.e2e.cjs
       - name: Viewer serve E2E (real serve.py + browser)
-        run: node tests/viewer.serve.e2e.cjs
+        run: node viewer/tests/viewer.serve.e2e.cjs
       - name: Tutorial E2E
         run: node tests/tutorial.e2e.cjs

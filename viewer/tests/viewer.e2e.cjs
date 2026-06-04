@@ -4,8 +4,8 @@
  * Self-contained: builds a fixture index, serves the real viewer assets on an
  * ephemeral port, drives a real browser, asserts every feature, tears down.
  *
- *   cd tests && npm install && npx playwright install chromium
- *   node tests/viewer.e2e.cjs
+ *   npm install && npx playwright install chromium   (from the repo root)
+ *   node viewer/tests/viewer.e2e.cjs
  *
  * Runs all checks (a failure doesn't hide later ones); exits non-zero if any failed.
  */
@@ -15,7 +15,7 @@ const path = require("node:path");
 const assert = require("node:assert");
 const { chromium } = require("playwright");
 
-const VIEWER = path.join(__dirname, "..", "viewer");
+const VIEWER = path.join(__dirname, "..");  // viewer/tests -> viewer/
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml" };
 
 const INDEX = [

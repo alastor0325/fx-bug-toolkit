@@ -1,6 +1,6 @@
 """Unit + end-to-end tests for viewer/build_index.py.
 
-Run with zero extra deps:  python3 -m unittest discover -s tests
+Run with zero extra deps:  python3 -m unittest discover -s viewer/tests
 (requires pyyaml, which the toolkit already depends on)
 """
 import importlib.util
@@ -13,7 +13,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-VIEWER = Path(__file__).resolve().parents[1] / "viewer"
+VIEWER = Path(__file__).resolve().parents[1]  # viewer/tests -> viewer/
 
 # import build_index.py as a module (its top-level only computes paths from env)
 _spec = importlib.util.spec_from_file_location("build_index", VIEWER / "build_index.py")

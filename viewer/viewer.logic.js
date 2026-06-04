@@ -1,6 +1,6 @@
 /* viewer.logic.js — pure, DOM-free helpers for the investigation viewer.
  * Loaded as a plain <script> in the browser (defines globals) AND require()-d
- * by the Node unit tests (tests/viewer.logic.test.js). Keep this file free of
+ * by the Node unit tests (viewer/tests/viewer.logic.test.js). Keep this file free of
  * any DOM / window references so both work. */
 
 function escapeHtml(s) {

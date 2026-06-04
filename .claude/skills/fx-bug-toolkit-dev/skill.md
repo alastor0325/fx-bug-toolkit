@@ -39,20 +39,29 @@ Implement. Keep entry points thin (DOM wiring in `viewer.html`; `main()` in the
 Python scripts) and put logic in pure functions you can test directly.
 
 ### Step 3 — Write Tests & run the suite
-Add/adjust tests under `tests/`, then run — all must be green:
+Tests live in two suites, by coupling — put new tests in the matching one:
+- **`tests/`** — plugin-level: structure contracts + the skill↔viewer seam
+  (`test_plugin_structure.py`, `test_serve_locator.py`, `tutorial.e2e.cjs`).
+- **`viewer/tests/`** — viewer-internal, travels with the component
+  (`test_build_index.py`, `test_serve.py`, `viewer.logic.test.js`,
+  `viewer.e2e.cjs`, `viewer.serve.e2e.cjs`).
+
+Then run — all must be green:
 
 ```bash
-python3 -m unittest discover -s tests      # indexer units + build/serve integration + plugin structure
-node --test                                 # viewer pure-logic units (from repo root; not `node --test tests/`)
+python3 -m unittest discover -s tests          # plugin structure + serve-locator seam
+python3 -m unittest discover -s viewer/tests    # viewer indexer + build/serve integration
+node --test                                     # viewer pure-logic units (recursive; from repo root, not `node --test tests/`)
 ```
 
 If you changed **viewer DOM behavior** (rendering, selection, search, keyboard,
-deep-link, fold), also run the browser E2E:
+deep-link, fold), also run the browser E2E (one node package at the repo root
+serves both suites):
 
 ```bash
-cd tests && npm install && npx playwright install chromium   # first time only
-node tests/viewer.e2e.cjs          # DOM behaviour (assets via a test server)
-node tests/viewer.serve.e2e.cjs    # full chain: real serve.py + build_index + browser
+npm install && npx playwright install chromium   # first time only, from the repo root
+node viewer/tests/viewer.e2e.cjs          # DOM behaviour (assets via a test server)
+node viewer/tests/viewer.serve.e2e.cjs    # full chain: real serve.py + build_index + browser
 ```
 
 If you touched **`serve.py` or `build_index.py`**, run `viewer.serve.e2e.cjs` —

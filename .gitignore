@@ -6,6 +6,6 @@ __pycache__/
 viewer/index.json
 viewer/.run/
 
-# test deps
-tests/node_modules/
-tests/package-lock.json
+# test deps (one node package at the repo root serves tests/ and viewer/tests/)
+/node_modules/
+/package-lock.json

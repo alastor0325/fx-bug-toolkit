@@ -10,8 +10,8 @@
  * Self-contained + isolated: copies the viewer into a temp dir, builds from a
  * temp investigation dir, serves on a free port, tears everything down.
  *
- *   cd tests && npm install && npx playwright install chromium
- *   node tests/viewer.serve.e2e.cjs        (needs python3 + pyyaml)
+ *   npm install && npx playwright install chromium   (from the repo root)
+ *   node viewer/tests/viewer.serve.e2e.cjs        (needs python3 + pyyaml)
  *
  * Runs all checks (a failure doesn't hide later ones); exits non-zero if any failed.
  */
@@ -24,7 +24,7 @@ const assert = require("node:assert");
 const { spawnSync } = require("node:child_process");
 const { chromium } = require("playwright");
 
-const VIEWER = path.join(__dirname, "..", "viewer");
+const VIEWER = path.join(__dirname, "..");  // viewer/tests -> viewer/
 // everything serve.py needs to build + serve from an isolated copy
 const LAUNCHER_FILES = ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg", "serve.py", "build_index.py"];
 

@@ -1,0 +1,14 @@
+{
+  "name": "fx-bug-toolkit-tests",
+  "private": true,
+  "description": "Node test harness for the fx-bug-toolkit viewer + tutorial (one node_modules at the repo root serves tests/ and viewer/tests/).",
+  "scripts": {
+    "test:logic": "node --test",
+    "test:e2e": "node viewer/tests/viewer.e2e.cjs",
+    "test:e2e:serve": "node viewer/tests/viewer.serve.e2e.cjs",
+    "test:e2e:tutorial": "node tests/tutorial.e2e.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

@@ -13,13 +13,13 @@ Run this from inside the repo; set `ROOT` to its top level:
 
 1. **Ensure Playwright is available** (first time only):
    ```bash
-   ( cd "$ROOT/tests" && npm install && npx playwright install chromium )
+   ( cd "$ROOT" && npm install && npx playwright install chromium )
    ```
 
 2. **Regenerate the viewer screenshot** the tutorial embeds (driven against the
    *current* viewer + the real example investigation):
    ```bash
-   NODE_PATH="$ROOT/tests/node_modules" node "$ROOT/tutorial/shoot.cjs"
+   NODE_PATH="$ROOT/node_modules" node "$ROOT/tutorial/shoot.cjs"
    ```
 
 3. **Verify the tutorial page still works** (TOC, hash-sync, lightbox, links):
