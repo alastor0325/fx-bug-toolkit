@@ -135,6 +135,18 @@ class TestServeLauncher(unittest.TestCase):
                 st = subprocess.run([sys.executable, serve, "status"], env=env,
                                     capture_output=True, text=True, timeout=10)
                 self.assertIn("running", st.stdout)
+
+                # restart keeps it serving
+                rr = subprocess.run([sys.executable, serve, "restart"], env=env,
+                                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(rr.returncode, 0, rr.stderr)
+                for _ in range(50):
+                    try:
+                        if get(base + "/viewer.html")[0] == 200:
+                            break
+                    except Exception:
+                        time.sleep(0.1)
+                self.assertEqual(get(base + "/viewer.html")[0], 200)
             finally:
                 subprocess.run([sys.executable, serve, "stop"], env=env,
                                capture_output=True, text=True, timeout=10)

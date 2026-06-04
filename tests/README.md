@@ -32,10 +32,11 @@ node viewer.e2e.cjs
 | Suite | File | Kind | Covers |
 |---|---|---|---|
 | Indexer | `test_build_index.py` | unit + e2e | frontmatter parsing, `clean_md` (keeps identifier `_`), `card_label`, `preview` fallback chain, recursive scan, numeric vs slug ids, folders, exclusions, sort |
-| Serve | `test_serve.py` | integration | builds the index + serves the real assets on an ephemeral port; every asset returns 200; served index is valid |
+| Serve (static) | `test_serve.py` | integration | builds the index + serves the real assets on an ephemeral port; every asset returns 200; served index is valid |
+| Serve (launcher) | `test_serve.py` | integration | `serve.py` start / status / restart / stop end-to-end on a free port, isolated copy |
 | Plugin structure | `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; folder == `name`; invocable-vs-internal contract; agent frontmatter |
 | Viewer logic | `viewer.logic.test.js` | unit | `escapeHtml`, `sfUrl`, `bz`, `depthMeta`, chip builders, `matchesQuery`, `byDate` |
-| Viewer UI | `viewer.e2e.cjs` | e2e (browser) | renders rows, search filters, click→detail, deep-link by `#hash`, `w`/`s` keyboard nav, `b` fold |
+| Viewer UI | `viewer.e2e.cjs` | e2e (browser) | every feature: render + newest-first, result count, depth/complexity/folder chips, sparse rows, search + empty state + clear, sort toggle, click→detail (heading, root cause, bugzilla link, searchfox affected-file links, related-bug links, rendered markdown, links open new-tab), hash updates on select, deep-link by `#hash`, hashchange on open page, `/`+`Esc`, `s`/`w`/`j`/`k` nav, `b` + `\` + toggle-button fold |
 
 The DOM-free logic lives in `viewer/viewer.logic.js` so it can be unit-tested in
 Node and reused by the page; the DOM wiring is covered by the browser E2E.
