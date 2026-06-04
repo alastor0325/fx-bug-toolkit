@@ -45,6 +45,7 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
         *) echo '⚠️  ~/.cargo/bin NOT on PATH → add to your shell rc: export PATH="$HOME/.cargo/bin:$PATH"';;
       esac
       ```
+      *(Windows: rustup adds `%USERPROFILE%\.cargo\bin` to PATH automatically.)*
 - [ ] **Node/npm on `$PATH`** — **REQUIRED for `/analyze-profile`** (building
       profiler-cli); otherwise optional.
       ```bash
@@ -140,6 +141,9 @@ unselected ones):
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
    source "$HOME/.cargo/env"
    ```
+   *Windows:* download and run `rustup-init.exe` from <https://rustup.rs> (it
+   adds `%USERPROFILE%\.cargo\bin` to PATH). `cargo install …` then works the
+   same. Run the `cargo install` steps below in any shell.
 2. **nvm + node** (if `node` selected):
    ```bash
    # check https://github.com/nvm-sh/nvm for the latest version tag
@@ -147,6 +151,8 @@ unselected ones):
    export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
    nvm install --lts
    ```
+   *Windows:* use [nvm-windows](https://github.com/coreybutler/nvm-windows) or
+   install Node from <https://nodejs.org>. `npm` then works the same.
 3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`
    present (pre-existing or just installed in step 1):
    ```bash
