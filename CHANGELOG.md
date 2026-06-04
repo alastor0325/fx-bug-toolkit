@@ -9,6 +9,25 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.0] — 2026-06-04
+
+### Added
+- **Triage workflow** — `/triage` (Firefox A/V weekly bug triage: completeness,
+  duplicate detection, P/S, needinfo drafting, meta-bug blocking; parallel sweep
+  of watched + recent bugs, writing reviewable drafts) and `/triage-apply-feedback`
+  (internal — re-drafts from queue feedback). Ported from the maintainer's personal
+  skills, generalized: the CC/needinfo target is configurable via `$TRIAGE_OWNER`,
+  the investigation dir is `$FX_BUG_INVESTIGATION_DIR`, and personal-workflow
+  machinery (cron, usage telemetry, a personal GitHub auto-push) was dropped.
+  Triage needs [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) +
+  `$TRIAGE_OWNER`; it is **not** part of `/init` (investigate-only use stays lean).
+- **`/triage-dashboard`** — opens the [triage dashboard](https://github.com/alastor0325/firefox-triage-dashboard)
+  (a web UI over the drafts + investigations) at `http://127.0.0.1:8765/`. It's a
+  separate pip app installed **lazily** into a managed venv (`~/.fx-bug-toolkit/venv`)
+  the first time it's needed — consent-gated, so investigate-only users never pull
+  the FastAPI stack. `/triage` opens it at the end of a full session; `/update`
+  refreshes it when present.
+
 ## [0.1.5] — 2026-06-04
 
 ### Changed
@@ -115,7 +134,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...HEAD
+[0.2.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...fx-bug-toolkit--v0.2.0
 [0.1.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...fx-bug-toolkit--v0.1.5
 [0.1.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...fx-bug-toolkit--v0.1.4
 [0.1.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.2...fx-bug-toolkit--v0.1.3

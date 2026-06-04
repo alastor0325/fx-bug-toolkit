@@ -81,6 +81,8 @@ source plugin shown next to each.
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
 | `/browse` | Open a local web viewer to search & read all your past investigations |
+| `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
+| `/triage-dashboard` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)
@@ -88,6 +90,7 @@ source plugin shown next to each.
 | Helper | What it does |
 |---|---|
 | `update-investigation` | Revises an investigation file (ask in plain language, or `bug-start` uses it) |
+| `triage-apply-feedback` | Re-drafts a triage draft from your feedback (the dashboard's queue drain uses it) |
 | `spec-check` | Checks spec conformance (web specs + codec/format/protocol) |
 | `download-guard` | Asks before downloading any external file, into one safe folder |
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
@@ -95,6 +98,12 @@ source plugin shown next to each.
 
 These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
+
+> **Triage extras (only for `/triage`):** triage needs [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli)
+> for Bugzilla I/O and a `$TRIAGE_OWNER` env var (the Bugzilla email to CC/needinfo
+> on §1b-ready bugs). The **dashboard** is a separate web app installed **lazily**
+> the first time you run `/triage` or `/triage-dashboard` (a one-time venv + pip
+> bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
 
 ---
 

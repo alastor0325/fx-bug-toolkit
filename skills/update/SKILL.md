@@ -76,6 +76,18 @@ else
 fi
 ```
 
+**triage dashboard** (only if it was lazily installed by `/triage-dashboard`):
+```bash
+VENV="$HOME/.fx-bug-toolkit/venv"
+BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
+if [ -x "$BIN/pip" ]; then
+  "$BIN/pip" install --quiet --upgrade "git+https://github.com/alastor0325/firefox-triage-dashboard" \
+    && echo "✅ triage dashboard updated" || echo "⚠️  triage dashboard update FAILED"
+else
+  echo "skip triage dashboard (not installed — /triage-dashboard installs it on first use)"
+fi
+```
+
 ## Step 3 — Report, don't auto-update, the system tools
 
 `node`, `python3`, `git`, and `mach` are managed outside this toolkit
