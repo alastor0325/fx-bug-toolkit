@@ -9,6 +9,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.1] — 2026-06-04
+
+### Fixed
+- **`/triage-dashboard` launch** — replaced the fragile `nohup … & ; sleep 1`
+  start (which detached unreliably from the non-interactive tool shell and
+  claimed "serving" before uvicorn had bound) with a cross-platform detached
+  spawn (`start_new_session` / Windows `DETACHED_PROCESS`, like `serve.py`) plus
+  a readiness poll that only reports success once the server actually answers.
+  Found via a live smoke test of the lazy bootstrap.
+
 ## [0.2.0] — 2026-06-04
 
 ### Added
@@ -134,7 +144,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.1...HEAD
+[0.2.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...fx-bug-toolkit--v0.2.1
 [0.2.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...fx-bug-toolkit--v0.2.0
 [0.1.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...fx-bug-toolkit--v0.1.5
 [0.1.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...fx-bug-toolkit--v0.1.4

@@ -52,14 +52,37 @@ so this skill returns; skip if it's already up.
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
+PY="$BIN/python"; [ -x "$PY" ] || PY="$(command -v python3 || command -v python)"
+LOG="$HOME/.fx-bug-toolkit/dashboard.log"
 URL="http://127.0.0.1:${PORT:-8765}/"
-if command -v curl >/dev/null && curl -fsS -o /dev/null "$URL" 2>/dev/null; then
+if curl -fsS -o /dev/null "$URL" 2>/dev/null; then
   echo "already running — $URL"
 else
   mkdir -p "$HOME/.fx-bug-toolkit"
-  nohup "$BIN/triage-dashboard" > "$HOME/.fx-bug-toolkit/dashboard.log" 2>&1 &
-  sleep 1
-  echo "serving — $URL"
+  # Detach via a new session/process group so the server survives this
+  # (non-interactive) shell exiting — a bare `nohup … &` is unreliable here,
+  # especially on Windows. Same cross-platform approach as the viewer's serve.py.
+  "$PY" - "$BIN/triage-dashboard" "$LOG" <<'PYEOF'
+import os, subprocess, sys
+exe, log = sys.argv[1], sys.argv[2]
+kw = {"stdout": open(log, "ab"), "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL}
+if os.name == "nt":
+    kw["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+else:
+    kw["start_new_session"] = True
+subprocess.Popen([exe], **kw)
+PYEOF
+  # Poll for readiness — uvicorn cold-start can exceed any fixed sleep, so
+  # verify the server actually answers before claiming it's up.
+  for _ in $(seq 1 20); do
+    curl -fsS -o /dev/null "$URL" 2>/dev/null && break
+    sleep 0.5
+  done
+  if curl -fsS -o /dev/null "$URL" 2>/dev/null; then
+    echo "serving — $URL"
+  else
+    echo "failed to start — see $LOG"; tail -5 "$LOG"
+  fi
 fi
 ```
 
