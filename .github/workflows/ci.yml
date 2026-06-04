@@ -1,0 +1,51 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: unit + integration (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # indexer units + build/serve integration + serve.py launcher (exercises
+      # the per-OS detach/kill branches) + plugin-structure contracts
+      - name: Python tests
+        run: python -m unittest discover -s tests -v
+      # viewer pure-logic units
+      - name: Node logic tests
+        run: node --test tests/
+
+  e2e:
+    name: browser e2e (viewer + tutorial)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Playwright + Chromium
+        working-directory: tests
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Viewer E2E
+        run: node tests/viewer.e2e.cjs
+      - name: Tutorial E2E
+        run: node tests/tutorial.e2e.cjs
