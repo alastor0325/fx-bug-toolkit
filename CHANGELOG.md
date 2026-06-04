@@ -9,6 +9,13 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.4] — 2026-06-04
+
+### Changed
+- **Viewer title links to the repo.** The `· fx-bug-toolkit` part of the
+  investigations viewer header is now a hyperlink to the GitHub repository
+  (opens in a new tab), with a subtle hover underline.
+
 ## [0.2.3] — 2026-06-04
 
 ### Added
@@ -168,7 +175,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.4...HEAD
+[0.2.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.3...fx-bug-toolkit--v0.2.4
 [0.2.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.2...fx-bug-toolkit--v0.2.3
 [0.2.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.1...fx-bug-toolkit--v0.2.2
 [0.2.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...fx-bug-toolkit--v0.2.1
