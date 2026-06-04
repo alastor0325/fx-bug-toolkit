@@ -17,11 +17,11 @@ install anything still missing.
 5. Print the final summary.
 
 **Rules while walking a checklist:**
-- Process items **one by one, in order**. For each, run its check and report a
-  single line: `✅ <item>` or `⚠️ <item> — <why> → <action>`.
+- Process items **one by one, in order**. For each, report a single line:
+  `✅ <item>` or `⚠️ <item> — <why> → <action>`. Every item ends with one of
+  those — never a bare `key=value`.
 - **REQUIRED** items must end ✅ before "core investigation ready". An
-  **OPTIONAL** item that falls back to its default counts as ✅ (note the
-  default); only mark it ⚠️ if a feature the user wants is unavailable.
+  **OPTIONAL** item that falls back to its default counts as ✅.
 - **Never install software without confirming first** — show the exact command
   and use AskUserQuestion (Yes/No) before running it.
 
@@ -37,113 +37,121 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
 
 ## Checklist A — Environment & paths (walk one by one)
 
-- [ ] **`~/.cargo/bin` on `$PATH`** — **REQUIRED** (the core CLIs `bmo-to-md` and
-      `searchfox-cli` install there; if it's not on PATH they won't resolve).
+- [ ] **Shell can find the tool dirs** — **REQUIRED**. Skills call `bmo-to-md` /
+      `searchfox-cli` / `profiler-cli` by name, so their install dirs must be on
+      **this** shell's `PATH` (Claude Code runs commands non-interactively). On
+      **Windows** the Bash tool (MSYS2/Git-bash) has a *minimal* PATH that omits
+      these even when they're on the Windows User PATH — fix it via the
+      [Windows / non-interactive PATH](#windows--non-interactive-path) recipe below.
       ```bash
+      cb="$HOME/.cargo/bin"
       case ":$PATH:" in
-        *":$HOME/.cargo/bin:"*) echo "✅ ~/.cargo/bin on PATH";;
-        *) echo '⚠️  ~/.cargo/bin NOT on PATH → add to your shell rc: export PATH="$HOME/.cargo/bin:$PATH"';;
+        *":$cb:"*) echo "✅ ~/.cargo/bin on PATH";;
+        *) [ -d "$cb" ] \
+             && echo "⚠️  ~/.cargo/bin exists but is NOT on this shell's PATH → see the Windows / non-interactive PATH recipe" \
+             || echo "ℹ️  ~/.cargo/bin not present yet (cargo not installed — Checklist B)";;
       esac
       ```
-      *(Windows: rustup adds `%USERPROFILE%\.cargo\bin` to PATH automatically.)*
-- [ ] **Node/npm on `$PATH`** — **REQUIRED for `/analyze-profile`** (building
-      profiler-cli); otherwise optional.
-      ```bash
-      command -v node >/dev/null && command -v npm >/dev/null \
-        && echo "✅ node $(node --version) / npm $(npm --version)" \
-        || echo "⚠️  node/npm not on PATH → install via nvm (see Checklist B)"
-      ```
 - [ ] **`FX_BUG_INVESTIGATION_DIR`** — **OPTIONAL** (default
-      `~/.fx-bug-toolkit/bug-investigation/`). Where investigation files are
-      stored.
+      `~/.fx-bug-toolkit/bug-investigation`). Where investigation files are stored.
       ```bash
-      echo "FX_BUG_INVESTIGATION_DIR=${FX_BUG_INVESTIGATION_DIR:-(unset → default ~/.fx-bug-toolkit/bug-investigation)}"
+      if [ -n "${FX_BUG_INVESTIGATION_DIR:-}" ]; then
+        echo "✅ FX_BUG_INVESTIGATION_DIR=$FX_BUG_INVESTIGATION_DIR"
+      else
+        echo "✅ FX_BUG_INVESTIGATION_DIR unset → using default ~/.fx-bug-toolkit/bug-investigation"
+      fi
       ```
-      If the user wants a different location, they must `export
-      FX_BUG_INVESTIGATION_DIR` somewhere **non-interactive shells read** —
-      Claude Code runs skill commands non-interactively. For **zsh** that is
-      `~/.zshenv` (NOT `~/.zshrc`, which only loads for interactive shells); for
-      **bash**, a file sourced for non-interactive shells (e.g. via `BASH_ENV`).
-      Setting it only in `~/.zshrc`/`~/.bashrc` means the skills won't see it and
-      will fall back to the default.
+      To relocate, `export` it where **non-interactive** shells read it (see the
+      PATH note below) — not an interactive-only startup file, or the skills
+      won't see it.
 - [ ] **`WIKI_PATH`** — **OPTIONAL** (default `~/firefox-wiki`). Location of the
       optional shared wiki.
       ```bash
-      echo "WIKI_PATH=${WIKI_PATH:-(unset → default ~/firefox-wiki)}"
+      if [ -n "${WIKI_PATH:-}" ]; then
+        echo "✅ WIKI_PATH=$WIKI_PATH"
+      else
+        echo "✅ WIKI_PATH unset → using default ~/firefox-wiki"
+      fi
       ```
 
 ---
 
-## Checklist B — Dependencies (detect one by one — do NOT install yet)
+## Checklist B — Dependencies (detect, then install)
 
-Run each check. On success, **show the resolved path** so the user can confirm
-it's the binary they expect (e.g. `✅ searchfox-cli → /Users/me/.cargo/bin/searchfox-cli`)
-— for the `command -v` checks, print that command's output; otherwise `⚠️
-MISSING`. **Detection only here** — collect the missing ones; installation
-happens in the next section as a single selection. Each item is tagged
-**[installable]** (init can install it — offered in the selection) or
-**[guide-only]** (init only points to instructions, never auto-installs).
+Run this **one** detection block, then read the per-line results. The `have`
+resolver checks `$PATH` first, then the canonical install dirs — so an installed
+tool that simply isn't on this shell's PATH (common on Windows MSYS2) is reported
+as **installed-but-off-PATH**, not MISSING.
 
-> Note: `command -v` resolves against `$PATH` in the **same non-interactive
-> shell the skills use at runtime** — so this is the authoritative check that a
-> CLI will actually be found when a skill calls it, no matter where it's
-> installed.
+```bash
+have() {  # echoes "PATH|<path>" or "OFFPATH|<path>", else returns 1
+  local t="$1" p
+  if p=$(command -v "$t" 2>/dev/null); then echo "PATH|$p"; return 0; fi
+  for p in "$HOME/.cargo/bin/$t" "$HOME/.cargo/bin/$t.exe" \
+           "/c/Program Files/nodejs/$t" "/c/Program Files/nodejs/$t.exe" "/c/Program Files/nodejs/$t.cmd" \
+           "$HOME/AppData/Roaming/npm/$t.cmd"; do
+    [ -f "$p" ] && { echo "OFFPATH|$p"; return 0; }
+  done
+  return 1
+}
+report() {  # report <label> <tool>
+  local r
+  if r=$(have "$2"); then
+    if [ "${r%%|*}" = PATH ]; then echo "✅ $1 → ${r#*|}"
+    else echo "⚠️  $1 installed but NOT on this shell's PATH → ${r#*|}  (see Windows / non-interactive PATH)"; fi
+  else echo "⚠️  $1 MISSING"; fi
+}
+for t in cargo bmo-to-md searchfox-cli git node npm profiler-cli mach; do report "$t" "$t"; done
+# python: python3 or python
+if r=$(have python3) || r=$(have python); then echo "✅ python → ${r#*|}"; else echo "⚠️  python MISSING"; fi
+# moz MCP + wiki (guide-only)
+claude mcp list 2>/dev/null | grep -qi moz && echo "✅ moz MCP registered" || echo "ℹ️  moz MCP not registered (optional)"
+test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" && echo "✅ firefox-wiki present" || echo "ℹ️  firefox-wiki not installed (optional)"
+```
 
-- [ ] **`cargo` (Rust toolchain)** — **REQUIRED**, **[installable via rustup]**.
-      Builds `bmo-to-md` + `searchfox-cli`. Check: `command -v cargo`.
-- [ ] **`bmo-to-md`** — **REQUIRED**, **[installable]** (needs cargo). Pulls
-      Bugzilla bug content. Check: `command -v bmo-to-md`.
-- [ ] **`searchfox-cli`** — **REQUIRED**, **[installable]** (needs cargo). Code
-      search. Check: `command -v searchfox-cli`.
-- [ ] **`git`** — **REQUIRED**, **[guide-only]**. Source links, repo lookups,
-      cloning profiler-cli. Check: `command -v git`. If missing: system package
-      manager / Xcode CLT.
-- [ ] **`python3`** — **REQUIRED**, **[guide-only]**. Helper scripts. Check:
-      `command -v python3`. If missing: pyenv / system package manager.
-- [ ] **`node` + `npm`** — **[installable via nvm]**, needed for
-      `/analyze-profile`. Check: `command -v node && command -v npm`.
-- [ ] **`profiler-cli`** — **[installable]** (needs node/npm + git), powers
-      `/analyze-profile`. Check: `command -v profiler-cli` (it's put on PATH via
-      `npm link` during install).
-- [ ] **`mach` + a mozilla-central checkout** — **OPTIONAL**, **[guide-only]**.
-      Local build / spec checks. Check: `command -v mach`. If missing, guide:
-      <https://firefox-source-docs.mozilla.org/setup/>. (It's a whole checkout,
-      run as `./mach`, not a global binary — so this often shows missing even
-      when you have a checkout.) Toolkit still works via searchfox.
-- [ ] **`moz` MCP server** — **OPTIONAL**, **[guide-only]**. Bugzilla/Phabricator
-      MCP lookups (`mcp__moz__*`). Check: `claude mcp list | grep -i moz`. No
-      auto-config — guide the user to register it (`claude mcp add`). `bmo-to-md`
-      covers the core Bugzilla path without it.
-- [ ] **`firefox-wiki` plugin + content** — **OPTIONAL**, **[guide-only]**.
-      Knowledge accelerator. Check:
-      `test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md"`. If wanted: install
-      the `firefox-wiki` plugin and clone its content to `~/firefox-wiki`.
+What each item is (req / how it's installed):
+
+- **`cargo`** — REQUIRED, **[installable via rustup]**. Builds `bmo-to-md` + `searchfox-cli`.
+- **`bmo-to-md`** — REQUIRED, **[installable]** (needs cargo). Pulls Bugzilla content.
+- **`searchfox-cli`** — REQUIRED, **[installable]** (needs cargo). Code search.
+- **`git`** — REQUIRED, **[guide-only]**. Source links, cloning profiler-cli.
+- **`python`/`python3`** — REQUIRED, **[guide-only]**. Helper scripts + the viewer launcher.
+- **`node` + `npm`** — **[installable via nvm]**, needed for `/analyze-profile`.
+- **`profiler-cli`** — **[installable]** (needs node/npm + git), powers `/analyze-profile`.
+- **`mach` + checkout** — OPTIONAL, **[guide-only]**. Local build / spec checks. Run as `./mach`
+  from a mozilla-central checkout, so it's usually *not* a global binary; the toolkit works via
+  searchfox without it. Guide: <https://firefox-source-docs.mozilla.org/setup/>.
+- **`moz` MCP server** — OPTIONAL, **[guide-only]**. `mcp__moz__*` lookups; register with
+  `claude mcp add`. `bmo-to-md` covers the core Bugzilla path without it.
+- **`firefox-wiki` plugin + content** — OPTIONAL, **[guide-only]**. Knowledge accelerator.
+
+> An **installed-but-off-PATH** result means the tool exists but this shell can't
+> run it by name — skills will fail to invoke it. Fix the PATH (see below); do
+> **not** reinstall.
 
 ---
 
 ## Install missing dependencies (one selection)
 
-Collect every **[installable]** item that came back MISSING in Checklist B:
-`cargo`, `node`+`npm`, `bmo-to-md`, `searchfox-cli`, `profiler-cli`.
+Collect every **[installable]** item that came back **MISSING** (not merely
+off-PATH) in Checklist B: `cargo`, `node`+`npm`, `bmo-to-md`, `searchfox-cli`,
+`profiler-cli`.
 
 - If none are missing → say "nothing to install" and go to the Summary.
 - Otherwise present **one** `AskUserQuestion` with **`multiSelect: true`**
   listing each missing installable item (label + what it gates). The user ticks
   which to install; **selecting them in the question IS the install consent.**
-  They may pick none. Guide-only items (`git`, `python3`, `mach`, `moz` MCP,
+  They may pick none. Guide-only items (`git`, `python`, `mach`, `moz` MCP,
   `firefox-wiki`) are **never** in this list.
 
-Then install **only the selected** items, in this dependency order (skip
-unselected ones):
+Then install **only the selected** items, in this dependency order:
 
 1. **rustup** (if `cargo` selected):
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
    source "$HOME/.cargo/env"
    ```
-   *Windows:* download and run `rustup-init.exe` from <https://rustup.rs> (it
-   adds `%USERPROFILE%\.cargo\bin` to PATH). `cargo install …` then works the
-   same. Run the `cargo install` steps below in any shell.
+   *Windows:* download and run `rustup-init.exe` from <https://rustup.rs>.
 2. **nvm + node** (if `node` selected):
    ```bash
    # check https://github.com/nvm-sh/nvm for the latest version tag
@@ -151,40 +159,65 @@ unselected ones):
    export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
    nvm install --lts
    ```
-   *Windows:* use [nvm-windows](https://github.com/coreybutler/nvm-windows) or
-   install Node from <https://nodejs.org>. `npm` then works the same.
-3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`
-   present (pre-existing or just installed in step 1):
+   *Windows:* use [nvm-windows](https://github.com/coreybutler/nvm-windows) or install Node from <https://nodejs.org>.
+3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`:
    ```bash
    cargo install --git https://github.com/padenot/bmo-to-md   # bmo-to-md
    cargo install searchfox-cli                                 # searchfox-cli
    ```
-4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build, then
-   `npm link` so the `profiler-cli` command lands on `PATH` (next to `node`):
+4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build, `npm link`:
    ```bash
    git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
    cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build && npm link
-   command -v profiler-cli && echo "✅ profiler-cli on PATH" || echo "⚠️  not on PATH — ensure the npm global bin dir is on PATH"
    ```
+   Verify with the `have` resolver from Checklist B (not bare `command -v`, which
+   misses Windows' npm global bin): `report profiler-cli profiler-cli`.
+   *Windows note:* `npm link` makes `profiler-cli.cmd` in the npm global bin; that
+   shim runs `node`, so **`node` must also be on the bash PATH** for it to launch
+   — the recipe below puts both there.
 
 **Ordering guard:** never run a step whose toolchain is absent. If the user
-selected `bmo-to-md`/`searchfox-cli` but NOT `cargo` and cargo is missing — or
-selected `profiler-cli` while node/npm is missing and unselected — skip that
-install and tell them to also select (or first install) the toolchain. After
-installing, re-run the affected checks and report the new status before the
-Summary.
+selected `bmo-to-md`/`searchfox-cli` but cargo is missing-and-unselected — or
+`profiler-cli` while node/npm is missing-and-unselected — skip it and tell them
+to also select the toolchain. After installing, re-run the affected `report`
+lines and show the new status.
+
+---
+
+## Windows / non-interactive PATH
+
+Claude Code runs skill commands through a **non-interactive** shell. On Windows
+that's usually MSYS2/Git-bash with a **minimal PATH** that omits `~/.cargo/bin`,
+`C:\Program Files\nodejs`, and the npm global bin (`~/AppData/Roaming/npm`) —
+even though those are on your Windows *User* PATH and work in cmd/PowerShell. So
+the CLIs can be installed yet invisible to skills, and `profiler-cli`'s `.cmd`
+shim itself needs `node` on PATH to run.
+
+Fix it once by putting those dirs on the PATH that non-interactive bash reads:
+
+1. Create `~/.fx-bug-toolkit.env.sh`:
+   ```bash
+   export PATH="$HOME/.cargo/bin:/c/Program Files/nodejs:$HOME/AppData/Roaming/npm:$PATH"
+   ```
+2. Point **`BASH_ENV`** at it (non-interactive bash sources `$BASH_ENV` on
+   startup). Set it as a **Windows User environment variable** so Claude Code's
+   Bash tool inherits it, e.g. `BASH_ENV=C:\Users\<you>\.fx-bug-toolkit.env.sh`.
+3. Restart Claude Code and re-run `/init` — the tools now resolve ✅.
+
+**macOS / Linux:** the tool dirs are usually already on PATH. If you relocate an
+env var or a CLI, set it in the file your *non-interactive* shell reads (for
+bash, the file `BASH_ENV` points to), not an interactive-only rc file.
 
 ---
 
 ## Summary
 
-Present the results as **five categories**, each rendered as its own table with
-a **Purpose** column (`Item | Purpose | Req? | Status`). Show every checklist
-item exactly once, in the group below. For Status use `✅`, `⚠️ <why>`, or
-`using default <path>`.
+Present the results as **five categories**, each a table with a **Purpose**
+column (`Item | Purpose | Req? | Status`). Show every checklist item once. For
+Status use `✅`, `⚠️ <why>` (incl. "installed, off-PATH"), or "using default".
 
 1. **Shell environment** _(must be correct)_
-   - `~/.cargo/bin` on `$PATH` — so the Rust CLIs resolve — REQUIRED
+   - `~/.cargo/bin` (and node / npm dirs) reachable on this shell's PATH — REQUIRED
 2. **Configurable locations** _(env vars)_
    - `FX_BUG_INVESTIGATION_DIR` — where investigation files are stored — OPTIONAL
    - `WIKI_PATH` — shared-wiki location — OPTIONAL
@@ -193,21 +226,20 @@ item exactly once, in the group below. For Status use `✅`, `⚠️ <why>`, or
    - `searchfox-cli` — search the Gecko codebase — REQUIRED
    - `profiler-cli` — powers `/analyze-profile` — REQUIRED for `/analyze-profile`
    - `git` — source links, repo lookups — REQUIRED
-   - `python3` — helper scripts — REQUIRED
-4. **Dependencies for the core CLIs** _(toolchains to install/build/run them)_ —
-   use columns `Item | Serves | Req? | Status`
+   - `python` — helper scripts + viewer launcher — REQUIRED
+4. **Dependencies for the core CLIs** _(toolchains)_ — columns `Item | Serves | Req? | Status`
    - `cargo` (Rust) — builds `bmo-to-md`, `searchfox-cli` — REQUIRED
    - `node` + `npm` — build & run `profiler-cli` — REQUIRED for `/analyze-profile`
 5. **Optional features**
    - `mach` + checkout — local build / spec checks — OPTIONAL
    - `moz` MCP server — Bugzilla/Phabricator MCP lookups — OPTIONAL
-   - `firefox-wiki` — knowledge accelerator (compounds) — OPTIONAL
+   - `firefox-wiki` — knowledge accelerator — OPTIONAL
 
-Then the verdict (two levels):
+Then the verdict:
 
-- **Core investigation ready** once these are ✅: `~/.cargo/bin` on PATH,
-  `cargo`, `bmo-to-md`, `searchfox-cli`, `git`, `python3`.
-- **Full toolkit ready** additionally needs `profiler-cli` + `node`/`npm` (which
-  enable `/analyze-profile`).
-- List any outstanding REQUIRED items in order so the user knows what to fix
-  first, and note which OPTIONAL features are unavailable and what enables each.
+- **Core investigation ready** once these resolve on PATH: `cargo`, `bmo-to-md`,
+  `searchfox-cli`, `git`, `python`.
+- **Full toolkit ready** additionally needs `profiler-cli` + `node`/`npm`.
+- If anything is **installed-but-off-PATH**, point at the Windows /
+  non-interactive PATH recipe — that's a PATH fix, not a reinstall. List any
+  outstanding REQUIRED items in order, and which OPTIONAL features are unavailable.

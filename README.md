@@ -185,6 +185,13 @@ This pulls the plugin's latest changes and refreshes its CLI dependencies.
 - **`init` says `mach` is missing but I have a Firefox checkout.** That's
   expected — `mach` runs as `./mach` from your checkout, not as a global command.
   It's optional anyway.
+- **On Windows, `init` reports installed tools as MISSING** (cargo, node,
+  bmo-to-md, …). Claude Code's Bash tool (MSYS2/Git-bash) uses a minimal PATH
+  that omits `~/.cargo/bin`, `C:\Program Files\nodejs`, and the npm global bin —
+  even though they're on your Windows PATH. Put them on the non-interactive bash
+  PATH via a `BASH_ENV` file; `/init`'s **"Windows / non-interactive PATH"**
+  section has the exact recipe. (This also lets `profiler-cli`'s `.cmd` shim find
+  `node`.)
 
 ---
 
