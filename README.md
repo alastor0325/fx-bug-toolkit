@@ -81,7 +81,10 @@ Claude Code afterward if the plugin itself updated).
 | `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | profiler-cli binary location |
 | `WIKI_PATH` | `~/firefox-wiki` | optional shared-wiki location |
 
-All are optional — set any of them in your shell rc to relocate.
+All are optional. To relocate, `export` them where **non-interactive shells**
+read them — Claude Code runs skill commands non-interactively. For **zsh** use
+`~/.zshenv` (**not** `~/.zshrc`, which only loads for interactive shells); for
+**bash**, a file sourced for non-interactive shells (e.g. via `BASH_ENV`).
 
 ## Optional: shared wiki
 

@@ -57,8 +57,13 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
       ```bash
       echo "FX_BUG_INVESTIGATION_DIR=${FX_BUG_INVESTIGATION_DIR:-(unset → default ~/.fx-bug-toolkit/bug-investigation)}"
       ```
-      If the user wants a different location, tell them to add to their shell rc:
-      `export FX_BUG_INVESTIGATION_DIR="$HOME/path/you/want"`.
+      If the user wants a different location, they must `export
+      FX_BUG_INVESTIGATION_DIR` somewhere **non-interactive shells read** —
+      Claude Code runs skill commands non-interactively. For **zsh** that is
+      `~/.zshenv` (NOT `~/.zshrc`, which only loads for interactive shells); for
+      **bash**, a file sourced for non-interactive shells (e.g. via `BASH_ENV`).
+      Setting it only in `~/.zshrc`/`~/.bashrc` means the skills won't see it and
+      will fall back to the default.
 - [ ] **`PROFILER_CLI`** — **OPTIONAL** (default
       `~/projects/profiler-cli/dist/index.js`). Path to the profiler-cli binary.
       ```bash
