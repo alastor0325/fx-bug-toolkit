@@ -12,8 +12,9 @@ install anything still missing.
 **How to run this skill:**
 1. Create the data directories (below).
 2. Walk **Checklist A — Environment & paths** one item at a time.
-3. Walk **Checklist B — Dependencies** one item at a time.
-4. Print the final summary.
+3. Walk **Checklist B — Dependencies** one item at a time (detection only).
+4. **Install missing dependencies** via one multi-select prompt.
+5. Print the final summary.
 
 **Rules while walking a checklist:**
 - Process items **one by one, in order**. For each, run its check and report a
@@ -78,62 +79,92 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
 
 ---
 
-## Checklist B — Dependencies (walk one by one)
+## Checklist B — Dependencies (detect one by one — do NOT install yet)
 
-For each: run the check; if missing, show the install command and confirm
-(Yes/No) before running. Mark REQUIRED vs OPTIONAL as noted.
+Run each check and report `✅` / `⚠️ MISSING`. **Detection only here** — collect
+the missing ones; installation happens in the next section as a single
+selection. Each item is tagged **[installable]** (init can install it — offered
+in the selection) or **[guide-only]** (init only points to instructions, never
+auto-installs).
 
-- [ ] **`cargo` (Rust toolchain)** — **REQUIRED** (needed to install the two core
-      CLIs below).
-      Check: `command -v cargo`. If missing, guide (do not auto-run): install
-      from <https://rustup.rs> — `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`.
-- [ ] **`bmo-to-md`** — **REQUIRED** (pulls Bugzilla bug content; without it
-      `bug-start` can't fetch bugs).
-      Check: `command -v bmo-to-md`. Install (confirm first):
-      ```bash
-      cargo install --git https://github.com/padenot/bmo-to-md
-      ```
-- [ ] **`searchfox-cli`** — **REQUIRED** (code search; `bug-start` / `spec-check`
-      / `gecko-navigator` degrade badly without it).
-      Check: `command -v searchfox-cli`. Install (confirm first):
-      ```bash
-      cargo install searchfox-cli
-      ```
-- [ ] **`git`** — **REQUIRED** (source links, repo lookups). Check:
-      `command -v git`. If missing: install via system package manager / Xcode CLT.
-- [ ] **`python3`** — **REQUIRED** (helper scripts). Check: `command -v python3`.
-      If missing: install via pyenv or system package manager.
-- [ ] **`node` + `npm` (toolchain)** — **OPTIONAL** (feature: building
-      profiler-cli for `/analyze-profile`). Check: `command -v node && command -v npm`.
-      If missing, guide: install nvm (<https://github.com/nvm-sh/nvm>) then
-      `nvm install --lts`.
-- [ ] **`profiler-cli`** — **OPTIONAL** (feature: `/analyze-profile`). Public
-      TypeScript/Node project built with `tsc` to `dist/index.js`.
-      Check: `test -f "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}"`.
-      Install (confirm first; needs node/npm):
-      ```bash
-      git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
-      cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build
-      test -f dist/index.js && echo "✅ built dist/index.js" || echo "⚠️  build did not produce dist/index.js — check the repo README"
-      ```
-      If built outside the default path, set `PROFILER_CLI` (Checklist A).
-- [ ] **`mach` + a mozilla-central checkout** — **OPTIONAL** (feature: local
-      build / spec checks). Not a package — comes with a Firefox checkout. Check:
-      `command -v mach`. If missing, guide:
-      <https://firefox-source-docs.mozilla.org/setup/>. Toolkit still works via
-      searchfox without it.
-- [ ] **`moz` MCP server** (`mcp__moz__get_bugzilla_bug`, …) — **OPTIONAL**
-      (feature: Bugzilla/Phabricator MCP lookups). **No auto-config.** Ask the
-      user to register their `moz` MCP server in Claude Code (e.g. `claude mcp
-      add`). Without it, `bmo-to-md` still covers the core Bugzilla path.
-- [ ] **`firefox-wiki` plugin + content** — **OPTIONAL** (accelerator). Check:
-      ```bash
-      test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" \
-        && echo "✅ wiki at ${WIKI_PATH:-$HOME/firefox-wiki}" \
-        || echo "ℹ️  no wiki — toolkit works without it (searches code directly)."
-      ```
-      If wanted: install the `firefox-wiki` plugin and clone its content to
-      `~/firefox-wiki` (or set `WIKI_PATH`).
+- [ ] **`cargo` (Rust toolchain)** — **REQUIRED**, **[installable via rustup]**.
+      Builds `bmo-to-md` + `searchfox-cli`. Check: `command -v cargo`.
+- [ ] **`bmo-to-md`** — **REQUIRED**, **[installable]** (needs cargo). Pulls
+      Bugzilla bug content. Check: `command -v bmo-to-md`.
+- [ ] **`searchfox-cli`** — **REQUIRED**, **[installable]** (needs cargo). Code
+      search. Check: `command -v searchfox-cli`.
+- [ ] **`git`** — **REQUIRED**, **[guide-only]**. Source links, repo lookups,
+      cloning profiler-cli. Check: `command -v git`. If missing: system package
+      manager / Xcode CLT.
+- [ ] **`python3`** — **REQUIRED**, **[guide-only]**. Helper scripts. Check:
+      `command -v python3`. If missing: pyenv / system package manager.
+- [ ] **`node` + `npm`** — **[installable via nvm]**, needed for
+      `/analyze-profile`. Check: `command -v node && command -v npm`.
+- [ ] **`profiler-cli`** — **[installable]** (needs node/npm + git), powers
+      `/analyze-profile`. Check:
+      `test -f "${PROFILER_CLI:-$HOME/projects/profiler-cli/dist/index.js}"`.
+- [ ] **`mach` + a mozilla-central checkout** — **OPTIONAL**, **[guide-only]**.
+      Local build / spec checks. Check: `command -v mach`. If missing, guide:
+      <https://firefox-source-docs.mozilla.org/setup/>. (It's a whole checkout,
+      run as `./mach`, not a global binary — so this often shows missing even
+      when you have a checkout.) Toolkit still works via searchfox.
+- [ ] **`moz` MCP server** — **OPTIONAL**, **[guide-only]**. Bugzilla/Phabricator
+      MCP lookups (`mcp__moz__*`). Check: `claude mcp list | grep -i moz`. No
+      auto-config — guide the user to register it (`claude mcp add`). `bmo-to-md`
+      covers the core Bugzilla path without it.
+- [ ] **`firefox-wiki` plugin + content** — **OPTIONAL**, **[guide-only]**.
+      Knowledge accelerator. Check:
+      `test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md"`. If wanted: install
+      the `firefox-wiki` plugin and clone its content to `~/firefox-wiki`.
+
+---
+
+## Install missing dependencies (one selection)
+
+Collect every **[installable]** item that came back MISSING in Checklist B:
+`cargo`, `node`+`npm`, `bmo-to-md`, `searchfox-cli`, `profiler-cli`.
+
+- If none are missing → say "nothing to install" and go to the Summary.
+- Otherwise present **one** `AskUserQuestion` with **`multiSelect: true`**
+  listing each missing installable item (label + what it gates). The user ticks
+  which to install; **selecting them in the question IS the install consent.**
+  They may pick none. Guide-only items (`git`, `python3`, `mach`, `moz` MCP,
+  `firefox-wiki`) are **never** in this list.
+
+Then install **only the selected** items, in this dependency order (skip
+unselected ones):
+
+1. **rustup** (if `cargo` selected):
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+   source "$HOME/.cargo/env"
+   ```
+2. **nvm + node** (if `node` selected):
+   ```bash
+   # check https://github.com/nvm-sh/nvm for the latest version tag
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+   export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"
+   nvm install --lts
+   ```
+3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`
+   present (pre-existing or just installed in step 1):
+   ```bash
+   cargo install --git https://github.com/padenot/bmo-to-md   # bmo-to-md
+   cargo install searchfox-cli                                 # searchfox-cli
+   ```
+4. **profiler-cli** (if selected) — requires node/npm + git:
+   ```bash
+   git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
+   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" && npm install && npm run build
+   test -f dist/index.js && echo "✅ built dist/index.js" || echo "⚠️  build failed — check the repo README"
+   ```
+
+**Ordering guard:** never run a step whose toolchain is absent. If the user
+selected `bmo-to-md`/`searchfox-cli` but NOT `cargo` and cargo is missing — or
+selected `profiler-cli` while node/npm is missing and unselected — skip that
+install and tell them to also select (or first install) the toolchain. After
+installing, re-run the affected checks and report the new status before the
+Summary.
 
 ---
 
