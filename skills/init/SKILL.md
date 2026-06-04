@@ -139,12 +139,37 @@ For each: run the check; if missing, show the install command and confirm
 
 ## Summary
 
-Print a table covering **every checklist item**: item → REQUIRED/OPTIONAL →
-✅ / ⚠️ / using-default → action still needed. Then the verdict:
+Present the results as **five categories**, each rendered as its own table with
+a **Purpose** column (`Item | Purpose | Req? | Status`). Show every checklist
+item exactly once, in the group below. For Status use `✅`, `⚠️ <why>`, or
+`using default <path>`.
 
-- **"Core investigation ready"** once all REQUIRED items are ✅ —
-  `~/.cargo/bin` on PATH, `cargo`, `bmo-to-md`, `searchfox-cli`, `git`,
-  `python3`.
-- Otherwise, list the REQUIRED items still outstanding, in order, so the user
-  knows exactly what to fix first.
-- Note which OPTIONAL features are unavailable and what enables each.
+1. **Shell environment** _(must be correct)_
+   - `~/.cargo/bin` on `$PATH` — so the Rust CLIs resolve — REQUIRED
+2. **Configurable locations** _(env vars)_
+   - `FX_BUG_INVESTIGATION_DIR` — where investigation files are stored — OPTIONAL
+   - `PROFILER_CLI` — profiler-cli binary location — OPTIONAL
+   - `WIKI_PATH` — shared-wiki location — OPTIONAL
+3. **Core CLIs** _(the toolkit's working tools)_
+   - `bmo-to-md` — pull Bugzilla bug content — REQUIRED
+   - `searchfox-cli` — search the Gecko codebase — REQUIRED
+   - `profiler-cli` — powers `/analyze-profile` — REQUIRED for `/analyze-profile`
+   - `git` — source links, repo lookups — REQUIRED
+   - `python3` — helper scripts — REQUIRED
+4. **Dependencies for the core CLIs** _(toolchains to install/build/run them)_ —
+   use columns `Item | Serves | Req? | Status`
+   - `cargo` (Rust) — builds `bmo-to-md`, `searchfox-cli` — REQUIRED
+   - `node` + `npm` — build & run `profiler-cli` — REQUIRED for `/analyze-profile`
+5. **Optional features**
+   - `mach` + checkout — local build / spec checks — OPTIONAL
+   - `moz` MCP server — Bugzilla/Phabricator MCP lookups — OPTIONAL
+   - `firefox-wiki` — knowledge accelerator (compounds) — OPTIONAL
+
+Then the verdict (two levels):
+
+- **Core investigation ready** once these are ✅: `~/.cargo/bin` on PATH,
+  `cargo`, `bmo-to-md`, `searchfox-cli`, `git`, `python3`.
+- **Full toolkit ready** additionally needs `profiler-cli` + `node`/`npm` (which
+  enable `/analyze-profile`).
+- List any outstanding REQUIRED items in order so the user knows what to fix
+  first, and note which OPTIONAL features are unavailable and what enables each.
