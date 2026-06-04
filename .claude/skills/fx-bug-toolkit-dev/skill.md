@@ -51,8 +51,12 @@ deep-link, fold), also run the browser E2E:
 
 ```bash
 cd tests && npm install && npx playwright install chromium   # first time only
-node tests/viewer.e2e.cjs
+node tests/viewer.e2e.cjs          # DOM behaviour (assets via a test server)
+node tests/viewer.serve.e2e.cjs    # full chain: real serve.py + build_index + browser
 ```
+
+If you touched **`serve.py` or `build_index.py`**, run `viewer.serve.e2e.cjs` —
+it drives the real launcher end-to-end (needs `python3`+`pyyaml`).
 
 If you changed a **skill or manifest**, `test_plugin_structure.py` (part of the
 Python suite) must still pass — it checks frontmatter, `folder == name`, and the

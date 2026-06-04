@@ -28,8 +28,12 @@ node --test
 cd tests
 npm install
 npx playwright install chromium
-node viewer.e2e.cjs
+node viewer.e2e.cjs          # viewer DOM behaviour (assets from a test server)
+node viewer.serve.e2e.cjs    # full chain: real serve.py + build_index.py + browser
 ```
+
+(`viewer.serve.e2e.cjs` also needs `python3` with `pyyaml`, since it runs the
+real `serve.py`/`build_index.py`.)
 
 ## What's covered
 
@@ -41,6 +45,7 @@ node viewer.e2e.cjs
 | Plugin structure | `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; folder == `name`; invocable-vs-internal contract; agent frontmatter |
 | Viewer logic | `viewer.logic.test.js` | unit | `escapeHtml`, `sfUrl`, `bz`, `depthMeta`, chip builders, `matchesQuery`, `byDate` |
 | Viewer UI | `viewer.e2e.cjs` | e2e (browser) | every feature: render + newest-first, result count, depth/complexity/folder chips, sparse rows, search + empty state + clear, sort toggle, click→detail (heading, root cause, bugzilla link, searchfox affected-file links, related-bug links, rendered markdown, links open new-tab), hash updates on select, deep-link by `#hash`, hashchange on open page, `/`+`Esc`, `s`/`w`/`j`/`k` nav, `b` + `\` + toggle-button fold |
+| Viewer (full chain) | `viewer.serve.e2e.cjs` | e2e (browser) | the **shipped `serve.py`** builds the index from real `.md` frontmatter (via `build_index.py`) and serves it; a real browser loads the served page and asserts render, search, clear, and click→detail. Covers serve.py → build_index → HTTP → browser end-to-end (needs `python3`+`pyyaml`) |
 | Tutorial UI | `tutorial.e2e.cjs` | e2e (browser) | the tutorial page: display title, all chapter links, repo + wiki links, TOC chapter→hash, scrollspy hash-sync (bookmarkable), foldable TOC toggle (inside the rail), click-to-enlarge lightbox open/backdrop-close/Esc-close |
 
 The DOM-free logic lives in `viewer/viewer.logic.js` so it can be unit-tested in

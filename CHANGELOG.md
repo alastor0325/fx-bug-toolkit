@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.1.5] — 2026-06-04
+
+### Changed
+- **`profiler-cli` (and `node`/`npm`) are now REQUIRED, not optional.** `init`
+  treats `profiler-cli` as part of the core set and installs it — along with its
+  headless **Playwright Firefox** browser (`npx playwright install firefox`) — so
+  `/analyze-profile` works out of the box. `init`'s verdict is now **"Setup
+  complete"** (was "Core investigation ready"), and any required item left
+  uninstalled is reported as incomplete. README's dependency table marks the core
+  tools required and notes the browser download.
+
 ## [0.1.4] — 2026-06-04
 
 ### Fixed
@@ -104,7 +115,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...HEAD
+[0.1.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...fx-bug-toolkit--v0.1.5
 [0.1.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...fx-bug-toolkit--v0.1.4
 [0.1.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.2...fx-bug-toolkit--v0.1.3
 [0.1.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.1...fx-bug-toolkit--v0.1.2

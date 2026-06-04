@@ -37,6 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: pip install pyyaml          # serve.py E2E runs the real build_index.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -47,5 +48,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Viewer E2E
         run: node tests/viewer.e2e.cjs
+      - name: Viewer serve E2E (real serve.py + browser)
+        run: node tests/viewer.serve.e2e.cjs
       - name: Tutorial E2E
         run: node tests/tutorial.e2e.cjs

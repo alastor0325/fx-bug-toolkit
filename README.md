@@ -55,7 +55,7 @@ missing:
 /init
 ```
 
-When `init` says **"Core investigation ready,"** you're good to go.
+When `init` says **"Setup complete,"** you're good to go.
 
 ---
 
@@ -134,20 +134,23 @@ things live:
 `init` handles these for you — it detects what's missing and offers a one-tick
 multi-select to install them. Here's the lay of the land:
 
-| Tool | Needed for | Can `init` install it? |
-|---|---|---|
-| `bmo-to-md` | pulling Bugzilla content | yes |
-| `searchfox-cli` | searching the codebase | yes |
-| `profiler-cli` | `/analyze-profile` | yes |
-| `cargo` (Rust) | building the two CLIs above | yes (via rustup) |
-| `node` + `npm` | building profiler-cli | yes (via nvm) |
-| `git`, `python3` | source links, helper scripts | guide-only (use your system) |
-| `mach` + a mozilla-central checkout | local build / spec checks | guide-only (optional) |
-| `moz` MCP server | Bugzilla/Phabricator MCP lookups | guide-only (optional) |
-| `firefox-wiki` | knowledge accelerator | guide-only (optional) |
+| Tool | Needed for | Required? | Can `init` install it? |
+|---|---|---|---|
+| `bmo-to-md` | pulling Bugzilla content | **required** | yes |
+| `searchfox-cli` | searching the codebase | **required** | yes |
+| `profiler-cli` (+ Playwright Firefox) | `/analyze-profile` | **required** | yes |
+| `cargo` (Rust) | building the two CLIs above | **required** | yes (via rustup) |
+| `node` + `npm` | building/running profiler-cli | **required** | yes (via nvm) |
+| `git`, `python3` | source links, helper scripts | **required** | guide-only (use your system) |
+| `mach` + a mozilla-central checkout | local build / spec checks | optional | guide-only |
+| `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
+| `firefox-wiki` | knowledge accelerator | optional | guide-only |
 
-You can investigate bugs with just the **core** tools (`bmo-to-md`,
-`searchfox-cli`, `git`, `python3`). The rest unlock extra features.
+All the tools above the divider are **required** — `init` isn't "complete" until
+they're installed. `profiler-cli` is part of the core set; installing it also
+pulls a headless **Playwright Firefox** browser (~tens of MB), which it drives to
+read Firefox Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
+server, and the shared wiki are optional extras.
 
 ---
 

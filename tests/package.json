@@ -5,6 +5,7 @@
   "scripts": {
     "test:logic": "node --test",
     "test:e2e": "node viewer.e2e.cjs",
+    "test:e2e:serve": "node viewer.serve.e2e.cjs",
     "test:e2e:tutorial": "node tutorial.e2e.cjs"
   },
   "devDependencies": {

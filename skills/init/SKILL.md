@@ -116,8 +116,10 @@ What each item is (req / how it's installed):
 - **`searchfox-cli`** — REQUIRED, **[installable]** (needs cargo). Code search.
 - **`git`** — REQUIRED, **[guide-only]**. Source links, cloning profiler-cli.
 - **`python`/`python3`** — REQUIRED, **[guide-only]**. Helper scripts + the viewer launcher.
-- **`node` + `npm`** — **[installable via nvm]**, needed for `/analyze-profile`.
-- **`profiler-cli`** — **[installable]** (needs node/npm + git), powers `/analyze-profile`.
+- **`node` + `npm`** — REQUIRED, **[installable via nvm]**. Build & run `profiler-cli`.
+- **`profiler-cli`** — REQUIRED, **[installable]** (needs node/npm + git). Powers
+  `/analyze-profile`; its install also fetches a headless Playwright **Firefox**
+  browser (the engine it drives to read profiles).
 - **`mach` + checkout** — OPTIONAL, **[guide-only]**. Local build / spec checks. Run as `./mach`
   from a mozilla-central checkout, so it's usually *not* a global binary; the toolkit works via
   searchfox without it. Guide: <https://firefox-source-docs.mozilla.org/setup/>.
@@ -141,8 +143,14 @@ off-PATH) in Checklist B: `cargo`, `node`+`npm`, `bmo-to-md`, `searchfox-cli`,
 - Otherwise present **one** `AskUserQuestion` with **`multiSelect: true`**
   listing each missing installable item (label + what it gates). The user ticks
   which to install; **selecting them in the question IS the install consent.**
-  They may pick none. Guide-only items (`git`, `python`, `mach`, `moz` MCP,
-  `firefox-wiki`) are **never** in this list.
+  Guide-only items (`git`, `python`, `mach`, `moz` MCP, `firefox-wiki`) are
+  **never** in this list.
+- **Mark the REQUIRED installables** — `cargo`, `node`+`npm`, `bmo-to-md`,
+  `searchfox-cli`, `profiler-cli` — with **"(REQUIRED)"** in their labels and
+  recommend selecting all of them; only `mach`/`moz`/`firefox-wiki` are optional
+  (and they're guide-only, so not even here). The user *may* still decline, but
+  any REQUIRED item left uninstalled means **setup is incomplete** — say so in
+  the Summary and list what's outstanding.
 
 Then install **only the selected** items, in this dependency order:
 
@@ -251,12 +259,12 @@ Status use `✅`, `⚠️ <why>` (incl. "installed, off-PATH"), or "using defaul
 3. **Core CLIs** _(the toolkit's working tools)_
    - `bmo-to-md` — pull Bugzilla bug content — REQUIRED
    - `searchfox-cli` — search the Gecko codebase — REQUIRED
-   - `profiler-cli` — powers `/analyze-profile` — REQUIRED for `/analyze-profile`
+   - `profiler-cli` (+ Playwright Firefox browser) — powers `/analyze-profile` — REQUIRED
    - `git` — source links, repo lookups — REQUIRED
    - `python` — helper scripts + viewer launcher — REQUIRED
 4. **Dependencies for the core CLIs** _(toolchains)_ — columns `Item | Serves | Req? | Status`
    - `cargo` (Rust) — builds `bmo-to-md`, `searchfox-cli` — REQUIRED
-   - `node` + `npm` — build & run `profiler-cli` — REQUIRED for `/analyze-profile`
+   - `node` + `npm` — build & run `profiler-cli` — REQUIRED
 5. **Optional features**
    - `mach` + checkout — local build / spec checks — OPTIONAL
    - `moz` MCP server — Bugzilla/Phabricator MCP lookups — OPTIONAL
@@ -264,9 +272,10 @@ Status use `✅`, `⚠️ <why>` (incl. "installed, off-PATH"), or "using defaul
 
 Then the verdict:
 
-- **Core investigation ready** once these resolve on PATH: `cargo`, `bmo-to-md`,
-  `searchfox-cli`, `git`, `python`.
-- **Full toolkit ready** additionally needs `profiler-cli` + `node`/`npm`.
+- **Setup complete** once **every REQUIRED item** resolves on PATH: `cargo`,
+  `bmo-to-md`, `searchfox-cli`, `git`, `python`, `node`/`npm`, and `profiler-cli`
+  (with its Playwright Firefox browser). All are required — `profiler-cli` and
+  its toolchain are no longer optional.
 - If anything is **installed-but-off-PATH**, point at the Windows /
   non-interactive PATH recipe — that's a PATH fix, not a reinstall. List any
   outstanding REQUIRED items in order, and which OPTIONAL features are unavailable.
