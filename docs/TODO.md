@@ -40,9 +40,6 @@ or strip.
       (`~/.cache/firefox-download-guard` → e.g. `~/.fx-bug-toolkit/download-cache`)
       for consistency with `FX_BUG_INVESTIGATION_DIR`. Touch `download-guard`,
       `bug-start` (the `bmo-to-md -a -o …` call), and `init`.
-- [ ] `check-firefox-log` §7 still appends to `~/firefox-log-analysis.log` (a
-      top-level home file). Namespace it under `~/.fx-bug-toolkit/` (and maybe
-      make it overridable) like the investigation dir.
 - [ ] `history.log` now lives in the investigation dir (moved automatically with
       `FX_BUG_INVESTIGATION_DIR`) — confirm that's the desired home.
 - [ ] Scripted, sanitized re-sync from `~/.claude/skills` → this repo (so future
@@ -83,5 +80,7 @@ or strip.
   reference floor, converted §6 write-back to wiki-gated `/firefox-wiki:add`
   (else surface to user), made the skill read-only (dropped Write/Edit), and
   removed the personal `~/playready.txt` default log path.
+- `check-firefox-log` §7 history log is now `FX_LOG_ANALYSIS_LOG` (default
+  `~/.fx-bug-toolkit/log-analysis.log`), namespaced + overridable.
 - Verified frontmatter on all 9 skills + the agent; live `--plugin-dir` load
   reports 9 skills + gecko-navigator.

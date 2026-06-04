@@ -70,6 +70,12 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
       ```bash
       echo "WIKI_PATH=${WIKI_PATH:-(unset → default ~/firefox-wiki)}"
       ```
+- [ ] **`FX_LOG_ANALYSIS_LOG`** — **OPTIONAL** (default
+      `~/.fx-bug-toolkit/log-analysis.log`). Where `check-firefox-log` records
+      its per-analysis history.
+      ```bash
+      echo "FX_LOG_ANALYSIS_LOG=${FX_LOG_ANALYSIS_LOG:-(unset → default ~/.fx-bug-toolkit/log-analysis.log)}"
+      ```
 
 ---
 

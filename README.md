@@ -70,6 +70,7 @@ Claude Code afterward if the plugin itself updated).
 | Var | Default | Controls |
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where investigation files are stored |
+| `FX_LOG_ANALYSIS_LOG` | `~/.fx-bug-toolkit/log-analysis.log` | check-firefox-log analysis history |
 | `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | profiler-cli binary location |
 | `WIKI_PATH` | `~/firefox-wiki` | optional shared-wiki location |
 
