@@ -130,8 +130,8 @@ things live:
 
 ### Your data stays local and private
 
-- **Investigation files** → `FX_BUG_INVESTIGATION_DIR` (never pushed anywhere)
-- **Downloaded files** → `~/.cache/firefox-download-guard/` (temporary staging)
+- **Investigation files** live in `FX_BUG_INVESTIGATION_DIR` (never pushed anywhere)
+- **Downloaded files** go to `~/.cache/firefox-download-guard/` (temporary staging)
 
 ---
 
