@@ -121,6 +121,7 @@ things live:
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
 | `TRIAGE_OWNER` | _(none — required for `/triage`)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off) |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
+| `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
 [Optional: the shared wiki](#optional-the-shared-wiki).)
@@ -130,6 +131,15 @@ things live:
 > account) and persists it to `~/.fx-bug-toolkit.env.sh` so later runs reuse it.
 > `/triage` will not proceed without one, since it CCs/needinfo's that address on
 > every draft.
+
+> **`TRIAGE_COMPONENTS` is optional.** The components `/triage` covers are
+> defined in [`skills/triage/components.md`](skills/triage/components.md) — the
+> single source of truth (the skill, the meta-bug search, and `bugzilla-cli
+> fetch` all read from it; the CLI no longer hardcodes the set). On the **first
+> run** the skill shows the default eight A/V components and asks whether to keep
+> them or customize; keeping the default writes nothing (unset = default), and
+> customizing persists a `;`-separated list. Every run prints the resolved set
+> before fetching so it's always clear which components it's triaging.
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
 > shell, so `export` the variable in a file those shells read — not only an

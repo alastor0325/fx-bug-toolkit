@@ -23,6 +23,14 @@ for the email and persists it** before any triage work begins (see Setup check).
 `bugzilla-cli` (BMO I/O) and a configured triage data dir (`$TRIAGE_DIR`, default
 `~/firefox-triage/`) are also required — see Setup check.
 
+**Setup — `$TRIAGE_COMPONENTS` (optional, has a default):** the set of Bugzilla
+components `/triage` covers. The **default eight A/V components** are defined in
+[`components.md`](components.md) — the single source of truth (the skill, the
+meta-bug search, and `bugzilla-cli fetch` are all driven from it; the CLI no
+longer hardcodes the set). On the **first run**, the Setup check shows that
+default list and asks whether to keep it or customize it, then persists the
+choice (see Setup check → Resolve `$TRIAGE_COMPONENTS`). Unset = the default set.
+
 ## Invocation forms
 
 - `/triage` — **full session**: poll all watched bugs + fetch new bugs from the last 14 days + triage all
@@ -49,7 +57,14 @@ Then inspect comments and flags manually against the watch entry — do not invo
 
 ## Triage scope — components
 
-Only triage bugs in these components. Skip anything else (note "out of scope" and move on):
+Only triage bugs in the **configured component set**. Skip anything else (note
+"out of scope" and move on).
+
+The component set is resolved in the Setup check into `$TRIAGE_COMPONENTS`
+(see Setup check → Resolve `$TRIAGE_COMPONENTS`). The canonical default list and
+the override mechanism live in [`components.md`](components.md) — that doc is the
+single source of truth; do not maintain a competing list here. The **default
+eight** (used when `$TRIAGE_COMPONENTS` is unset) are:
 
 - `Audio/Video`
 - `Audio/Video: cubeb`
@@ -59,6 +74,9 @@ Only triage bugs in these components. Skip anything else (note "out of scope" an
 - `Audio/Video: Recording`
 - `Web Audio`
 - `Audio/Video: Web Codecs`
+
+Throughout this skill, "the configured components" / "the components listed
+above" means the resolved `$TRIAGE_COMPONENTS` set, not a fixed eight.
 
 ---
 
@@ -102,7 +120,48 @@ echo "TRIAGE_OWNER=${TRIAGE_OWNER:-<unset>}"
   which file you wrote and that the value is now set, then continue. Never run
   triage with an empty or placeholder `$TRIAGE_OWNER`.
 
-Then refresh the live meta bug list:
+### Resolve `$TRIAGE_COMPONENTS` (optional — has a default)
+
+The component set drives `bugzilla-cli fetch`, the meta-bug search, and the
+pre-flight scope filter. The canonical default list and the override mechanism
+live in [`components.md`](components.md). Resolve the set before fetching:
+
+```bash
+echo "TRIAGE_COMPONENTS=${TRIAGE_COMPONENTS:-<unset>}"
+```
+
+- **If set:** it is a `;`-separated list of exact Bugzilla component names. Cache
+  it for the session and split on `;` into the component list.
+- **If `<unset>` (first run):** default to the eight components in
+  [`components.md`](components.md). Show that default list to the user and ask
+  with `AskUserQuestion` whether to **keep the default** (recommended) or
+  **customize** it (free-text "Other": a `;`-separated list of exact component
+  names). This is optional — keeping the default is the common case. Then:
+  - **Kept default:** do **not** write `$TRIAGE_COMPONENTS` (unset = default; the
+    skill stays self-updating if the default list ever changes). Just confirm the
+    eight components that will be triaged.
+  - **Customized:** persist and export the chosen list (same env file as
+    `$TRIAGE_OWNER`):
+    ```bash
+    echo 'export TRIAGE_COMPONENTS="Comp A;Comp B;Comp C"' >> ~/.fx-bug-toolkit.env.sh
+    export TRIAGE_COMPONENTS="Comp A;Comp B;Comp C"
+    ```
+    Confirm which file you wrote and the exact set that will be triaged.
+
+**Always print the resolved component list to the user before any fetch**, so it
+is unambiguous which components this run covers — e.g.
+`Triaging components: Audio/Video, Audio/Video: GMP, Web Audio`.
+
+**Building `bugzilla-cli` flags from the resolved set.** Wherever a command needs
+`--component` flags (the meta search below, and `fetch`), expand the resolved set
+into one `--component "<name>"` flag per component. Read the value first
+(`echo "${TRIAGE_COMPONENTS:-...}"`), then emit a literal flag per entry — do not
+rely on shell array splitting (it differs between bash and zsh). When
+`$TRIAGE_COMPONENTS` is unset, expand the eight defaults shown below.
+
+Then refresh the live meta bug list (one `--component` flag per resolved
+component; the default eight shown here — substitute the configured set if
+customized):
 ```bash
 bugzilla-cli search "[meta]" \
   --component "Audio/Video" \
@@ -232,10 +291,21 @@ next session. (You can automate this with your own scheduler running
 
 ## Fetch bugs
 
-**Full session (`/triage`):**
+**Full session (`/triage`):** pass the resolved component set (from Setup check →
+Resolve `$TRIAGE_COMPONENTS`) as one `--component "<name>"` flag per component —
+`fetch` owns no built-in list when the caller supplies it. The default eight are
+shown here; substitute the configured set if customized:
 ```bash
 START=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d '14 days ago' +%Y-%m-%d)
-bugzilla-cli fetch --start $START
+bugzilla-cli fetch --start $START \
+  --component "Audio/Video" \
+  --component "Audio/Video: cubeb" \
+  --component "Audio/Video: GMP" \
+  --component "Audio/Video: MediaStreamGraph" \
+  --component "Audio/Video: Playback" \
+  --component "Audio/Video: Recording" \
+  --component "Web Audio" \
+  --component "Audio/Video: Web Codecs"
 ```
 Parse the JSON array. Process bugs oldest-first.
 
@@ -367,7 +437,8 @@ context-window headroom. As each subagent finishes, start the next.
 Before running the 6-step workflow, check four conditions and skip immediately if any is true:
 
 **1. Out-of-scope component:**
-Bug's `component` field is not in the 8 components listed above.
+Bug's `component` field is not in the configured component set (resolved
+`$TRIAGE_COMPONENTS`; see Triage scope — components and Setup check).
 → Print: `Skipping bug {id} — component "{component}" is out of scope.` Move to next.
 
 **2. Meta bug:**
