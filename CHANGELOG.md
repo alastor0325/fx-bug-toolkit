@@ -9,6 +9,19 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.3] — 2026-06-04
+
+### Added
+- **`/triage` component set is now configurable** via a new `$TRIAGE_COMPONENTS`
+  env var (optional; unset = the default eight A/V components). The default list
+  and override rules live in `skills/triage/components.md` — the single source of
+  truth that drives the meta-bug search, the pre-flight scope filter, and
+  `bugzilla-cli fetch` (now passed `--component` flags; the CLI no longer treats
+  its hardcoded list as authoritative). On the **first run** the Setup check shows
+  the default components and asks whether to keep or customize them, persisting
+  only a customized set; every run prints the resolved set before fetching.
+  (Requires `bugzilla-cli` ≥ the build that adds `fetch --component`.)
+
 ## [0.2.2] — 2026-06-04
 
 ### Changed
@@ -155,7 +168,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.2...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.3...HEAD
+[0.2.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.2...fx-bug-toolkit--v0.2.3
 [0.2.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.1...fx-bug-toolkit--v0.2.2
 [0.2.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...fx-bug-toolkit--v0.2.1
 [0.2.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...fx-bug-toolkit--v0.2.0
