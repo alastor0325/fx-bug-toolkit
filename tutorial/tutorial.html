@@ -113,6 +113,7 @@
     <a href="#install">Quick start</a>
     <a href="#investigate">Investigate a bug</a>
     <a href="#browse">Browse investigations</a>
+    <a href="#triage">Weekly triage</a>
     <a href="#commands">All commands</a>
     <a href="#wiki">Shared wiki</a>
     <div class="sep"></div>
@@ -139,6 +140,7 @@
         <li>Analyzes Firefox Profiler captures and log files (deep media/EME/CDM know-how).</li>
         <li>Checks spec conformance and writes a structured, searchfox-linked investigation file.</li>
         <li>A local web viewer to search and re-read every past investigation.</li>
+        <li>Runs your weekly A/V bug triage — drafts the comments, sets priority/severity, and gives you a dashboard to review and apply them.</li>
       </ul>
       <div class="note">It <b>investigates and diagnoses</b> — it doesn't write or land patches. Works for any Firefox component; the bundled know-how runs deepest for A/V / media. Runs on Windows, macOS, and Linux.</div>
     </section>
@@ -195,6 +197,28 @@
       </table>
     </section>
 
+    <section id="triage">
+      <h2>Weekly triage</h2>
+      <p class="lead">A second workflow, for the Audio/Video bug-triage rotation: <code>/triage</code> does the analysis and drafts every action; <code>/triage-dashboard</code> is where you review and apply them.</p>
+
+      <h3>Draft the triage</h3>
+      <pre><code><span class="cmd">/triage</span>                    <span class="cmt"># full session: watched bugs + new bugs from the last 14 days</span>
+<span class="cmd">/triage</span> 2044320            <span class="cmt"># just one bug</span>
+<span class="cmd">/triage</span> https://bugzilla.mozilla.org/buglist.cgi?...   <span class="cmt"># every bug in a query</span></code></pre>
+      <p>For each in-scope bug it checks information completeness, looks for duplicates, assesses priority &amp; severity, drafts a needinfo question when something's missing, and wires up meta-bug blocking. It writes each decision as a <b>pending draft</b> — it never touches Bugzilla on its own. You review and apply from the dashboard.</p>
+      <div class="note">Scoped to the <b>Audio/Video</b> components by default; the set is configurable on first run. Like the rest of the toolkit, all I/O goes through local CLIs and your data stays on your machine.</div>
+
+      <h3>Review &amp; apply on the dashboard</h3>
+      <pre><code><span class="cmd">/triage-dashboard</span></code></pre>
+      <p>Opens a local web UI over the drafts on <code>127.0.0.1:8765</code>. Each bug becomes a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when you've also run <code>/bug-start</code> on it — the investigation findings inline. Tabs split the work into <em>Analyzed</em>, <em>Needs Info</em>, <em>Close / Reassign</em>, and <em>Awaiting reply</em>.</p>
+      <figure>
+        <img src="./assets/triage-dashboard.png" alt="The FX Bug Toolkit triage dashboard">
+        <figcaption>The triage dashboard — the left rail lists the week's bugs (with <em>New</em> / <em>regression</em> / <em>Assigned</em> tags), the card on the right shows the proposed comment, the P/S it will set, and the linked investigation findings. <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044320" target="_blank">Bug 2044320</a> is a real, public bug; the rest of the board is sample data.</figcaption>
+      </figure>
+      <p>Not happy with a draft? Type feedback into the card's box to have it re-drafted, toggle whether to CC/needinfo yourself, then hit <b>Apply</b> — the dashboard queues a <code>bugzilla-cli apply</code> that you confirm in the terminal. Nothing is posted to Bugzilla until you say yes.</p>
+      <div class="note">The dashboard is optional and installs itself the first time you run <code>/triage-dashboard</code> (a small FastAPI app in a managed virtualenv) — <code>/triage</code> works without it, it just writes the drafts to disk.</div>
+    </section>
+
     <section id="commands">
       <h2>All commands</h2>
       <table>
@@ -204,6 +228,8 @@
         <tr><td><code>/analyze-profile &lt;url&gt;</code></td><td>Analyze a Firefox Profiler capture</td></tr>
         <tr><td><code>/check-log &lt;path&gt;</code></td><td>Diagnose a Firefox log (media/EME/CDM-aware)</td></tr>
         <tr><td><code>/browse</code></td><td>Open the investigation viewer</td></tr>
+        <tr><td><code>/triage</code> <span style="color:var(--faint)">[id|url]</span></td><td>Draft the weekly A/V bug triage</td></tr>
+        <tr><td><code>/triage-dashboard</code></td><td>Review &amp; apply the triage drafts in a web UI</td></tr>
         <tr><td><code>/update</code></td><td>Update the plugin + its CLI dependencies</td></tr>
       </table>
       <p class="lead" style="margin-top:14px">A few helpers (spec-check, download-guard, source-links, the gecko-navigator agent) run <em>behind the scenes</em> — Claude calls them from the commands above; you don't invoke them directly.</p>
@@ -248,11 +274,11 @@
   }, { rootMargin: "-20% 0px -70% 0px" });
   document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
 
-  // click-to-enlarge: open on figure click, close on backdrop click or Esc
-  const fig = document.querySelector("figure img");
+  // click-to-enlarge: open on any figure click, close on backdrop click or Esc
+  const figs = document.querySelectorAll("figure img");
   const lb = document.getElementById("lightbox"), lbImg = document.getElementById("lightboxImg");
   const closeLb = () => lb.classList.remove("open");
-  if (fig) fig.addEventListener("click", () => { lbImg.src = fig.src; lb.classList.add("open"); });
+  figs.forEach(fig => fig.addEventListener("click", () => { lbImg.src = fig.src; lb.classList.add("open"); }));
   lb.addEventListener("click", e => { if (e.target !== lbImg) closeLb(); });  // click outside the image
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
 </script>

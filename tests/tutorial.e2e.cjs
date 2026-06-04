@@ -50,11 +50,13 @@ async function main() {
     await check("hero shows the display title", async () =>
       assert.match(await page.locator("h1").innerText(), /FX Bug Toolkit/));
     await check("TOC has all chapter links", async () =>
-      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 6));
+      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 7));
     await check("repo link present and correct", async () =>
       assert.ok((await page.locator('#toc a.ext').getAttribute("href")).includes("alastor0325/fx-bug-toolkit")));
     await check("wiki link points at firefox-wiki-plugin", async () =>
       assert.ok((await page.locator('#wiki a[href*="firefox-wiki-plugin"]').first().getAttribute("href")).includes("firefox-wiki-plugin")));
+    await check("triage section embeds the dashboard screenshot", async () =>
+      assert.strictEqual(await page.locator('#triage figure img[src*="triage-dashboard"]').count(), 1));
 
     await check("clicking a TOC chapter sets the URL hash", async () => {
       await page.click('#toc a[href="#commands"]');
@@ -77,8 +79,8 @@ async function main() {
     });
 
     await check("lightbox opens on image click", async () => {
-      await page.locator("figure img").scrollIntoViewIfNeeded();
-      await page.locator("figure img").click();
+      await page.locator("figure img").first().scrollIntoViewIfNeeded();
+      await page.locator("figure img").first().click();
       await page.waitForTimeout(350);
       assert.strictEqual(await page.locator("#lightbox.open").count(), 1);
     });
@@ -88,11 +90,19 @@ async function main() {
       assert.strictEqual(await page.locator("#lightbox.open").count(), 0);
     });
     await check("lightbox closes on Escape", async () => {
-      await page.locator("figure img").click();
+      await page.locator("figure img").first().click();
       await page.waitForTimeout(200);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(300);
       assert.strictEqual(await page.locator("#lightbox.open").count(), 0);
+    });
+    await check("lightbox also opens on the triage screenshot", async () => {
+      await page.locator("figure img").nth(1).scrollIntoViewIfNeeded();
+      await page.locator("figure img").nth(1).click();
+      await page.waitForTimeout(350);
+      assert.strictEqual(await page.locator("#lightbox.open").count(), 1);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
     });
   } finally {
     await browser.close();

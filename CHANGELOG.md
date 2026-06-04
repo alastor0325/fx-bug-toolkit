@@ -9,6 +9,13 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.6] — 2026-06-04
+
+### Changed
+- **Bump the pinned triage dashboard to v0.2.1.** Its queue-drain summary now
+  ends every line with the bug's Bugzilla link (always for applied bugs) so you
+  can one-click to verify the write.
+
 ## [0.2.5] — 2026-06-04
 
 ### Changed

@@ -82,7 +82,7 @@ Install the version this plugin pins — keep `REQUIRED` in sync with
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
-REQUIRED="0.2.0"
+REQUIRED="0.2.1"
 if [ -x "$BIN/pip" ]; then
   "$BIN/pip" install --quiet --upgrade \
     "git+https://github.com/alastor0325/firefox-triage-dashboard@v$REQUIRED" \
