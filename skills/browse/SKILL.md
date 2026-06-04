@@ -11,9 +11,12 @@ then give the user the URL. The launcher is `serve.py` (cross-platform —
 Windows/macOS/Linux):
 
 ```bash
-SERVE="${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}/viewer/serve.py"
+SERVE="${CLAUDE_PLUGIN_ROOT}/viewer/serve.py"
 python3 "$SERVE" start 2>/dev/null || python "$SERVE" start
 ```
+
+(`${CLAUDE_PLUGIN_ROOT}` is substituted with the plugin's real install path when
+this skill loads — works wherever the plugin lives.)
 
 Then:
 - Tell the user it's at **http://127.0.0.1:8777/viewer.html** (the launcher

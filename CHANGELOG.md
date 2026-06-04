@@ -9,6 +9,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.1.1] — 2026-06-04
+
+### Fixed
+- `/browse` and `bug-start`'s viewer auto-serve now reference the bundled
+  `serve.py` via the inline-substituted `${CLAUDE_PLUGIN_ROOT}` instead of a
+  hardcoded local path, so they work wherever the plugin is installed (previously
+  fell back to a maintainer-specific `~/projects/...` path on other machines).
+
 ## [0.1.0] — 2026-06-04
 
 First public release.
@@ -36,5 +44,6 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.1...HEAD
+[0.1.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.0...fx-bug-toolkit--v0.1.1
 [0.1.0]: https://github.com/alastor0325/fx-bug-toolkit/releases/tag/fx-bug-toolkit--v0.1.0

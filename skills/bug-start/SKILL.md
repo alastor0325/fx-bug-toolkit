@@ -1036,7 +1036,7 @@ the user can read this write-up in a browser, then end your chat report with a
 deep link to this bug:
 
 ```bash
-SERVE="${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}/viewer/serve.py"
+SERVE="${CLAUDE_PLUGIN_ROOT}/viewer/serve.py"
 python3 "$SERVE" start 2>/dev/null || python "$SERVE" start
 ```
 

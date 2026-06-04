@@ -6,7 +6,8 @@ Keep the getting-started tutorial in step with the rest of the plugin. Run this
 so the embedded screenshot and the page stay accurate. This is contributor
 tooling, not a shipped plugin skill.
 
-Let `ROOT = ${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}`.
+Run this from inside the repo; set `ROOT` to its top level:
+`ROOT="$(git rev-parse --show-toplevel)"`.
 
 ## Steps
 
