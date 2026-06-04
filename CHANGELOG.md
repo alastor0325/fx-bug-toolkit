@@ -9,6 +9,22 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.5] — 2026-06-04
+
+### Changed
+- **Pin the triage dashboard to a release.** `/triage-dashboard` now targets a
+  specific dashboard version (`v0.2.0`) and upgrades the managed venv to it when
+  it's stale — previously a first install was never updated, so the dashboard
+  could run arbitrarily old code. `/update` installs the same pinned version.
+  Bumping the pin in the skill is how the toolkit rolls forward to newer
+  dashboard releases.
+
+### Added
+- **`/triage` records attachment `content_type`.** Each `bug_context.attachments`
+  entry now carries the Bugzilla MIME type, so the dashboard detects images and
+  videos exactly — a screenshot attached with a descriptive, extension-less name
+  still opens in the in-page preview.
+
 ## [0.2.4] — 2026-06-04
 
 ### Changed

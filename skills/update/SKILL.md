@@ -77,12 +77,16 @@ fi
 ```
 
 **triage dashboard** (only if it was lazily installed by `/triage-dashboard`):
+Install the version this plugin pins — keep `REQUIRED` in sync with
+`skills/triage-dashboard/SKILL.md`.
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
+REQUIRED="0.2.0"
 if [ -x "$BIN/pip" ]; then
-  "$BIN/pip" install --quiet --upgrade "git+https://github.com/alastor0325/firefox-triage-dashboard" \
-    && echo "✅ triage dashboard updated" || echo "⚠️  triage dashboard update FAILED"
+  "$BIN/pip" install --quiet --upgrade \
+    "git+https://github.com/alastor0325/firefox-triage-dashboard@v$REQUIRED" \
+    && echo "✅ triage dashboard updated to v$REQUIRED" || echo "⚠️  triage dashboard update FAILED"
 else
   echo "skip triage dashboard (not installed — /triage-dashboard installs it on first use)"
 fi

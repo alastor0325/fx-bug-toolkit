@@ -1148,7 +1148,8 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
        "text": "First ~200 chars of comment..."}
     ],
     "attachments": [
-      {"name": "profile.json", "url": "https://...", "size": 412000}
+      {"name": "profile.json", "url": "https://...", "size": 412000,
+       "content_type": "application/json"}
     ],
     "ai_reasoning": "§1b only: 1–3 sentences on root cause, source files cited, decision logic",
     "change_note": ""
@@ -1177,7 +1178,7 @@ Steps 2 / 2b / 2c:
 - `inventory_present` / `inventory_missing`: the same ✓/✗ items shown in the DRAFT preview block (the inventory from Step 2). Each entry is a short label like `"platform / version"` or `"media log"`.
 - `see_also`: list of `{bug_id, label}` for regressors, follow-up fixes, related bugs, duplicates. Pull from the bug's `see_also` field plus your Step 4 findings.
 - `recent_comments`: the 2–3 most recent substantive comments, each excerpted to ~200 chars. Skip BugBot / triage-bot / automation comments.
-- `attachments`: profiler captures, log files, screenshots, etc. Each: `{name, url, size?}`.
+- `attachments`: profiler captures, log files, screenshots, etc. Each: `{name, url, size?, content_type?}`. Populate `content_type` from the attachment's Bugzilla MIME type (e.g. `image/png`, `video/mp4`, `application/json`) — the dashboard uses it to detect images/videos *exactly*, so a screenshot or recording attached with a descriptive, extension-less name still previews in the in-page lightbox. Falls back to the filename extension when `content_type` is absent.
 - `ai_reasoning` (§1b only): the source files cited, the S/P justification, the proposed fix area. 1–3 sentences.
 - `change_note`: a one-line brief of what changed when the bug **moved out of Awaiting** into this tab on a re-triage (e.g. "Reporter attached a media log → re-triaged §1b"). The dashboard renders it as a "Changed since Awaiting" row. Leave `""` for a bug that was not previously awaiting. Do NOT set it for a non-substantive reply that kept the bug in Awaiting (per the watch-poll handling above, such a bug stays watched and gets no draft).
 

@@ -13,36 +13,61 @@ installed by `/init` (it pulls a FastAPI stack most users don't need) — instea
 it's installed **lazily, the first time it's needed**, into a managed virtualenv
 at `~/.fx-bug-toolkit/venv`.
 
-## Step 1 — Ensure it's installed (consent-gated on first use)
+## Step 1 — Ensure the pinned version is installed (consent-gated on first use)
+
+This plugin **pins a specific dashboard release** (`REQUIRED` below) and keeps the
+managed venv on it, so `/triage-dashboard` always runs the version this plugin was
+built against — never a stale copy left over from a first install. Check what's
+installed against the pin:
 
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"   # unix vs Windows venv layout
-if [ -x "$BIN/triage-dashboard" ] || [ -f "$BIN/triage-dashboard" ]; then
-  echo "INSTALLED"
+REQUIRED="0.2.0"                                        # dashboard release this plugin targets
+have=""
+[ -x "$BIN/pip" ] && have="$("$BIN/pip" show triage-dashboard 2>/dev/null | sed -n 's/^Version: //p')"
+if [ "$have" = "$REQUIRED" ]; then
+  echo "OK ($have)"
+elif [ -n "$have" ]; then
+  echo "STALE ($have → $REQUIRED)"
 else
   echo "NOT_INSTALLED"
 fi
 ```
 
-If it prints **`NOT_INSTALLED`**, this is a one-time setup that creates a venv and
-downloads the dashboard + its dependencies (FastAPI/uvicorn, ~tens of MB). **Ask
-first** with `AskUserQuestion` (Yes/No) — never install without confirmation.
-On **Yes**:
-
-```bash
-VENV="$HOME/.fx-bug-toolkit/venv"
-PY="$(command -v python3 || command -v python)"
-[ -n "$PY" ] || { echo "Python 3 is required but not on PATH (see /init)."; exit 1; }
-"$PY" -m venv "$VENV"
-BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
-"$BIN/pip" install --quiet --upgrade pip
-"$BIN/pip" install --quiet "git+https://github.com/alastor0325/firefox-triage-dashboard"
-echo "✅ triage dashboard installed in $VENV"
-```
-
-On **No**: stop — explain the dashboard is optional and `/triage` still works
-without it (it just writes the drafts; you won't have the web UI to review them).
+- **`OK`** — already on the pinned version; go to Step 2.
+- **`STALE`** — the venv exists but is on an older dashboard. Upgrade it in place
+  (fast — the heavy deps are already present), no prompt needed:
+  ```bash
+  VENV="$HOME/.fx-bug-toolkit/venv"; BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
+  REQUIRED="0.2.0"
+  "$BIN/pip" install --quiet --upgrade \
+    "git+https://github.com/alastor0325/firefox-triage-dashboard@v$REQUIRED"
+  echo "✅ upgraded triage dashboard to v$REQUIRED"
+  ```
+  Then **stop any already-running dashboard** so the new code is served — it is
+  restarted in Step 2. (Match only the server process by command line; never kill
+  by port — a browser tab connected to the dashboard holds a socket on that port.)
+  ```bash
+  pkill -9 -f "triage_dashboard.app" 2>/dev/null || pkill -9 -f "triage-dashboard" 2>/dev/null || true
+  ```
+- **`NOT_INSTALLED`** — one-time setup: a new venv + the dashboard and its deps
+  (FastAPI/uvicorn, ~tens of MB). **Ask first** with `AskUserQuestion` (Yes/No) —
+  never install without confirmation. On **Yes**:
+  ```bash
+  VENV="$HOME/.fx-bug-toolkit/venv"
+  PY="$(command -v python3 || command -v python)"
+  [ -n "$PY" ] || { echo "Python 3 is required but not on PATH (see /init)."; exit 1; }
+  REQUIRED="0.2.0"
+  "$PY" -m venv "$VENV"
+  BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
+  "$BIN/pip" install --quiet --upgrade pip
+  "$BIN/pip" install --quiet \
+    "git+https://github.com/alastor0325/firefox-triage-dashboard@v$REQUIRED"
+  echo "✅ triage dashboard v$REQUIRED installed in $VENV"
+  ```
+  On **No**: stop — explain the dashboard is optional and `/triage` still works
+  without it (it just writes the drafts; you won't have the web UI to review them).
 
 ## Step 2 — Start it (if not already running) and give the URL
 
@@ -103,9 +128,8 @@ these env vars), or the board will look empty.
 
 ## Keeping it current
 
-To pick up dashboard updates, re-install into the venv:
-```bash
-"$HOME/.fx-bug-toolkit/venv/bin/pip" install --quiet --upgrade \
-  "git+https://github.com/alastor0325/firefox-triage-dashboard"
-```
-(`/update` does this for you when the dashboard is installed.)
+The dashboard version is **pinned** in Step 1 (`REQUIRED` + the `@v…` install
+ref). To move to a newer dashboard release, bump `REQUIRED` to the new tag (in
+all three blocks above) — the next `/triage-dashboard` sees the mismatch
+(`STALE`), upgrades the venv, and restarts the server automatically. `/update`
+also re-installs the pinned version.
