@@ -74,6 +74,41 @@ anything the tutorial shows, run **`/sync-tutorial`** to regenerate the embedded
 screenshot and re-verify the tutorial page before concluding. Don't let the
 tutorial drift from the product.
 
-### Step 7 — Conclude
+### Step 7 — Release (if the change ships to users)
+If the change touches the **shipped** plugin (`skills/`, `agents/`, `viewer/`,
+or `.claude-plugin/`) and users should receive it, cut a release — see
+**Releasing** below. (Contributor-only files — `.claude/`, `tests/`, `docs/`,
+`CLAUDE.md`, `tutorial/` — don't ship, so they don't need a version bump.)
+
+### Step 8 — Conclude
 Summarize: what changed, which tests were added/updated and that they pass,
-whether the README/tutorial were updated, and whether `/sync-tutorial` ran.
+whether the README/tutorial were updated, whether `/sync-tutorial` ran, and the
+new version if you released.
+
+---
+
+## Releasing
+
+This plugin **pins `version`** in `.claude-plugin/plugin.json`, so `claude plugin
+update` compares the version *string* — **users only receive changes when the
+version is bumped.** Pushing commits without a bump is a no-op for installed
+users.
+
+To publish a shippable change:
+
+1. **Bump `version`** in `.claude-plugin/plugin.json` (semver):
+   - **patch** (`0.1.0 → 0.1.1`): bug fixes, small internal tweaks to shipped files
+   - **minor** (`0.1.0 → 0.2.0`): a new command/skill or feature
+   - **major** (`0.1.0 → 1.0.0`): breaking change (renamed/removed command, changed default/env-var)
+2. **Commit** the bump (with the change, or as its own `release: vX.Y.Z` commit).
+3. **Tag + push** (validates `plugin.json` ↔ marketplace entry agree):
+   ```bash
+   claude plugin tag --push -m "fx-bug-toolkit %s"
+   ```
+4. **(Optional) GitHub release** for a changelog:
+   ```bash
+   gh release create fx-bug-toolkit--vX.Y.Z --title vX.Y.Z --notes "…"
+   ```
+
+Users then update with `/update` (or `claude plugin update fx-bug-toolkit`) and
+restart Claude Code.

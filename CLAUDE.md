@@ -18,3 +18,8 @@ Non-negotiables (see the skill for the full loop):
 - **Sync the tutorial** after changing the viewer or anything it shows: run
   `/sync-tutorial` to regenerate the screenshot + re-verify the page, so the
   tutorial never drifts from the product.
+- **Release to ship.** `version` in `.claude-plugin/plugin.json` is pinned, so
+  `claude plugin update` is a no-op until it's bumped. When a change to the
+  shipped plugin (`skills/`/`agents/`/`viewer/`/`.claude-plugin/`) should reach
+  users, bump the semver version and `claude plugin tag --push` (see the dev
+  loop's **Releasing** section). Contributor-only files don't need a bump.
