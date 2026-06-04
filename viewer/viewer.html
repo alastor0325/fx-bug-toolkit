@@ -243,9 +243,15 @@ function highlight(){
   document.querySelectorAll('.row').forEach((r,i)=>r.classList.toggle('sel', i===sel));
 }
 
+function selectByBugId(id){
+  const i = view.findIndex(d => String(d.bug_id) === String(id));
+  if(i>=0) select(i);
+}
+
 function select(i){
   if(i<0||i>=view.length) return;
   sel=i; highlight();
+  history.replaceState(null, '', '#'+encodeURIComponent(view[i].bug_id));
   const r = document.querySelectorAll('.row')[i]; if(r) r.scrollIntoView({block:'nearest'});
   const d = view[i];
   let meta='';
@@ -298,6 +304,8 @@ $('#sort').addEventListener('click', ()=>{ sortDesc=!sortDesc; $('#sort').textCo
 fetch('./index.json').then(r=>r.json()).then(data=>{
   DATA=data;
   applyFilters();
+  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if(h) selectByBugId(h);
 }).catch(err=>{
   $('#detail').innerHTML=`<div class="empty"><div class="big">!</div><div>could not load index.json — run build_index.py first</div></div>`;
 });

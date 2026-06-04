@@ -722,8 +722,8 @@ gather to confirm it.}
 ready to implement.*
 ```
 
-After writing the triage-mode file, skip sections 7–10 (test selection,
-TDD setup, task list, session rename) — those are deep-mode follow-ups.
+After writing the triage-mode file, skip sections 7–11 (test selection,
+TDD setup, task list, viewer, session rename) — those are deep-mode follow-ups.
 Jump straight to section 6a (history log).
 
 ## 6a. Log Investigation to History
@@ -1026,7 +1026,29 @@ the task list. Each patch in the table becomes a task. When moving to implementa
 table carries forward verbatim — no re-planning needed (an implementation workflow such as
 `/firefox-implementation`, if you have it, consumes this table).
 
-## 10. Rename Session
+## 10. Serve the Investigation Viewer
+
+*(Deep mode only — `--triage-mode` parallel dispatch skips sections 7–11, so this
+does not run for triage subagents.)*
+
+After the investigation file is written and verified, start the local viewer so
+the user can read this write-up in a browser, then end your chat report with a
+deep link to this bug:
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT:-$HOME/projects/fx-bug-toolkit}/viewer/serve.sh" start
+```
+
+`serve.sh` rebuilds the index (so this bug appears) and prints the base URL
+(default `http://127.0.0.1:8777/viewer.html`). Make the **closing line** of your
+report a deep link — append the bug id as a URL fragment:
+
+    View this investigation → http://127.0.0.1:8777/viewer.html#{bug_id}
+
+If `serve.sh` fails (e.g. no `python3`), skip silently — the viewer is a
+convenience, not a requirement. The server binds to `127.0.0.1` only.
+
+## 11. Rename Session
 
 As the very last step, invoke the `rename` skill to label this session with the bug number and a short description:
 
