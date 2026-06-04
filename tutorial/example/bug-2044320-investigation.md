@@ -91,7 +91,7 @@ Expected: the file plays (as it did in Firefox 149), keeping the first `colr` bo
 
 **Failure pattern**: Consistent (not intermittent). The failure is deterministic for any MP4 whose video sample entry has more than one `colr` box. No Treeherder/CI dimension — this is a real-content regression reported by an external user, not a test orange.
 
-Reporter (a community reporter) correctly identified the regressor as upstream mp4parse-rust commit `1fea957f`. UA: Firefox/151.0 on macOS.
+The reporter correctly identified the regressor as upstream mp4parse-rust commit `1fea957f`. UA: Firefox/151.0 on macOS.
 
 ### Root Cause
 
