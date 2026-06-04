@@ -68,7 +68,7 @@ or strip.
 - Sanitized personal references: removed the `auto-update-my-md` GitHub push,
   parametrized `profiler-cli` via `$PROFILER_CLI`, softened `/firefox-implementation`
   pointers, fixed the `/deep-dive` → `/spec-check` dangling command, and the
-  `check-firefox-log` hardcoded `~/.claude/skills/...` Write-sandbox path.
+  `check-log` hardcoded `~/.claude/skills/...` Write-sandbox path.
 - Added `init` (installs deps with confirmation + guides paths) and `update`
   (refreshes the plugin upstream + all CLI deps).
 - Reframed the toolkit as general-purpose (A/V is the deepest-stocked domain, not a gate).
@@ -76,11 +76,15 @@ or strip.
   (default `~/.fx-bug-toolkit/bug-investigation`).
 - Restructured `init` into two item-by-item checklists (env/paths + deps),
   REQUIRED vs OPTIONAL.
-- `check-firefox-log`: kept the bundled `knowledge/*.md` as a read-only
+- `check-log`: kept the bundled `knowledge/*.md` as a read-only
   reference floor, converted §6 write-back to wiki-gated `/firefox-wiki:add`
   (else surface to user), made the skill read-only (dropped Write/Edit), and
   removed the personal `~/playready.txt` default log path.
-- `check-firefox-log` §7 history log moved to the fixed namespaced path
+- `check-log` §7 history log moved to the fixed namespaced path
   `~/.fx-bug-toolkit/log-analysis.log` (internal state — not user-configurable).
+- Renamed `check-firefox-log` → `check-log`.
+- Marked `spec-check`, `download-guard`, `source-links` as `user-invocable:
+  false` (internal — Claude invokes them from other skills, hidden from the `/`
+  menu). Confirmed via the Claude Code skills doc.
 - Verified frontmatter on all 9 skills + the agent; live `--plugin-dir` load
   reports 9 skills + gecko-navigator.

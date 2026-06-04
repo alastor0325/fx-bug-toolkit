@@ -7,10 +7,10 @@ single hub skill, `bug-start`.
 
 The **mechanics are component-agnostic** — nothing here is gated to a particular
 area, so it works for any Firefox bug. The bundled domain knowledge currently
-runs deepest for **A/V / media** (the `check-firefox-log` knowledge pages,
+runs deepest for **A/V / media** (the `check-log` knowledge pages,
 codec-spec coverage in `spec-check`, and many media examples), simply because
 that's where it grew up. Coverage for other components deepens the same way: by
-adding component knowledge (wiki pages, analogous `check-firefox-log/knowledge/`
+adding component knowledge (wiki pages, analogous `check-log/knowledge/`
 files), not by changing code.
 
 This toolkit **investigates and diagnoses**; it does not implement or land
@@ -19,18 +19,26 @@ requirement.
 
 ## What's inside
 
-| Skill / agent | Purpose |
+**Commands you invoke** (`/fx-bug-toolkit:<name>`):
+
+| Skill | Purpose |
 |---|---|
 | `bug-start` | The hub — investigate a Firefox bug end to end |
 | `analyze-profile` | Analyze a Firefox Profiler capture |
-| `check-firefox-log` | Diagnose a Firefox log (media/EME/CDM-aware) |
-| `spec-check` | Verify spec conformance (web + codec/format/protocol) |
+| `check-log` | Diagnose a Firefox log (media/EME/CDM-aware) |
 | `update-investigation` | Apply targeted edits to an investigation file |
+| `init` | One-time setup + dependency install/health check |
+| `update` | Update the plugin (upstream) and all CLI dependencies to latest |
+
+**Internal** (`user-invocable: false` — Claude invokes these from the skills
+above; they don't appear in the `/` menu):
+
+| Skill / agent | Purpose |
+|---|---|
+| `spec-check` | Verify spec conformance (web + codec/format/protocol) |
 | `download-guard` | The single approval gate for downloading external files |
 | `source-links` | Rule: hyperlink every source/spec reference |
 | `gecko-navigator` (agent) | Orient in the Gecko codebase; trace flows |
-| `init` | One-time setup + dependency install/health check |
-| `update` | Update the plugin (upstream) and all CLI dependencies to latest |
 
 ## Install
 

@@ -1,5 +1,6 @@
 ---
 name: download-guard
+user-invocable: false
 description: >
   The single approval gate for downloading any external file (bug attachment,
   media sample, test fixture, profile, screen recording, etc.). Never

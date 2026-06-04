@@ -1,5 +1,5 @@
 ---
-name: check-firefox-log
+name: check-log
 description: >
   Analyze a Firefox log file for problems. Specializes in media/EME/CDM issues
   (hardware context reset, process crashes, HRESULT errors, PlayReady/CDM failures).

@@ -1,5 +1,6 @@
 ---
 name: spec-check
+user-invocable: false
 description: Verify specification compliance for web-exposed features and codec/format/protocol internals
 argument-hint: <API, feature, or codec/format term>
 allowed-tools: [Read, Grep, Glob, Bash, WebFetch, WebSearch]
