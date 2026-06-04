@@ -14,6 +14,11 @@ knowledge to the shared wiki.
 This toolkit **investigates and diagnoses** — it doesn't write or land patches.
 Think of it as the "understand the bug" half of your workflow.
 
+> **New here?** The **[Getting Started tutorial](tutorial/tutorial.html)** is the
+> friendliest way in — install, your first investigation, and the viewer, with
+> screenshots. (It's an interactive page; open it in a browser.) This README is
+> the quick reference.
+
 > **About the commands:** you can type the short name — `/init`, `/bug-start`,
 > etc. — and Claude Code's command picker shows which plugin each one comes from,
 > so you can pick the `fx-bug-toolkit` one. The fully-qualified form
@@ -56,45 +61,18 @@ When `init` says **"Core investigation ready,"** you're good to go.
 
 ## Using it
 
-The one command you'll use most — give it a **Bugzilla bug number**:
-
-```
-/bug-start 1899999
-```
-
-It investigates the bug end to end and writes an investigation file to
-`~/.fx-bug-toolkit/bug-investigation/` (or wherever you point
-`FX_BUG_INVESTIGATION_DIR` — see [Configuration](#configuration)).
-
-You can also run the analyzers on their own:
-
-```
-/analyze-profile https://share.firefox.dev/xxxxxxxx
-/check-log /path/to/firefox.log
-```
-
-…and to revise an existing write-up, just ask in plain language — e.g. *"update
-the investigation for bug 1899999 with this new root cause."* Claude handles it
-via the `update-investigation` helper (no slash command needed).
-
-To look back over everything you've investigated, open the viewer:
-
-```
-/browse
-```
-
-It builds an index of all your investigation files (every subfolder) and serves
-a fast, searchable web UI on `127.0.0.1` — one-line summaries, folder tags, and
-the full rendered write-up. Your data never leaves the machine.
+`/bug-start <bug-id>` runs the whole investigation; `/browse` opens the viewer to
+search and re-read past ones. The **[Getting Started tutorial](tutorial/tutorial.html)**
+walks through it with examples and screenshots — start there.
 
 Tip: type `/` and start typing a name to see these in the picker, with the
 source plugin shown next to each.
 
 ---
 
-## What's inside
+## Commands
 
-### Commands you can run
+### You can run these
 
 | Command | What it does |
 |---|---|
@@ -136,10 +114,19 @@ things live:
 > **bash**, a file sourced via `BASH_ENV`. If you set it in `.zshrc` only, the
 > skills won't see it and will fall back to the default.
 
-### Your data stays local and private
+### Your investigations are yours — offline and local
 
-- **Investigation files** live in `FX_BUG_INVESTIGATION_DIR` (never pushed anywhere)
-- **Downloaded files** go to `~/.cache/firefox-download-guard/` (temporary staging)
+- **Every investigation is saved offline**, as plain Markdown on your own
+  machine. Nothing is uploaded; you have full control — read, edit, move, delete,
+  or version them however you like.
+- **The location is configurable** via `FX_BUG_INVESTIGATION_DIR` (default
+  `~/.fx-bug-toolkit/bug-investigation`) — point it at any folder, including an
+  existing notes repo.
+- **Downloaded files** go to `~/.cache/firefox-download-guard/` (temporary staging).
+- **Optional shared knowledge:** connect to a team knowledge base (the Firefox
+  wiki) via the [firefox-wiki-plugin](https://github.com/alastor0325/firefox-wiki-plugin)
+  — see [below](#optional-the-shared-wiki). It's purely additive; the toolkit
+  works fully offline without it.
 
 ---
 
@@ -167,13 +154,13 @@ You can investigate bugs with just the **core** tools (`bmo-to-md`,
 
 ## Optional: the shared wiki
 
-The separate **`firefox-wiki`** plugin makes investigations faster and smarter —
-Claude checks known component behavior before reading code, and contributes new
-findings back so the whole team benefits.
+The separate **[firefox-wiki-plugin](https://github.com/alastor0325/firefox-wiki-plugin)**
+makes investigations faster and smarter — Claude checks known component behavior
+before reading code, and contributes new findings back so the whole team benefits.
 
-To use it: install the `firefox-wiki` plugin and clone its content to
-`~/firefox-wiki` (or set `WIKI_PATH`). The toolkit detects it automatically and
-works perfectly fine **without** it.
+To use it: install the plugin and clone its content to `~/firefox-wiki` (or set
+`WIKI_PATH`). The toolkit detects it automatically and works perfectly fine
+**without** it.
 
 ---
 
@@ -197,3 +184,13 @@ This pulls the plugin's latest changes and refreshes its CLI dependencies.
 - **`init` says `mach` is missing but I have a Firefox checkout.** That's
   expected — `mach` runs as `./mach` from your checkout, not as a global command.
   It's optional anyway.
+
+---
+
+## Contributing
+
+Code lives in `viewer/` (the indexer + the browse UI); the skills are in
+`skills/`. Tests are in `tests/` — see [`tests/README.md`](tests/README.md). All
+changes follow the **fx-bug-toolkit Dev Loop**
+([`.claude/skills/fx-bug-toolkit-dev/skill.md`](.claude/skills/fx-bug-toolkit-dev/skill.md)):
+extract pure logic, unit-test it, and run the suite before committing.
