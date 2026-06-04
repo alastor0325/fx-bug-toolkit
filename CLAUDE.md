@@ -15,3 +15,6 @@ Non-negotiables (see the skill for the full loop):
   `viewer/index.json` git-ignored.
 - **Cross-platform** (Windows/macOS/Linux) — no bash-only launchers.
 - **Update README.md** when a command/flag/default/env-var changes.
+- **Sync the tutorial** after changing the viewer or anything it shows: run
+  `/sync-tutorial` to regenerate the screenshot + re-verify the page, so the
+  tutorial never drifts from the product.

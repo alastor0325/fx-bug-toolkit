@@ -68,6 +68,12 @@ git push
 ```
 Both are required. Never commit without pushing.
 
-### Step 6 — Conclude
-Summarize: what changed, which tests were added/updated and that they pass, and
-whether the README was updated.
+### Step 6 — Sync the tutorial
+If this task changed the **viewer** (`viewer.html` / `viewer.logic.js`) or
+anything the tutorial shows, run **`/sync-tutorial`** to regenerate the embedded
+screenshot and re-verify the tutorial page before concluding. Don't let the
+tutorial drift from the product.
+
+### Step 7 — Conclude
+Summarize: what changed, which tests were added/updated and that they pass,
+whether the README/tutorial were updated, and whether `/sync-tutorial` ran.
