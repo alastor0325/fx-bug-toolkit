@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.2] — 2026-06-04
+
+### Changed
+- **`/triage` no longer auto-CCs/needinfos the triage owner.** It used to always
+  put `$TRIAGE_OWNER` in `cc_add` and set NI-on-owner for §1b. Now `cc_add`
+  defaults empty and the owner's CC/NI is **opt-in per draft, default off** — the
+  owner ticks the dashboard's new **"CC me" / "NI me"** checkboxes (which add/
+  remove `$TRIAGE_OWNER` from `cc_add`/`ni_targets`). `$TRIAGE_OWNER` is still
+  required so those toggles know whom to add. Reporter needinfos (§1a) are
+  unaffected. (Dashboard side ships in firefox-triage-dashboard.)
+
 ## [0.2.1] — 2026-06-04
 
 ### Fixed
@@ -144,7 +155,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.1...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.2...HEAD
+[0.2.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.1...fx-bug-toolkit--v0.2.2
 [0.2.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.0...fx-bug-toolkit--v0.2.1
 [0.2.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.5...fx-bug-toolkit--v0.2.0
 [0.1.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...fx-bug-toolkit--v0.1.5

@@ -1,7 +1,9 @@
 {
   "name": "fx-bug-toolkit",
-  "description": "Firefox bug investigation toolkit — bug-start hub plus profile/log analysis, spec checking, code navigation, and investigation write-up. Component-agnostic mechanics; domain knowledge runs deepest for A/V/media. Shared wiki is an optional accelerator.",
-  "version": "0.2.1",
-  "author": { "name": "Alastor Wu" },
+  "description": "Firefox bug investigation toolkit \u2014 bug-start hub plus profile/log analysis, spec checking, code navigation, and investigation write-up. Component-agnostic mechanics; domain knowledge runs deepest for A/V/media. Shared wiki is an optional accelerator.",
+  "version": "0.2.2",
+  "author": {
+    "name": "Alastor Wu"
+  },
   "repository": "https://github.com/alastor0325/fx-bug-toolkit"
 }

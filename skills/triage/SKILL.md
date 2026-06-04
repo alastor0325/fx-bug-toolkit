@@ -11,11 +11,16 @@ information completeness, duplicate detection, P/S assessment, NI drafting, and
 meta-bug blocking. All BMO I/O goes through `bugzilla-cli` — never call the REST
 API directly.
 
-**Setup — `$TRIAGE_OWNER`:** this skill CCs and needinfo's a **triage owner**
-(the person responsible for the §1b "ready for implementation" bugs) on its
-drafts. Set `TRIAGE_OWNER` to that Bugzilla email (yours, if you run triage);
-where this skill writes `$TRIAGE_OWNER`, substitute that address. `bugzilla-cli`
-(BMO I/O) and a configured triage data dir (`$TRIAGE_DIR`, default
+**Setup — `$TRIAGE_OWNER` (required):** the **triage owner** (the person
+responsible for the §1b "ready for implementation" bugs) can opt into being CC'd
+and/or needinfo'd on a draft via the dashboard's **"CC me" / "NI me"** checkboxes
+— **default off**, decided per bug. The skill does **not** auto-CC/NI the owner;
+it just leaves `cc_add`/`ni_targets` for those toggles to populate. `TRIAGE_OWNER`
+is that Bugzilla email (yours, if you run triage) — required so the toggles know
+whom to add. The **first time you run `/triage`**
+the Setup check explicitly resolves it: if `$TRIAGE_OWNER` is unset it **asks you
+for the email and persists it** before any triage work begins (see Setup check).
+`bugzilla-cli` (BMO I/O) and a configured triage data dir (`$TRIAGE_DIR`, default
 `~/firefox-triage/`) are also required — see Setup check.
 
 ## Invocation forms
@@ -68,6 +73,34 @@ If not found: "Run `cargo install --git https://github.com/alastor0325/bugzilla-
 
 Cache the email returned by `whoami` as `$BOT_EMAIL` for the rest of the session. Use it
 wherever the skill refers to "bot account" (NI targets, ACTIONS blocks, pending JSON).
+
+### Resolve `$TRIAGE_OWNER` (required — gate the run on it)
+
+The skill CCs and needinfo's the triage owner on every draft, so it **must not
+proceed without `$TRIAGE_OWNER`.** Resolve it before any triage work:
+
+```bash
+echo "TRIAGE_OWNER=${TRIAGE_OWNER:-<unset>}"
+```
+
+- **If set:** cache the value as `$TRIAGE_OWNER` for the session and continue.
+- **If `<unset>` (first run):** do **not** silently default it. Ask the user for
+  the triage owner's Bugzilla email with `AskUserQuestion` — offer `$BOT_EMAIL`
+  (from `whoami` above) as the recommended option (most people triage their own
+  bugs), plus an "Other" free-text option for a different address. Then **persist
+  it** so future non-interactive skill shells pick it up, and export it for the
+  current session:
+
+  ```bash
+  # Append to the file non-interactive bash reads (see /init); create it if absent.
+  echo 'export TRIAGE_OWNER="<chosen-email>"' >> ~/.fx-bug-toolkit.env.sh
+  export TRIAGE_OWNER="<chosen-email>"
+  ```
+
+  On macOS/Linux zsh, `~/.zshenv` is the equivalent non-interactive file; mirror
+  the `export` there if that's what the user's shell reads. Confirm to the user
+  which file you wrote and that the value is now set, then continue. Never run
+  triage with an empty or placeholder `$TRIAGE_OWNER`.
 
 Then refresh the live meta bug list:
 ```bash
@@ -766,8 +799,8 @@ P/S: unchanged
 ACTIONS ON APPROVAL (apply {id}):
   POST comment via bot account                      → bugzilla-cli post-comment {id} "..."
   [SET needinfo?({email1})]  (skip if NI already set) → bugzilla-cli set-ni {id} {email1}
-  [ADD CC: $TRIAGE_OWNER] (skip if already in CC)  → bugzilla-cli set-fields {id} --cc-add $TRIAGE_OWNER
   [SET blocks: bug {n}]      (skip if already blocks)  → bugzilla-cli set-fields {id} --blocks-add {n}
+  [Owner CC / NI: off by default — toggle "CC me"/"NI me" in the dashboard to add $TRIAGE_OWNER]
 
 Type "apply {id}" to post, "skip {id}" to skip.
 ─────────────────────────────────────────────────────────────
@@ -847,7 +880,7 @@ Apply the P/S standard. Check meta bug blocking.
 **If Fixable = Yes:**
 1. Invoke `/bug-start {id}` first — do NOT set any fields or post any comment before it completes.
 2. After `/bug-start` completes, read the investigation file and determine the outcome:
-   - **Root cause found** → draft a comment summarising findings + next steps, then include P/S, meta bug blocker, CC, and **NI on $TRIAGE_OWNER** in the same `apply` (one atomic action). The NI signals that the bug is ready for implementation and needs the triage owner's attention. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
+   - **Root cause found** → draft a comment summarising findings + next steps, then include P/S and the meta bug blocker in the same `apply` (one atomic action). Do **not** auto-CC or auto-NI the triage owner — that's the owner's per-draft choice via the dashboard's "CC me" / "NI me" checkboxes (default off); a checked "NI me" is the "ready for implementation, owner's attention" signal. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
    - **Investigation reveals missing info** → fall back to §1a; draft NI comment asking for the specific missing data, with P/S in the same `apply`.
 3. **Never set P/S or meta bug blocker as standalone operations** — always bundle them with a comment so Bugzilla shows a coherent update.
 
@@ -914,11 +947,10 @@ write `~/firefox-triage/pending/bug-{id}.json` — including the `bug_context` b
 ACTIONS ON APPROVAL (apply {id}):
   [SET severity → S{n}]  (skip if already S{n})           → bugzilla-cli set-fields {id} --severity S{n}
   [SET priority → P{n}]  (skip if already P{n})           → bugzilla-cli set-fields {id} --priority P{n}
-  [ADD CC: $TRIAGE_OWNER] (skip if already in CC)      → bugzilla-cli set-fields {id} --cc-add $TRIAGE_OWNER
   [SET blocks: bug {n}]  (skip if already blocks)         → bugzilla-cli set-fields {id} --blocks-add {n}
   [POST comment]                                          → bugzilla-cli post-comment {id} "..."
-  [SET needinfo?($TRIAGE_OWNER)] (§1b only, always)    → bugzilla-cli set-ni {id} $TRIAGE_OWNER
   [SET needinfo?({reporter})] (§1a only)                  → bugzilla-cli set-ni {id} {reporter}
+  [Owner CC / NI: off by default — toggle "CC me"/"NI me" in the dashboard to add $TRIAGE_OWNER to cc_add/ni_targets]
   [Fixable=Yes: /bug-start already run before this apply]
 
 Type "apply {id}" to execute, "skip {id}" to skip.
@@ -1011,7 +1043,7 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
   "severity": null,
   "blocks_add": [],
   "regressed_by_add": [],
-  "cc_add": ["$TRIAGE_OWNER"],
+  "cc_add": [],
   "resolution": null,
   "keywords_add": [],
   "product": null,
@@ -1053,7 +1085,7 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 }
 ```
 
-Set `priority`/`severity` to `null` for §1a (P/S unchanged). Set `keywords_add: ["stalled"]` for stalled bugs. `cc_add` always includes `$TRIAGE_OWNER`; add more entries if needed. Set `product` and `component` for §1c reassignments (both must be set together); leave `null` otherwise. Set `regressed_by_add: [<bug>]` only when the regressor is actually known (see the Regression note in Step 3); leave `[]` otherwise.
+Set `priority`/`severity` to `null` for §1a (P/S unchanged). Set `keywords_add: ["stalled"]` for stalled bugs. **`cc_add` defaults to empty — do NOT pre-add `$TRIAGE_OWNER`.** Whether the triage owner is CC'd (or needinfo'd) is the owner's per-draft choice via the dashboard's **"CC me" / "NI me"** checkboxes (default **off**); the dashboard adds/removes `$TRIAGE_OWNER` from `cc_add`/`ni_targets` when toggled. Add other CCs to `cc_add` only when genuinely needed. Set `product` and `component` for §1c reassignments (both must be set together); leave `null` otherwise. Set `regressed_by_add: [<bug>]` only when the regressor is actually known (see the Regression note in Step 3); leave `[]` otherwise.
 
 **Assigning a bug for implementation.** When a bug is being taken by a known owner — a §1b you (or a named engineer) will fix, or an explicit "assign to X" refine — set `assigned_to: "<email>"` and `status: "ASSIGNED"`. Apply writes these via `set-fields --assigned-to`/`--status`, which formally assigns the bug, not just a self-NI. Keep the implementer's NI if you're still using it for tracking. Leave both `null` for bugs that stay with the reporter (the §1a/§1c common case). Do not set `assigned_to` to a name — it must be the Bugzilla account email.
 
