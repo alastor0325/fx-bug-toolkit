@@ -9,6 +9,24 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.1.4] — 2026-06-04
+
+### Fixed
+- **Skills silently misrouted when env vars were absent** (#8). Two visibility
+  fixes so a missing/unpropagated env var is obvious instead of silent:
+  - **Viewer launcher** now echoes the resolved `serve.py` (`Serving viewer
+    from: …`) on success and a clear reason on failure — no more silent no-op.
+  - **`bug-start`** announces the investigation directory **and its source**
+    (`(from $FX_BUG_INVESTIGATION_DIR)` vs `(default — …not set in this shell)`)
+    before writing, so a Windows User-level var the Bash shell can't see no
+    longer silently splits investigations across two folders.
+- **`init` env-var guidance** (#8): the "Windows / non-interactive PATH" recipe
+  now also covers `FX_BUG_INVESTIGATION_DIR` / `WIKI_PATH` in the same `BASH_ENV`
+  file (so non-interactive bash sees them regardless of Windows User-env
+  propagation), warns that a **full terminal/OS relaunch** — not just a Claude
+  Code restart — is needed for a new User var, and adds a step to **verify** the
+  value is visible to the Bash tool.
+
 ## [0.1.3] — 2026-06-04
 
 ### Fixed
@@ -86,7 +104,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.4...HEAD
+[0.1.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.3...fx-bug-toolkit--v0.1.4
 [0.1.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.2...fx-bug-toolkit--v0.1.3
 [0.1.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.1...fx-bug-toolkit--v0.1.2
 [0.1.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.1.0...fx-bug-toolkit--v0.1.1

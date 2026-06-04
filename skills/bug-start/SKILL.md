@@ -350,7 +350,20 @@ Every statement in the investigation must be classified as one of:
 
 ### File Creation Steps
 
-1. **Ensure directory exists**: `mkdir -p ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}`
+1. **Resolve + announce the investigation directory, then ensure it exists.**
+   Print which directory is being used **and whether it came from
+   `FX_BUG_INVESTIGATION_DIR` or the default** — so a misconfigured/unpropagated
+   env var (e.g. a Windows User var the shell can't see) shows up as a visible
+   "using default" line instead of silently splitting files across two folders:
+   ```bash
+   INVDIR="${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}"
+   if [ -n "${FX_BUG_INVESTIGATION_DIR:-}" ]; then
+     echo "Investigation dir: $INVDIR (from \$FX_BUG_INVESTIGATION_DIR)"
+   else
+     echo "Investigation dir: $INVDIR (default — \$FX_BUG_INVESTIGATION_DIR not set in this shell; see /init if you expected a custom dir)"
+   fi
+   mkdir -p "$INVDIR"
+   ```
 2. **Write the "investigating" lock file** so the triage dashboard can show
    an `investigating` status pill while you're still working:
    ```bash
@@ -1063,7 +1076,12 @@ if not hit:
 print(hit)
 PYEOF
 )"
-  [ -n "$SERVE" ] && "$PY" "$SERVE" start
+  if [ -n "$SERVE" ]; then
+    echo "Serving viewer from: $SERVE"
+    "$PY" "$SERVE" start
+  else
+    echo "Viewer not started: serve.py not found (is the plugin installed and Claude Code restarted? try /update). Skipping — the investigation file is already written."
+  fi
 fi
 ```
 

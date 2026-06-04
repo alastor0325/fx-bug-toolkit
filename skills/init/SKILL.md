@@ -200,20 +200,40 @@ even though those are on your Windows *User* PATH and work in cmd/PowerShell. So
 the CLIs can be installed yet invisible to skills, and `profiler-cli`'s `.cmd`
 shim itself needs `node` on PATH to run.
 
-Fix it once by putting those dirs on the PATH that non-interactive bash reads:
+The **same gap hits the toolkit's config env vars**: a Windows *User*-level
+`FX_BUG_INVESTIGATION_DIR` (or `WIKI_PATH`) is not seen by the Bash tool either,
+so `bug-start` silently falls back to the default dir and your investigations end
+up split across two folders. Fix both at once by putting the dirs **and** the
+config vars in the file non-interactive bash reads:
 
-1. Create `~/.fx-bug-toolkit.env.sh`:
+1. Create `~/.fx-bug-toolkit.env.sh` — PATH plus any config vars you want the
+   skills to honor:
    ```bash
    export PATH="$HOME/.cargo/bin:/c/Program Files/nodejs:$HOME/AppData/Roaming/npm:$PATH"
+   # Optional — only if you relocate these from their defaults:
+   export FX_BUG_INVESTIGATION_DIR="$HOME/firefox-bug-investigation"
+   export WIKI_PATH="$HOME/firefox-wiki"
    ```
 2. Point **`BASH_ENV`** at it (non-interactive bash sources `$BASH_ENV` on
    startup). Set it as a **Windows User environment variable** so Claude Code's
    Bash tool inherits it, e.g. `BASH_ENV=C:\Users\<you>\.fx-bug-toolkit.env.sh`.
-3. Restart Claude Code and re-run `/init` — the tools now resolve ✅.
+3. **Fully relaunch** — on Windows, child shells inherit the environment block
+   captured when the app's parent process started, so a new User-level var needs
+   a complete terminal/OS relaunch, **not just a Claude Code restart**. Then
+   re-run `/init`.
+4. **Verify it propagated** (don't assume) — confirm the Bash tool actually sees
+   the value, not just PowerShell:
+   ```bash
+   echo "BASH_ENV=$BASH_ENV"
+   echo "FX_BUG_INVESTIGATION_DIR=${FX_BUG_INVESTIGATION_DIR:-<unset → default>}"
+   ```
+   If `FX_BUG_INVESTIGATION_DIR` is still `<unset>` here, the skills will use the
+   default regardless of what PowerShell reports — the env file above is the fix.
 
-**macOS / Linux:** the tool dirs are usually already on PATH. If you relocate an
-env var or a CLI, set it in the file your *non-interactive* shell reads (for
-bash, the file `BASH_ENV` points to), not an interactive-only rc file.
+**macOS / Linux:** the tool dirs are usually already on PATH. If you relocate a
+config var or a CLI, set it in the file your *non-interactive* shell reads (for
+zsh that's `~/.zshenv`; for bash, the file `BASH_ENV` points to) — not an
+interactive-only rc file — then verify with the `echo` above.
 
 ---
 

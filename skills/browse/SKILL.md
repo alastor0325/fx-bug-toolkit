@@ -39,12 +39,16 @@ print(hit)
 PYEOF
 )"
   if [ -n "$SERVE" ]; then
+    echo "Serving viewer from: $SERVE"
     "$PY" "$SERVE" start
   else
     echo "Could not locate the fx-bug-toolkit viewer (serve.py). Make sure the plugin is installed and Claude Code was restarted (then try /update)."
   fi
 fi
 ```
+
+The launcher **echoes the resolved `serve.py`** (or a clear "could not locate"
+message) so a wrong/missing path is visible, never a silent no-op.
 
 Why this shape (don't "simplify" it): `${CLAUDE_PLUGIN_ROOT}` is **not** reliably
 substituted or exported into skill Bash ([claude-code#9354](https://github.com/anthropics/claude-code/issues/9354)),
