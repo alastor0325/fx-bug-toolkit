@@ -77,6 +77,16 @@ You can also run the analyzers on their own:
 the investigation for bug 1899999 with this new root cause."* Claude handles it
 via the `update-investigation` helper (no slash command needed).
 
+To look back over everything you've investigated, open the viewer:
+
+```
+/browse
+```
+
+It builds an index of all your investigation files (every subfolder) and serves
+a fast, searchable web UI on `127.0.0.1` — one-line summaries, folder tags, and
+the full rendered write-up. Your data never leaves the machine.
+
 Tip: type `/` and start typing a name to see these in the picker, with the
 source plugin shown next to each.
 
@@ -92,6 +102,7 @@ source plugin shown next to each.
 | `/bug-start <bug-id>` | **The hub.** Investigate a Firefox bug end to end and write the investigation file |
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
+| `/browse` | Open a local web viewer to search & read all your past investigations |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)

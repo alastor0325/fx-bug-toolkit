@@ -410,6 +410,7 @@ appears at the top.
 bug_id: {bug_id}
 investigated_at: {ISO 8601 UTC timestamp at investigation time}
 status: investigated
+summary: {≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No "Bug NNNN" prefix, no trailing period. e.g. "Web Audio bypasses autoplay policy under non-default blocking modes"}
 root_cause: {one-sentence what's actually broken}
 affected_files:
   - {searchfox-relative path}#L{specific line you cited in the body}
@@ -657,6 +658,7 @@ bug_id: {bug_id}
 investigated_at: {ISO 8601 UTC now}
 status: investigated
 depth: triage
+summary: {≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No "Bug NNNN" prefix, no trailing period.}
 root_cause: {one-sentence what's actually broken}
 affected_files:
   - {best-guess searchfox-relative path}#L{line, if a specific one is implicated}
