@@ -1,5 +1,6 @@
 ---
 name: update-investigation
+user-invocable: false
 description: >
   Update an existing Firefox bug investigation file with new findings, corrected root cause,
   revised proposed solution, or patch arrangement changes. Use when investigation.md needs

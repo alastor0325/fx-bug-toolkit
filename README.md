@@ -73,11 +73,9 @@ You can also run the analyzers on their own:
 /check-log /path/to/firefox.log
 ```
 
-…and revise an existing write-up:
-
-```
-/update-investigation
-```
+…and to revise an existing write-up, just ask in plain language — e.g. *"update
+the investigation for bug 1899999 with this new root cause."* Claude handles it
+via the `update-investigation` helper (no slash command needed).
 
 Tip: type `/` and start typing a name to see these in the picker, with the
 source plugin shown next to each.
@@ -94,13 +92,13 @@ source plugin shown next to each.
 | `/bug-start <bug-id>` | **The hub.** Investigate a Firefox bug end to end and write the investigation file |
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
-| `/update-investigation` | Apply targeted edits to an investigation file |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)
 
 | Helper | What it does |
 |---|---|
+| `update-investigation` | Revises an investigation file (ask in plain language, or `bug-start` uses it) |
 | `spec-check` | Checks spec conformance (web specs + codec/format/protocol) |
 | `download-guard` | Asks before downloading any external file, into one safe folder |
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
