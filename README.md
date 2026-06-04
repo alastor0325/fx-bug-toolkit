@@ -14,7 +14,7 @@ knowledge to the shared wiki.
 This toolkit **investigates and diagnoses** — it doesn't write or land patches.
 Think of it as the "understand the bug" half of your workflow.
 
-> **New here?** The **[Getting Started tutorial](tutorial/tutorial.html)** is the
+> **New here?** The **[Getting Started tutorial](https://alastor0325.github.io/fx-bug-toolkit/)** is the
 > friendliest way in — install, your first investigation, and the viewer, with
 > screenshots. (It's an interactive page; open it in a browser.) This README is
 > the quick reference.
@@ -62,7 +62,7 @@ When `init` says **"Core investigation ready,"** you're good to go.
 ## Using it
 
 `/bug-start <bug-id>` runs the whole investigation; `/browse` opens the viewer to
-search and re-read past ones. The **[Getting Started tutorial](tutorial/tutorial.html)**
+search and re-read past ones. The **[Getting Started tutorial](https://alastor0325.github.io/fx-bug-toolkit/)**
 walks through it with examples and screenshots — start there.
 
 Tip: type `/` and start typing a name to see these in the picker, with the
