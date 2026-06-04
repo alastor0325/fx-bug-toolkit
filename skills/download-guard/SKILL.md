@@ -26,9 +26,9 @@ rule (not by `/triage`, `/bug-start`, or any other skill):
 ```
 
 It is deliberately neutral — not under a git repo (so nothing gets committed),
-not under `~/firefox-triage/` or `~/firefox-bug-investigation/` (so it isn't
-themed to one caller), and not raw `/tmp` (so the monthly prune below is
-meaningful and a fixture survives a reboot).
+not under any caller's data directory (e.g. `~/.fx-bug-toolkit/` or
+`~/firefox-triage/`) so it isn't themed to one caller, and not raw `/tmp` (so
+the monthly prune below is meaningful and a fixture survives a reboot).
 
 ## 1. Prune first — the rule owns cleanup
 

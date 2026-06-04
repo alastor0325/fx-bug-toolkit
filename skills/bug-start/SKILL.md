@@ -15,11 +15,17 @@ A file reference without a link is incomplete. Do not write any code reference w
 
 You are helping start work on a Firefox bug. Follow these steps systematically:
 
-⚠️ **CRITICAL REQUIREMENT**: After completing investigation (steps 1-4), you MUST create `~/firefox-bug-investigation/bug-{bug_id}-investigation.md` using the Write tool. DO NOT skip this step. DO NOT just discuss findings without creating the file.
+📁 **Storage location**: investigation files live in the **investigation
+directory** — `$FX_BUG_INVESTIGATION_DIR` if set, otherwise the default
+`~/.fx-bug-toolkit/bug-investigation/`. Shell snippets below expand it safely as
+`${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}` so the
+path is never empty. The directory is created in step 5 if it doesn't exist.
+
+⚠️ **CRITICAL REQUIREMENT**: After completing investigation (steps 1-4), you MUST create `${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md` using the Write tool. DO NOT skip this step. DO NOT just discuss findings without creating the file.
 
 ## Gotchas
 
-1. **Always create the investigation file** — the #1 failure mode. After steps 2-4, use the Write tool to create `~/firefox-bug-investigation/bug-{bug_id}-investigation.md`. Do not just discuss findings.
+1. **Always create the investigation file** — the #1 failure mode. After steps 2-4, use the Write tool to create `${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md`. Do not just discuss findings.
 2. **All code references must be searchfox hyperlinks** — every mention of a file, function, or line number must use the format `[file:line](searchfox URL)`. Plain text references (e.g. "DecodedStream.cpp:809") are not acceptable. Use `searchfox-cli` to find exact line numbers before writing.
 3. **Classify intermittent vs. consistent first** — analyzing code before knowing failure rate wastes time. Check the bug title/comments for "intermittent", "flaky", or failure percentages before diving into code.
 4. **Label every unverified claim `[Assumption]`** — do not state hypotheses as facts. Read the code before making any claim about code behavior.
@@ -63,7 +69,7 @@ file with a full investigation.
 
 **FIRST, check if an investigation file already exists:**
 ```bash
-ls -la ~/firefox-bug-investigation/bug-{bug_id}-investigation.md 2>/dev/null
+ls -la ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md 2>/dev/null
 ```
 
 ### Skip-if-current rule (non-interactive)
@@ -344,18 +350,18 @@ Every statement in the investigation must be classified as one of:
 
 ### File Creation Steps
 
-1. **Ensure directory exists**: `mkdir -p ~/firefox-bug-investigation`
+1. **Ensure directory exists**: `mkdir -p ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}`
 2. **Write the "investigating" lock file** so the triage dashboard can show
    an `investigating` status pill while you're still working:
    ```bash
-   touch ~/firefox-bug-investigation/bug-{bug_id}-investigating.lock
+   touch ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigating.lock
    ```
-3. **Use Write tool to create**: `~/firefox-bug-investigation/bug-{bug_id}-investigation.md`
+3. **Use Write tool to create**: `${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md`
 4. **Verify file was created** with Read tool
 5. **Ensure all required sections are present** (see template below)
 6. **Delete the lock file** once the investigation file is verified complete:
    ```bash
-   rm -f ~/firefox-bug-investigation/bug-{bug_id}-investigating.lock
+   rm -f ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigating.lock
    ```
    The dashboard's SSE picks up the unlock and flips the pill to
    `investigated`. If the skill crashes between step 2 and 6, the lock
@@ -574,7 +580,7 @@ I'd suggest to have **sec-{level}** because:
 
 1. **Confirm file exists with Bash:**
    ```bash
-   ls -lh ~/firefox-bug-investigation/bug-{bug_id}-investigation.md
+   ls -lh ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md
    ```
    **IF THIS FAILS, GO BACK AND CREATE THE FILE NOW.**
 
@@ -593,7 +599,7 @@ I'd suggest to have **sec-{level}** because:
 
 4. **Self-check before presenting:**
    - [ ] Did I use Write tool to create investigation.md?
-   - [ ] Does the file exist at ~/firefox-bug-investigation/bug-{bug_id}-investigation.md?
+   - [ ] Does the file exist at ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md?
    - [ ] Are all required sections filled with actual content (not placeholders)?
    - [ ] Do all searchfox links work?
    - [ ] **Every code reference (file, function, line) has a clickable searchfox link — no plain-text references remain**
@@ -724,12 +730,12 @@ After the investigation file is verified complete, append one line to the histor
 
 **If Public: Yes** (MCP returned content in Step 2):
 ```bash
-echo "$(date +%Y-%m-%d) | {bug_id} | PUBLIC | {component} | {root_cause_brief}" >> ~/firefox-bug-investigation/history.log
+echo "$(date +%Y-%m-%d) | {bug_id} | PUBLIC | {component} | {root_cause_brief}" >> ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/history.log
 ```
 
 **If Public: No** (MCP returned "Bug not found" / authorization error):
 ```bash
-echo "$(date +%Y-%m-%d) | {bug_id} | PRIVATE" >> ~/firefox-bug-investigation/history.log
+echo "$(date +%Y-%m-%d) | {bug_id} | PRIVATE" >> ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/history.log
 ```
 
 Where `root_cause_brief` is 3-5 words (e.g., "missing promise rejection", "race in shutdown", "spec non-compliance").
@@ -738,7 +744,7 @@ Where `root_cause_brief` is 3-5 words (e.g., "missing promise rejection", "race 
 
 Also check for any prior investigations of this bug:
 ```bash
-grep "| {bug_id} |" ~/firefox-bug-investigation/history.log 2>/dev/null
+grep "| {bug_id} |" ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/history.log 2>/dev/null
 ```
 If a prior entry exists, report it to the user before presenting findings.
 
@@ -881,7 +887,7 @@ investigation when the pattern is clearer.
 
 ## 6c. Investigation File Stays Local
 
-The investigation file lives in `~/firefox-bug-investigation/` on your
+The investigation file lives in `${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/` on your
 machine. This toolkit does **not** push it anywhere — investigations are
 personal working notes. Curated, reusable knowledge belongs in the shared
 wiki (§6b), not in pushed investigation files.

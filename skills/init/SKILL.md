@@ -17,11 +17,20 @@ running it.
 
 ## Step 1 — Create the data directories (no confirmation needed)
 
-Local, private; investigations never leave the machine.
+Local, private; investigations never leave the machine. The investigation
+directory is `$FX_BUG_INVESTIGATION_DIR` if the user has set it, otherwise the
+default `~/.fx-bug-toolkit/bug-investigation/`.
 
 ```bash
-mkdir -p ~/firefox-bug-investigation ~/.cache/firefox-download-guard
-ls -d ~/firefox-bug-investigation ~/.cache/firefox-download-guard
+INVDIR="${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}"
+mkdir -p "$INVDIR" ~/.cache/firefox-download-guard
+ls -d "$INVDIR" ~/.cache/firefox-download-guard
+```
+
+If the user wants investigations somewhere other than the default, tell them to
+set `FX_BUG_INVESTIGATION_DIR` in their shell rc (every skill reads it):
+```bash
+echo 'export FX_BUG_INVESTIGATION_DIR="$HOME/.fx-bug-toolkit/bug-investigation"  # adjust to taste'
 ```
 
 ## Step 2 — Detect what's already installed

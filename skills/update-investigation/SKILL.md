@@ -26,7 +26,7 @@ Make targeted edits to an existing Firefox bug investigation file.
 ## Step 1: Find the File
 
 ```bash
-ls ~/firefox-bug-investigation/bug-{bug_id}-investigation.md
+ls ${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md
 ```
 
 If it doesn't exist, stop: "No investigation file found for bug {bug_id}. Run `/bug-start {bug_id}` to create one."

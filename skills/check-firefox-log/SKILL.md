@@ -128,7 +128,7 @@ List each unique HRESULT with its decoded meaning (use `knowledge/hresult-table.
 
 ### Known Context
 Check if any investigation files exist and reference them if relevant:
-- `~/firefox-bug-investigation/bug-*-investigation.md`
+- `${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-*-investigation.md`
 
 ### Suggested Next Steps
 - Whether to file a new bug or relate to an existing one

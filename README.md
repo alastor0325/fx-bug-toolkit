@@ -50,7 +50,8 @@ Claude Code afterward if the plugin itself updated).
 
 ## Data the toolkit uses (all local & private)
 
-- `~/firefox-bug-investigation/` — investigation files you write (never pushed)
+- `$FX_BUG_INVESTIGATION_DIR` (default `~/.fx-bug-toolkit/bug-investigation/`) —
+  investigation files you write (never pushed)
 - `~/.cache/firefox-download-guard/` — transient download staging
 
 ## External dependencies
@@ -64,8 +65,15 @@ Claude Code afterward if the plugin itself updated).
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | feature |
 | `git`, `python3` | source links, helpers | core |
 
-`PROFILER_CLI` defaults to `~/projects/profiler-cli/dist/index.js`; set it to
-relocate. `WIKI_PATH` defaults to `~/firefox-wiki`.
+### Configuration (env vars)
+
+| Var | Default | Controls |
+|---|---|---|
+| `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where investigation files are stored |
+| `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | profiler-cli binary location |
+| `WIKI_PATH` | `~/firefox-wiki` | optional shared-wiki location |
+
+All are optional — set any of them in your shell rc to relocate.
 
 ## Optional: shared wiki
 
