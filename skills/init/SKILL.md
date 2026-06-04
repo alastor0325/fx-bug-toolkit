@@ -75,11 +75,18 @@ ls -d "$INVDIR" ~/.cache/firefox-download-guard
 
 ## Checklist B — Dependencies (detect one by one — do NOT install yet)
 
-Run each check and report `✅` / `⚠️ MISSING`. **Detection only here** — collect
-the missing ones; installation happens in the next section as a single
-selection. Each item is tagged **[installable]** (init can install it — offered
-in the selection) or **[guide-only]** (init only points to instructions, never
-auto-installs).
+Run each check. On success, **show the resolved path** so the user can confirm
+it's the binary they expect (e.g. `✅ searchfox-cli → /Users/me/.cargo/bin/searchfox-cli`)
+— for the `command -v` checks, print that command's output; otherwise `⚠️
+MISSING`. **Detection only here** — collect the missing ones; installation
+happens in the next section as a single selection. Each item is tagged
+**[installable]** (init can install it — offered in the selection) or
+**[guide-only]** (init only points to instructions, never auto-installs).
+
+> Note: `command -v` resolves against `$PATH` in the **same non-interactive
+> shell the skills use at runtime** — so this is the authoritative check that a
+> CLI will actually be found when a skill calls it, no matter where it's
+> installed.
 
 - [ ] **`cargo` (Rust toolchain)** — **REQUIRED**, **[installable via rustup]**.
       Builds `bmo-to-md` + `searchfox-cli`. Check: `command -v cargo`.
