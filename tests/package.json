@@ -1,0 +1,12 @@
+{
+  "name": "fx-bug-toolkit-tests",
+  "private": true,
+  "description": "Tests for the fx-bug-toolkit viewer.",
+  "scripts": {
+    "test:logic": "node --test .",
+    "test:e2e": "node viewer.e2e.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

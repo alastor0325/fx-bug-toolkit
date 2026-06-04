@@ -179,43 +179,26 @@
   </main>
 
 <script src="./marked.min.js"></script>
+<script src="./viewer.logic.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 let DATA = [], view = [], sel = -1, sortDesc = true;
+// escapeHtml, sfUrl, bz, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate
+// are globals provided by viewer.logic.js (loaded above). Alias the two builders:
+const chip = chipHtml;
+const depthChip = depthChipHtml;
 
 const mdParse = (md) => {
   try { return (window.marked && (marked.parse ? marked.parse(md) : marked(md))) || escapeHtml(md); }
   catch(e){ return "<pre>"+escapeHtml(md)+"</pre>"; }
 };
-const escapeHtml = s => (s||"").replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-
-function sfUrl(p){
-  const [path, anchor] = p.split('#');
-  const a = anchor ? '#'+anchor.replace(/L/g,'') : '';
-  return `https://searchfox.org/mozilla-central/source/${path}${a}`;
-}
-const bz = id => `https://bugzilla.mozilla.org/show_bug.cgi?id=${id}`;
-
-function chip(text, cls){ return `<span class="chip ${cls||''}">${escapeHtml(text)}</span>`; }
-
-// "depth" in the frontmatter is jargon; show plain "quick"/"full" with a tooltip.
-const DEPTH = {
-  triage:{label:'quick', tip:'Quick triage pass — a root-cause hypothesis only, no fix or test plan'},
-  deep:  {label:'full',  tip:'Full investigation — verified root cause + implementation & test plan'}
-};
-function depthChip(v){ const m=DEPTH[v]||{label:v,tip:''};
-  return `<span class="chip depth-${v}" title="${m.tip}">${escapeHtml(m.label)}</span>`; }
 
 function applyFilters(){
-  const q = $('#q').value.trim().toLowerCase();
-  view = DATA.filter(d=>{
-    if(q){
-      const hay = (d.bug_id+' '+(d.summary||'')+' '+(d.root_cause||'')+' '+(d.notes||'')+' '+(d.body||'')).toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  view.sort((a,b)=> sortDesc ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
+  const q = $('#q').value.trim();
+  const keep = sel >= 0 ? view[sel] : null;       // remember the selected item across re-sort/filter
+  view = DATA.filter(d => matchesQuery(d, q));
+  view.sort((a,b) => byDate(a, b, sortDesc));
+  if (keep) sel = view.indexOf(keep);              // re-find it (or -1 if filtered out)
   renderList();
 }
 
@@ -297,6 +280,12 @@ document.addEventListener('keydown', e=>{
   if(e.key==='s'||e.key==='j'){ e.preventDefault(); select(Math.min(sel+1, view.length-1)); }   // down
   if(e.key==='w'||e.key==='k'){ e.preventDefault(); select(Math.max(sel-1, 0)); }                // up
   if(e.key==='b'||e.key==='\\'){ e.preventDefault(); toggleRail(); }                              // fold / expand list
+});
+// deep-link: re-select when the #hash changes on an already-open page
+// (select() uses replaceState, which does NOT fire hashchange — so no loop)
+window.addEventListener('hashchange', ()=>{
+  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if(h) selectByBugId(h);
 });
 $('#q').addEventListener('input', ()=>{ sel=-1; applyFilters(); });
 $('#sort').addEventListener('click', ()=>{ sortDesc=!sortDesc; $('#sort').textContent = sortDesc?'↓ newest':'↑ oldest'; applyFilters(); });

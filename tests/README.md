@@ -1,0 +1,41 @@
+# Tests
+
+Covers the only executable code in the plugin — the investigation **viewer** and
+its **indexer** (everything else is prompt text; its structure is checked too).
+
+Cross-platform: the Python and Node suites use only the standard library and run
+on macOS, Linux, and Windows. The browser E2E needs Playwright.
+
+## Run (no extra installs)
+
+```bash
+# Python: indexer unit tests, end-to-end build, serve integration, plugin structure
+python3 -m unittest discover -s tests
+
+# Node: viewer pure-logic unit tests
+node --test tests/
+```
+
+(Requires `python3` with `pyyaml`, and `node` — both already toolkit deps.)
+
+## Run the browser E2E (optional — needs Playwright)
+
+```bash
+cd tests
+npm install
+npx playwright install chromium
+node viewer.e2e.cjs
+```
+
+## What's covered
+
+| Suite | File | Kind | Covers |
+|---|---|---|---|
+| Indexer | `test_build_index.py` | unit + e2e | frontmatter parsing, `clean_md` (keeps identifier `_`), `card_label`, `preview` fallback chain, recursive scan, numeric vs slug ids, folders, exclusions, sort |
+| Serve | `test_serve.py` | integration | builds the index + serves the real assets on an ephemeral port; every asset returns 200; served index is valid |
+| Plugin structure | `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; folder == `name`; invocable-vs-internal contract; agent frontmatter |
+| Viewer logic | `viewer.logic.test.js` | unit | `escapeHtml`, `sfUrl`, `bz`, `depthMeta`, chip builders, `matchesQuery`, `byDate` |
+| Viewer UI | `viewer.e2e.cjs` | e2e (browser) | renders rows, search filters, click→detail, deep-link by `#hash`, `w`/`s` keyboard nav, `b` fold |
+
+The DOM-free logic lives in `viewer/viewer.logic.js` so it can be unit-tested in
+Node and reused by the page; the DOM wiring is covered by the browser E2E.

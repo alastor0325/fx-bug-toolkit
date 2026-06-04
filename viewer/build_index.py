@@ -14,8 +14,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-INVDIR = Path(os.environ.get("FX_BUG_INVESTIGATION_DIR", Path.home() / "firefox-bug-investigation"))
-OUT = Path(__file__).resolve().parent / "index.json"
+# Must match the toolkit-wide default (bug-start, init): ~/.fx-bug-toolkit/bug-investigation
+INVDIR = Path(os.environ.get("FX_BUG_INVESTIGATION_DIR") or (Path.home() / ".fx-bug-toolkit" / "bug-investigation"))
+OUT = Path(os.environ.get("FX_VIEWER_INDEX_OUT") or (Path(__file__).resolve().parent / "index.json"))
 
 try:
     import yaml  # pyyaml
@@ -62,7 +63,9 @@ def as_list(v):
 
 
 _LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")   # [text](url) -> text
-_EMPH = re.compile(r"[*`_]+")                   # **bold** `code` _em_
+_EMPH = re.compile(r"[*`]+")                     # **bold** `code` — NOT '_' (it
+                                                 # is part of identifiers like
+                                                 # blocking_policy)
 
 
 def clean_md(s: str) -> str:
@@ -126,7 +129,9 @@ def main() -> int:
             continue
         stem = path.stem
         slug = re.sub(r"^bug-", "", stem)            # drop redundant 'bug-' prefix
-        folder = str(rel.parent) if str(rel.parent) != "." else None
+        slug = re.sub(r"-investigation$", "", slug)  # …and the '-investigation' suffix
+        # as_posix() so folders display with '/' on Windows too (not '\')
+        folder = rel.parent.as_posix() if str(rel.parent) != "." else None
         text = path.read_text(encoding="utf-8", errors="replace")
         fm, body = split_frontmatter(text)
         has_fm = fm is not None and len(fm) > 0

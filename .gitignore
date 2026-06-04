@@ -5,3 +5,7 @@ __pycache__/
 # viewer: generated locally, contains private investigation content — never commit
 viewer/index.json
 viewer/.run/
+
+# test deps
+tests/node_modules/
+tests/package-lock.json
