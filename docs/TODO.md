@@ -80,7 +80,7 @@ or strip.
   reference floor, converted §6 write-back to wiki-gated `/firefox-wiki:add`
   (else surface to user), made the skill read-only (dropped Write/Edit), and
   removed the personal `~/playready.txt` default log path.
-- `check-firefox-log` §7 history log is now `FX_LOG_ANALYSIS_LOG` (default
-  `~/.fx-bug-toolkit/log-analysis.log`), namespaced + overridable.
+- `check-firefox-log` §7 history log moved to the fixed namespaced path
+  `~/.fx-bug-toolkit/log-analysis.log` (internal state — not user-configurable).
 - Verified frontmatter on all 9 skills + the agent; live `--plugin-dir` load
   reports 9 skills + gecko-navigator.

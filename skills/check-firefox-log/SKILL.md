@@ -161,12 +161,11 @@ test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" && echo WIKI_INSTALLED
 
 ## 7. Log Analysis to History
 
-The history file is `$FX_LOG_ANALYSIS_LOG` if set, otherwise the default
-`~/.fx-bug-toolkit/log-analysis.log`. After completing the report, append to it
-(creating the parent dir if needed):
+The history file is `~/.fx-bug-toolkit/log-analysis.log`. After completing the
+report, append to it (creating the parent dir if needed):
 
 ```bash
-HIST="${FX_LOG_ANALYSIS_LOG:-$HOME/.fx-bug-toolkit/log-analysis.log}"
+HIST="$HOME/.fx-bug-toolkit/log-analysis.log"
 mkdir -p "$(dirname "$HIST")"
 echo "$(date +%Y-%m-%d) | $(basename {log_file_path}) | {primary_error_signal} | {root_cause_brief}" >> "$HIST"
 ```
@@ -177,7 +176,7 @@ Where:
 
 Before analyzing, check for prior entries with similar signals:
 ```bash
-tail -20 "${FX_LOG_ANALYSIS_LOG:-$HOME/.fx-bug-toolkit/log-analysis.log}" 2>/dev/null
+tail -20 "$HOME/.fx-bug-toolkit/log-analysis.log" 2>/dev/null
 ```
 
 If prior entries match the same error signal, tell the user how many times it has appeared before and reference any related bug numbers from investigation files.
