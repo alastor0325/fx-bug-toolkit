@@ -1,94 +1,182 @@
-# fx-bug-toolkit
+# 🦊 fx-bug-toolkit
 
-A Claude Code plugin for **investigating Firefox bugs**. It bundles the per-bug
-investigation cluster — diagnose a bug, analyze profiles and logs, check spec
-conformance, navigate the Gecko codebase, and write up findings — behind a
-single hub skill, `bug-start`.
+A Claude Code plugin that helps you **investigate Firefox bugs** — fast.
 
-The **mechanics are component-agnostic** — nothing here is gated to a particular
-area, so it works for any Firefox bug. The bundled domain knowledge currently
-runs deepest for **A/V / media** (the `check-log` knowledge pages,
-codec-spec coverage in `spec-check`, and many media examples), simply because
-that's where it grew up. Coverage for other components deepens the same way: by
-adding component knowledge (wiki pages, analogous `check-log/knowledge/`
-files), not by changing code.
+Point it at a bug and it pulls the Bugzilla report, searches the Gecko codebase,
+reads profiles and logs, checks the spec, and writes up a clean, link-rich
+investigation file for you. One command does the whole thing: **`bug-start`**.
 
-This toolkit **investigates and diagnoses**; it does not implement or land
-patches. The shared knowledge wiki is an *optional* accelerator, not a
-requirement.
+It works for **any Firefox component** — the mechanics aren't tied to a
+particular area. The bundled know-how currently runs deepest for **media / A/V**
+(that's where it grew up), and it gets smarter for other areas as people add
+knowledge to the shared wiki.
 
-## What's inside
+> 💡 This toolkit **investigates and diagnoses** — it doesn't write or land
+> patches. Think of it as the "understand the bug" half of your workflow.
 
-**Commands you invoke** (`/fx-bug-toolkit:<name>`):
+---
 
-| Skill | Purpose |
-|---|---|
-| `bug-start` | The hub — investigate a Firefox bug end to end |
-| `analyze-profile` | Analyze a Firefox Profiler capture |
-| `check-log` | Diagnose a Firefox log (media/EME/CDM-aware) |
-| `update-investigation` | Apply targeted edits to an investigation file |
-| `init` | One-time setup + dependency install/health check |
-| `update` | Update the plugin (upstream) and all CLI dependencies to latest |
+## 🚀 Quick start
 
-**Internal** (`user-invocable: false` — Claude invokes these from the skills
-above; they don't appear in the `/` menu):
+**1. Clone the repo** (anywhere you like):
 
-| Skill / agent | Purpose |
-|---|---|
-| `spec-check` | Verify spec conformance (web + codec/format/protocol) |
-| `download-guard` | The single approval gate for downloading external files |
-| `source-links` | Rule: hyperlink every source/spec reference |
-| `gecko-navigator` (agent) | Orient in the Gecko codebase; trace flows |
-
-## Install
-
-Add this repo as a plugin marketplace in Claude Code, then enable the
-`fx-bug-toolkit` plugin. After enabling, run the setup:
-
-```
-/init
+```bash
+git clone https://github.com/alastor0325/fx-bug-toolkit.git ~/fx-bug-toolkit
 ```
 
-`/init` creates the data directories and checks every dependency, reporting
-which feature degrades if any are missing.
+**2. Add it to Claude Code and install the plugin:**
 
-To stay current later, run `/update` — it pulls the plugin's own upstream
-changes and refreshes the CLI dependencies to their latest versions (restart
-Claude Code afterward if the plugin itself updated).
+```bash
+claude plugin marketplace add ~/fx-bug-toolkit
+claude plugin install fx-bug-toolkit@fx-bug-toolkit
+```
 
-## Data the toolkit uses (all local & private)
+**3. Restart Claude Code** so the plugin loads. (Plugins are picked up at
+startup.)
 
-- `$FX_BUG_INVESTIGATION_DIR` (default `~/.fx-bug-toolkit/bug-investigation/`) —
-  investigation files you write (never pushed)
-- `~/.cache/firefox-download-guard/` — transient download staging
+**4. Run the setup** — it checks your machine and offers to install anything
+missing:
 
-## External dependencies
+```
+/fx-bug-toolkit:init
+```
 
-| Tool | Gates | Required? |
+That's it. When `init` says **"Core investigation ready,"** you're good to go. ✅
+
+---
+
+## 🔍 Using it
+
+The one command you'll use most:
+
+```
+/fx-bug-toolkit:bug-start 1899999
+```
+
+Give it a **Bugzilla bug number** and it investigates the bug end to end and
+writes an investigation file to `~/.fx-bug-toolkit/bug-investigation/` (or
+wherever you point `FX_BUG_INVESTIGATION_DIR` — see [Configuration](#%EF%B8%8F-configuration)).
+
+You can also run the analyzers on their own:
+
+```
+/fx-bug-toolkit:analyze-profile https://share.firefox.dev/xxxxxxxx
+/fx-bug-toolkit:check-log /path/to/firefox.log
+```
+
+…and revise an existing write-up:
+
+```
+/fx-bug-toolkit:update-investigation
+```
+
+> Tip: type `/fx-bug-toolkit:` in Claude Code to see every command this plugin
+> adds.
+
+---
+
+## 🧩 What's inside
+
+### Commands you can run
+
+| Command | What it does |
+|---|---|
+| `/fx-bug-toolkit:init` | One-time setup — checks your env + dependencies, offers to install what's missing |
+| `/fx-bug-toolkit:bug-start <bug-id>` | **The hub.** Investigate a Firefox bug end to end and write the investigation file |
+| `/fx-bug-toolkit:analyze-profile <url>` | Analyze a Firefox Profiler capture |
+| `/fx-bug-toolkit:check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
+| `/fx-bug-toolkit:update-investigation` | Apply targeted edits to an investigation file |
+| `/fx-bug-toolkit:update` | Update the plugin + its CLI dependencies to the latest |
+
+### Behind the scenes _(Claude uses these automatically — you don't call them)_
+
+| Helper | What it does |
+|---|---|
+| `spec-check` | Checks spec conformance (web specs + codec/format/protocol) |
+| `download-guard` | Asks before downloading any external file, into one safe folder |
+| `source-links` | Makes sure every code/spec reference is a real, clickable link |
+| `gecko-navigator` _(agent)_ | Orients in the Gecko codebase and traces execution flows |
+
+These are marked `user-invocable: false`, so they won't clutter your `/` menu —
+`bug-start` and friends pull them in when needed.
+
+---
+
+## ⚙️ Configuration
+
+Everything works out of the box. You only need these if you want to change where
+things live:
+
+| Variable | Default | What it controls |
 |---|---|---|
-| `bmo-to-md` | pulling Bugzilla content | core |
-| `searchfox-cli` | code search | core |
-| `node` + profiler-cli (`$PROFILER_CLI`) | `/analyze-profile` | feature |
-| `mach` + a mozilla-central checkout | local build / spec checks | feature |
-| `moz` MCP server | Bugzilla/Phabricator MCP lookups | feature |
-| `git`, `python3` | source links, helpers | core |
+| `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
+| `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | location of the profiler-cli binary |
+| `WIKI_PATH` | `~/firefox-wiki` | location of the optional shared wiki |
 
-### Configuration (env vars)
+> ⚠️ **Where to set them:** Claude Code runs skill commands in a
+> **non-interactive** shell, so put any `export` in a file those shells read.
+> For **zsh** that's `~/.zshenv` — **not** `~/.zshrc` (which only loads for
+> interactive shells). For **bash**, a file sourced via `BASH_ENV`. If you set it
+> in `.zshrc` only, the skills won't see it and will use the default.
 
-| Var | Default | Controls |
+### Your data stays local & private
+
+- **Investigation files** → `FX_BUG_INVESTIGATION_DIR` (never pushed anywhere)
+- **Downloaded files** → `~/.cache/firefox-download-guard/` (temporary staging)
+
+---
+
+## 📦 Dependencies
+
+`init` handles these for you — it detects what's missing and offers a one-tick
+**multi-select** to install them. Here's the lay of the land:
+
+| Tool | Needed for | `init` can install it? |
 |---|---|---|
-| `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where investigation files are stored |
-| `PROFILER_CLI` | `~/projects/profiler-cli/dist/index.js` | profiler-cli binary location |
-| `WIKI_PATH` | `~/firefox-wiki` | optional shared-wiki location |
+| `bmo-to-md` | pulling Bugzilla content | ✅ yes |
+| `searchfox-cli` | searching the codebase | ✅ yes |
+| `profiler-cli` | `/analyze-profile` | ✅ yes |
+| `cargo` (Rust) | building the two CLIs above | ✅ yes (via rustup) |
+| `node` + `npm` | building profiler-cli | ✅ yes (via nvm) |
+| `git`, `python3` | source links, helper scripts | guide-only (use your system) |
+| `mach` + a mozilla-central checkout | local build / spec checks | guide-only (optional) |
+| `moz` MCP server | Bugzilla/Phabricator MCP lookups | guide-only (optional) |
+| `firefox-wiki` | knowledge accelerator | guide-only (optional) |
 
-All are optional. To relocate, `export` them where **non-interactive shells**
-read them — Claude Code runs skill commands non-interactively. For **zsh** use
-`~/.zshenv` (**not** `~/.zshrc`, which only loads for interactive shells); for
-**bash**, a file sourced for non-interactive shells (e.g. via `BASH_ENV`).
+You can investigate bugs with just the **core** tools (`bmo-to-md`,
+`searchfox-cli`, `git`, `python3`). The rest unlock extra features.
 
-## Optional: shared wiki
+---
 
-Install the separate `firefox-wiki` plugin and clone its content to
-`~/firefox-wiki` (or set `WIKI_PATH`) for faster starts and compounding
-knowledge. The toolkit gates every wiki touchpoint on a presence check and works
-fully without it.
+## 📚 Optional: the shared wiki
+
+The separate **`firefox-wiki`** plugin makes investigations faster and smarter —
+Claude checks known component behavior before reading code, and contributes new
+findings back so the whole team benefits.
+
+To use it: install the `firefox-wiki` plugin and clone its content to
+`~/firefox-wiki` (or set `WIKI_PATH`). The toolkit detects it automatically and
+works perfectly fine **without** it.
+
+---
+
+## 🔄 Keeping it up to date
+
+```
+/fx-bug-toolkit:update
+```
+
+This pulls the plugin's latest changes and refreshes its CLI dependencies.
+**Restart Claude Code** afterward if the plugin itself was updated.
+
+---
+
+## 🆘 Troubleshooting
+
+- **I don't see the commands after installing.** Restart Claude Code — plugins
+  load at startup. Then type `/fx-bug-toolkit:` to list them.
+- **It's not using my custom `FX_BUG_INVESTIGATION_DIR`.** It's probably set in
+  `~/.zshrc`; move it to `~/.zshenv` (see [Configuration](#%EF%B8%8F-configuration)).
+- **`init` says `mach` is missing but I have a Firefox checkout.** That's
+  expected — `mach` is run as `./mach` from your checkout, not a global command.
+  It's optional anyway.
