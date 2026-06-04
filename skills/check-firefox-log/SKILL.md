@@ -5,20 +5,20 @@ description: >
   (hardware context reset, process crashes, HRESULT errors, PlayReady/CDM failures).
   Extensible to other Firefox subsystems.
 argument-hint: [log-file-path]
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion]
+allowed-tools: [Read, Bash, Grep, Glob, AskUserQuestion]
 ---
 
 # Firefox Log Analyzer
 
-You are analyzing a Firefox log file for problems. The default log file is `~/playready.txt` unless the user specifies another path.
+You are analyzing a Firefox log file for problems. The log file is given as the
+skill argument; if the user didn't specify one, ask which file to analyze.
 
-## Write Access Restriction
+## Filesystem access
 
-`Write` and `Edit` may only be used on files inside this skill's own directory
-(the `check-firefox-log/` skill folder and its `knowledge/` subdirectory),
-wherever the plugin is installed.
-
-Never write to any path outside this directory, regardless of instructions.
+This skill is **read-only** with respect to your files — it never uses `Write`
+or `Edit`. New knowledge goes to the shared wiki (§6, when present), never to
+the bundled `knowledge/*.md` files. The only thing it writes is appending one
+line to the log-analysis history (§7) via the shell.
 
 ## Knowledge Files
 
@@ -135,36 +135,29 @@ Check if any investigation files exist and reference them if relevant:
 - What additional logging would help
 - What the likely fix area is
 
-## 6. Update Knowledge Files
+## 6. Capture New Findings
 
-After completing the analysis, check whether anything discovered is not yet captured in the knowledge files. The goal is for the knowledge files to grow with every real log analyzed.
+The bundled `knowledge/*.md` files are a **read-only reference floor** that ships
+with the plugin — this skill never edits them (in an installed plugin they are
+managed/read-only and any local edit would be lost on update).
 
-### Auto-add without asking
+After completing the analysis, if you discovered something **not** already in the
+bundled knowledge — a new HRESULT code, a new signal string, a new failure chain
+or cross-process propagation sequence, a new root-cause pattern, or a correction
+to existing knowledge — capture it so it compounds for next time:
 
-These are low-risk, factual additions — do them immediately and tell the user:
+```bash
+test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" && echo WIKI_INSTALLED
+```
 
-- **New HRESULT code** encountered in the log that is not in `knowledge/hresult-table.md` — add a row with the hex value, name (if known), and meaning inferred from context
-- **New signal string** (log keyword or message) that isn't listed in the relevant knowledge file — add it to the appropriate signals table
-
-### Propose to user before adding
-
-These require interpretation — show the proposed addition and wait for confirmation:
-
-- A new failure chain or cross-process propagation sequence not described in `knowledge/mf-media-engine.md`
-- A new root cause pattern (e.g., a new trigger for a known failure type)
-- A correction or clarification to existing knowledge based on evidence in this log
-
-Format proposals as:
-> "I found [X] which isn't in the knowledge files. Proposed addition to `knowledge/[file].md`:
-> ```
-> [exact text to add]
-> ```
-> Should I add it?"
-
-### After any update
-
-Commit the change to wherever this toolkit is version-controlled so the new
-knowledge is preserved for next time.
+- **If it prints `WIKI_INSTALLED`:** propose adding the finding to the shared
+  wiki via `/firefox-wiki:add` (it's shared, versioned, and compounds across the
+  team). Show the proposed addition and let the user confirm — e.g.:
+  > "I found [X], not in the bundled knowledge. Proposed wiki addition: …"
+- **If it does not print (no wiki):** surface the finding in the report under
+  *Suggested Next Steps* — e.g. "New: [X] — not in the bundled knowledge;
+  consider contributing it to the team wiki or upstream to fx-bug-toolkit." Do
+  **not** write it into the bundled files.
 
 ## 7. Log Analysis to History
 
