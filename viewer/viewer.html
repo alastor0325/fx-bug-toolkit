@@ -45,6 +45,8 @@
   .brand{font-family:var(--mono); font-weight:600; letter-spacing:.22em; text-transform:uppercase;
     font-size:13px; color:var(--amber); white-space:nowrap}
   .brand span{color:var(--faint); font-weight:400}
+  .brand a{text-decoration:none}
+  .brand a:hover span{color:var(--amber); text-decoration:underline}
   .search{flex:0 1 340px; position:relative}
   .search input{
     width:100%; height:34px; padding:0 12px 0 30px; border-radius:7px;
@@ -164,7 +166,7 @@
 <body>
   <header class="topbar">
     <button class="toggle" id="toggle" title="Fold / expand list  ( b  or  \ )">&#10094;</button>
-    <div class="brand">Bug Investigations <span>· fx-bug-toolkit</span></div>
+    <div class="brand">Bug Investigations <a href="https://github.com/alastor0325/fx-bug-toolkit" target="_blank" rel="noopener noreferrer"><span>· fx-bug-toolkit</span></a></div>
     <div class="search"><input id="q" type="text" placeholder="search  ( / )  — id, title, root cause, body" autocomplete="off" spellcheck="false"></div>
     <div class="filters">
       <button class="sortbtn" id="sort">↓ newest</button>
