@@ -109,10 +109,9 @@ things live:
 | `WIKI_PATH` | `~/firefox-wiki` | location of the optional shared wiki |
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
-> shell, so put any `export` in a file those shells read. For **zsh** that's
-> `~/.zshenv` — **not** `~/.zshrc` (which only loads for interactive shells). For
-> **bash**, a file sourced via `BASH_ENV`. If you set it in `.zshrc` only, the
-> skills won't see it and will fall back to the default.
+> shell, so `export` the variable in a file those shells read — not only an
+> interactive-only startup file. If it's set but the skills don't pick it up,
+> that's usually why; confirm with `<your-shell> -c 'echo $FX_BUG_INVESTIGATION_DIR'`.
 
 ### Your investigations are yours — offline and local
 
@@ -179,8 +178,10 @@ This pulls the plugin's latest changes and refreshes its CLI dependencies.
 
 - **I don't see the commands after installing.** Restart Claude Code — plugins
   load at startup. Then type `/` and start typing a command name.
-- **It's not using my custom `FX_BUG_INVESTIGATION_DIR`.** It's probably set in
-  `~/.zshrc`; move it to `~/.zshenv` (see [Configuration](#configuration)).
+- **It's not using my custom `FX_BUG_INVESTIGATION_DIR`.** It's likely exported
+  only in an interactive-only startup file; set it where non-interactive shells
+  read it too — Claude Code runs commands non-interactively (see
+  [Configuration](#configuration)).
 - **`init` says `mach` is missing but I have a Firefox checkout.** That's
   expected — `mach` runs as `./mach` from your checkout, not as a global command.
   It's optional anyway.
