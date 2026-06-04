@@ -64,9 +64,10 @@ async function main() {
       await page.waitForFunction(() => location.hash === "#commands", null, { timeout: 4000 });
     });
     await check("scrollspy syncs the hash to the chapter in view", async () => {
-      await page.evaluate(() => document.getElementById("browse").scrollIntoView());
-      await page.waitForTimeout(500);
-      assert.strictEqual(await page.evaluate(() => location.hash), "#browse");
+      // Instant scroll (the page's CSS uses smooth-scroll, whose duration grows
+      // with distance) so the IntersectionObserver settles deterministically.
+      await page.evaluate(() => document.getElementById("browse").scrollIntoView({ behavior: "instant", block: "start" }));
+      await page.waitForFunction(() => location.hash === "#browse", null, { timeout: 4000 });
     });
 
     await check("TOC toggle folds and expands; stays inside the rail", async () => {
@@ -101,6 +102,29 @@ async function main() {
       await page.locator("figure img").nth(1).click();
       await page.waitForTimeout(350);
       assert.strictEqual(await page.locator("#lightbox.open").count(), 1);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+    });
+
+    await check("clicking the enlarged image zooms in to 250%", async () => {
+      await page.locator("figure img").first().click();     // open at 100%
+      await page.waitForTimeout(250);
+      await page.locator("#lightboxImg").click();            // toggle zoom
+      await page.waitForTimeout(250);
+      assert.match(await page.locator("#lightboxImg").evaluate(el => el.style.transform), /scale\(2\.5\)/);
+      assert.strictEqual((await page.locator("#lbZoom").innerText()).trim(), "250%");
+    });
+    await check("the + button increases zoom further", async () => {
+      await page.locator('#lbTools button[data-z="in"]').click();
+      await page.waitForTimeout(250);
+      const z = parseInt((await page.locator("#lbZoom").innerText()).replace("%", ""), 10);
+      assert.ok(z > 250, `expected > 250%, got ${z}`);
+    });
+    await check("Reset returns the image to 100%", async () => {
+      await page.locator('#lbTools button[data-z="reset"]').click();
+      await page.waitForTimeout(250);
+      assert.strictEqual((await page.locator("#lbZoom").innerText()).trim(), "100%");
+      assert.match(await page.locator("#lightboxImg").evaluate(el => el.style.transform), /scale\(1\)/);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(300);
     });

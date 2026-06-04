@@ -169,15 +169,15 @@ multi-select to install them. Here's the lay of the land:
 
 | Tool | Needed for | Required? | Can `init` install it? |
 |---|---|---|---|
-| `bmo-to-md` | pulling Bugzilla content | **required** | yes |
-| `searchfox-cli` | searching the codebase | **required** | yes |
-| `profiler-cli` (+ Playwright Firefox) | `/analyze-profile` | **required** | yes |
-| `cargo` (Rust) | building the two CLIs above | **required** | yes (via rustup) |
-| `node` + `npm` | building/running profiler-cli | **required** | yes (via nvm) |
-| `git`, `python3` | source links, helper scripts | **required** | guide-only (use your system) |
-| `mach` + a mozilla-central checkout | local build / spec checks | optional | guide-only |
+| [`bmo-to-md`](https://github.com/padenot/bmo-to-md) | pulling Bugzilla content | **required** | yes |
+| [`searchfox-cli`](https://github.com/padenot/searchfox-cli) | searching the codebase | **required** | yes |
+| [`profiler-cli`](https://github.com/dpalmeiro/profiler-cli) (+ Playwright Firefox) | `/analyze-profile` | **required** | yes |
+| [`cargo`](https://rustup.rs) (Rust) | building the two CLIs above | **required** | yes (via rustup) |
+| [`node`](https://nodejs.org) + `npm` | building/running profiler-cli | **required** | yes (via nvm) |
+| [`git`](https://git-scm.com), [`python3`](https://www.python.org) | source links, helper scripts | **required** | guide-only (use your system) |
+| [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
-| `firefox-wiki` | knowledge accelerator | optional | guide-only |
+| [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
 they're installed. `profiler-cli` is part of the core set; installing it also

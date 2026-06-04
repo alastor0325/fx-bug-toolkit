@@ -71,6 +71,10 @@
   ul.feat{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
   ul.feat li{padding-left:26px;position:relative}
   ul.feat li::before{content:"›";position:absolute;left:6px;color:var(--amber);font-weight:700}
+  ol.flow{margin:14px 0;padding-left:24px;display:grid;gap:9px}
+  ol.flow li{color:#d7d7db;padding-left:6px}
+  ol.flow li::marker{color:var(--amber);font-family:var(--mono);font-size:13px;font-weight:600}
+  ol.flow li b{color:var(--ink)}
 
   .step{display:flex;gap:16px;margin:22px 0}
   .num{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-weight:600;color:var(--amber);background:var(--amber-wash);border:1px solid rgba(255,180,84,.3)}
@@ -81,15 +85,27 @@
   figure img:hover{opacity:.92}
   figcaption{font-family:var(--mono);font-size:12px;color:var(--faint);text-align:center;margin-top:10px}
 
-  /* click-to-enlarge lightbox */
+  /* click-to-enlarge lightbox (with scroll / click / button zoom + drag-to-pan) */
   .lightbox{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
     background:rgba(6,6,8,.86);backdrop-filter:blur(3px);opacity:0;pointer-events:none;
-    transition:opacity .28s ease;cursor:zoom-out}
+    transition:opacity .28s ease;cursor:zoom-out;overflow:hidden}
   .lightbox.open{opacity:1;pointer-events:auto}
   .lightbox img{max-width:94vw;max-height:92vh;border:1px solid var(--line);border-radius:12px;
-    box-shadow:0 30px 90px rgba(0,0,0,.65);transform:scale(.94);
-    transition:transform .28s cubic-bezier(.2,.7,.3,1);cursor:default}
-  .lightbox.open img{transform:scale(1)}
+    box-shadow:0 30px 90px rgba(0,0,0,.65);transform-origin:0 0;will-change:transform;
+    transition:transform .2s cubic-bezier(.2,.7,.3,1);cursor:zoom-in;
+    user-select:none;-webkit-user-drag:none}
+  .lightbox img.zoomed{cursor:grab}
+  .lightbox img.dragging{cursor:grabbing;transition:none}
+  /* zoom toolbar */
+  .lb-tools{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:101;
+    display:flex;gap:2px;background:var(--raised);border:1px solid var(--line);border-radius:10px;
+    padding:4px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .28s ease}
+  .lightbox.open ~ .lb-tools{opacity:1;pointer-events:auto}
+  .lb-tools button{font-family:var(--mono);font-size:13px;color:var(--ink);background:transparent;
+    border:none;border-radius:7px;padding:6px 12px;cursor:pointer;min-width:34px}
+  .lb-tools button:hover{background:var(--amber-wash);color:var(--amber)}
+  .lb-tools .lb-zlabel{font-family:var(--mono);font-size:12px;color:var(--dim);display:grid;
+    place-items:center;min-width:48px;border-left:1px solid var(--line);border-right:1px solid var(--line);margin:0 2px}
 
   table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14.5px}
   th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
@@ -111,10 +127,10 @@
     <div class="brand">fx-bug-toolkit</div>
     <a href="#what">What it does</a>
     <a href="#install">Quick start</a>
+    <a href="#commands">All commands</a>
     <a href="#investigate">Investigate a bug</a>
     <a href="#browse">Browse investigations</a>
-    <a href="#triage">Weekly triage</a>
-    <a href="#commands">All commands</a>
+    <a href="#triage">Bug triage</a>
     <a href="#wiki">Shared wiki</a>
     <div class="sep"></div>
     <a class="ext" href="https://github.com/alastor0325/fx-bug-toolkit" target="_blank">GitHub repo</a>
@@ -137,10 +153,10 @@
       <p class="lead">One hub command — <code>/bug-start</code> — drives an end-to-end investigation. Everything else supports it.</p>
       <ul class="feat">
         <li>Pulls the Bugzilla report and searches the Gecko codebase for you.</li>
-        <li>Analyzes Firefox Profiler captures and log files (deep media/EME/CDM know-how).</li>
+        <li>Analyzes Firefox Profiler captures and log files for the failure signal.</li>
         <li>Checks spec conformance and writes a structured, searchfox-linked investigation file.</li>
         <li>A local web viewer to search and re-read every past investigation.</li>
-        <li>Runs your weekly A/V bug triage — drafts the comments, sets priority/severity, and gives you a dashboard to review and apply them.</li>
+        <li>Runs your bug-triage rotation — drafts the comments, sets priority/severity, and gives you a dashboard to review and apply them.</li>
       </ul>
       <div class="note">It <b>investigates and diagnoses</b> — it doesn't write or land patches. Works for any Firefox component; the bundled know-how runs deepest for A/V / media. Runs on Windows, macOS, and Linux.</div>
     </section>
@@ -165,15 +181,49 @@
       </div></div>
     </section>
 
+    <section id="commands">
+      <h2>All commands</h2>
+      <table>
+        <tr><th>Command</th><th>What it does</th></tr>
+        <tr><td><code>/init</code></td><td>One-time setup + dependency install/health check</td></tr>
+        <tr><td><code>/bug-start &lt;id&gt;</code></td><td>Investigate a Firefox bug end to end</td></tr>
+        <tr><td><code>/analyze-profile &lt;url&gt;</code></td><td>Analyze a Firefox Profiler capture</td></tr>
+        <tr><td><code>/check-log &lt;path&gt;</code></td><td>Diagnose a Firefox log (media/EME/CDM-aware)</td></tr>
+        <tr><td><code>/browse</code></td><td>Open the investigation viewer</td></tr>
+        <tr><td><code>/triage [id|url]</code></td><td>Draft the Audio/Video bug triage</td></tr>
+        <tr><td><code>/triage-dashboard</code></td><td>Review &amp; apply the triage drafts in a web UI</td></tr>
+        <tr><td><code>/update</code></td><td>Update the plugin + its CLI dependencies</td></tr>
+      </table>
+      <p class="lead" style="margin-top:14px">A few helpers (spec-check, download-guard, source-links, the gecko-navigator agent) run <em>behind the scenes</em> — Claude calls them from the commands above; you don't invoke them directly.</p>
+    </section>
+
     <section id="investigate">
       <h2>Investigate a bug</h2>
-      <p>The one command you'll use most — give it a Bugzilla bug number:</p>
+      <p>The command you'll use most — give it a Bugzilla bug number:</p>
       <pre><code><span class="cmd">/bug-start</span> 2044320</code></pre>
-      <p>It investigates the bug end to end, writes an investigation file, and finishes by opening the viewer with a deep link straight to that bug:</p>
+      <p>It runs the whole investigation for you, end to end:</p>
+      <ol class="flow">
+        <li><b>Pulls the bug</b> — the Bugzilla report and its full comment thread.</li>
+        <li><b>Classifies the failure</b> — crash, regression, performance, incorrect behavior… — so it knows what to look for.</li>
+        <li><b>Reads the evidence</b> — analyzes any attached Firefox Profiler captures, logs, and crash reports.</li>
+        <li><b>Traces it through Gecko</b> — searches the mozilla-central source to pinpoint the responsible code, and the regressing change when it's a regression.</li>
+        <li><b>Checks the spec</b> — confirms what the correct behavior should be against the relevant standard.</li>
+        <li><b>Writes it up</b> — a structured Markdown report where every file, function, and line is a clickable searchfox link, then opens the viewer on that bug:</li>
+      </ol>
       <pre><code>View this investigation → http://127.0.0.1:8777/viewer.html#2044320</code></pre>
-      <p>You can also run the analyzers on their own:</p>
-      <pre><code><span class="cmd">/analyze-profile</span> https://share.firefox.dev/public/...   <span class="cmt"># a Profiler capture</span>
-<span class="cmd">/check-log</span> /path/to/firefox.log                      <span class="cmt"># a Firefox log</span></code></pre>
+
+      <h3>What the report looks like</h3>
+      <p>The investigation file opens with a YAML header — a one-line <em>summary</em>, the <em>root cause</em>, the <em>affected files</em> (searchfox-linked), the <em>regression range</em>, <em>related bugs</em>, and a <em>complexity</em> rating — the same fields the <a href="#browse">viewer</a> and the triage dashboard surface as chips. Below it is the write-up: a Summary, the Problem Analysis (root cause + code analysis), spec-compliance notes, and related context. Run in the default <b>deep</b> mode — what you use right before writing patches — it also lays out an implementation plan, a patch breakdown, and a test strategy; security bugs gain a Security Rating section. It <b>diagnoses — it doesn't write or land the patch.</b></p>
+      <div class="note"><b>Two depths.</b> The default <b>deep</b> run produces the full document above. There's also a faster <b>shallow</b> pass — <code>/bug-start &lt;id&gt; --triage-mode</code>, which <a href="#triage">/triage</a> uses to stay quick — that stops at the root cause, affected area, and a proposed-solution sketch, skipping the implementation plan, patch breakdown, and test strategy. The viewer and dashboard flag a shallow write-up as <em>“shallow · re-run for deep”</em>; running <code>/bug-start &lt;id&gt;</code> again later overwrites it with the full investigation.</div>
+
+      <h3>Run the analyzers on their own</h3>
+      <p>The evidence-reading tools <code>/bug-start</code> leans on are full commands too — handy when you just have a capture or a log and no bug to attach it to yet:</p>
+      <pre><code><span class="cmd">/analyze-profile</span> https://share.firefox.dev/public/...   <span class="cmt"># a Firefox Profiler capture</span>
+<span class="cmd">/check-log</span> /path/to/firefox.log                      <span class="cmt"># a Firefox log file</span></code></pre>
+      <ul class="feat">
+        <li><b><code>/analyze-profile</code></b> — runs a standard query set over a Profiler capture, checks the relevant threads, pattern-matches known signatures, and returns a findings report.</li>
+        <li><b><code>/check-log</code></b> — diagnoses a Firefox log: process crashes, HRESULT and <code>NS_ERROR</code> codes, and the like — with extra depth for media/EME/CDM issues (hardware-context resets, CDM crashes).</li>
+      </ul>
       <p>To revise an existing write-up, just ask in plain language — <em>“update the investigation for bug 2044320 with this new root cause.”</em></p>
     </section>
 
@@ -198,41 +248,58 @@
     </section>
 
     <section id="triage">
-      <h2>Weekly triage</h2>
-      <p class="lead">A second workflow, for the Audio/Video bug-triage rotation: <code>/triage</code> does the analysis and drafts every action; <code>/triage-dashboard</code> is where you review and apply them.</p>
+      <h2>Bug triage</h2>
+      <p class="lead">A second workflow, for bug-triage duty. <code>/triage</code> does the analysis and writes a draft action for every bug in the components you cover; <code>/triage-dashboard</code> is where you review, refine, and apply them. Nothing reaches Bugzilla until you approve it. It ships tuned for Audio/Video, but the component set is configurable — see <code>TRIAGE_COMPONENTS</code> below.</p>
 
-      <h3>Draft the triage</h3>
-      <pre><code><span class="cmd">/triage</span>                    <span class="cmt"># full session: watched bugs + new bugs from the last 14 days</span>
+      <h3>Setup</h3>
+      <p>Triage talks to Bugzilla through <a href="https://github.com/alastor0325/bugzilla-cli" target="_blank">bugzilla-cli</a> (and reads bug reports with <a href="https://github.com/padenot/bmo-to-md" target="_blank">bmo-to-md</a>), plus a few environment variables. The <b>first</b> <code>/triage</code> run resolves the required ones for you — it asks for the owner email and the component set and persists your answers — so you normally don't set anything by hand:</p>
+      <table>
+        <tr><th>Variable</th><th>Default</th><th>What it's for</th></tr>
+        <tr><td><code>TRIAGE_OWNER</code></td><td><span style="color:var(--amber)">required</span></td><td>Your Bugzilla email — the address the dashboard's <em>CC me</em> / <em>NI me</em> toggles add to a draft (off by default, per bug). The run won't start without it; the first run asks for it and saves it.</td></tr>
+        <tr><td><code>TRIAGE_DIR</code></td><td><code>~/firefox-triage/</code></td><td>Where <code>/triage</code> writes its drafts, watch list, and log — and where the dashboard reads them from.</td></tr>
+        <tr><td><code>TRIAGE_COMPONENTS</code></td><td><span style="color:var(--faint)">8 A/V components</span></td><td><b>Fully configurable</b> — a <code>;</code>-separated list of the exact Bugzilla component names to triage. Left unset, it covers the default eight Audio/Video components: <code>Audio/Video</code>, <code>Audio/Video: cubeb</code>, <code>Audio/Video: GMP</code>, <code>Audio/Video: MediaStreamGraph</code>, <code>Audio/Video: Playback</code>, <code>Audio/Video: Recording</code>, <code>Web Audio</code>, and <code>Audio/Video: Web&nbsp;Codecs</code>. The first run lets you keep these or set your own.</td></tr>
+        <tr><td><code>FX_BUG_INVESTIGATION_DIR</code></td><td><code style="white-space:normal">~/.fx-bug-toolkit/bug-investigation/</code></td><td>Shared with <code>/bug-start</code>. When triage runs an investigation, it lands here and the dashboard shows the findings inline on the card.</td></tr>
+      </table>
+
+      <h3>What <code>/triage</code> does</h3>
+      <pre><code><span class="cmd">/triage</span>                    <span class="cmt"># full session: bugs you're waiting on + new bugs from the last 14 days</span>
 <span class="cmd">/triage</span> 2044320            <span class="cmt"># just one bug</span>
-<span class="cmd">/triage</span> https://bugzilla.mozilla.org/buglist.cgi?...   <span class="cmt"># every bug in a query</span></code></pre>
-      <p>For each in-scope bug it checks information completeness, looks for duplicates, assesses priority &amp; severity, drafts a needinfo question when something's missing, and wires up meta-bug blocking. It writes each decision as a <b>pending draft</b> — it never touches Bugzilla on its own. You review and apply from the dashboard.</p>
-      <div class="note">Scoped to the <b>Audio/Video</b> components by default; the set is configurable on first run. Like the rest of the toolkit, all I/O goes through local CLIs and your data stays on your machine.</div>
+<span class="cmd">/triage</span> https://bugzilla.mozilla.org/buglist.cgi?bug_id=2044320,2044532   <span class="cmt"># every bug ID in the URL</span></code></pre>
+      <p>A full session runs end to end, entirely on your machine:</p>
+      <ol class="flow">
+        <li><b>Polls the bugs you're waiting on.</b> Every bug you've needinfo'd is checked for a reply — answered ones get re-triaged from scratch; ones silent for 14 days are proposed for closing as <code>INCOMPLETE</code>.</li>
+        <li><b>Fetches new bugs</b> filed or changed in the last 14 days in your configured components.</li>
+        <li><b>Triages each bug in parallel</b> (one background agent per bug). For each, it inventories what's already in the report (platform, version, steps, <code>about:support</code>, attachments), analyzes any diagnostic artifacts — Firefox Profiler captures (through <code>/analyze-profile</code>), media logs, crash IDs — classifies the bug, searches for duplicates and a matching <code>[meta]</code> bug, and works out what's missing.</li>
+        <li><b>Routes each bug to one outcome</b> (the dashboard tabs below). When there's enough to act on, it sets priority &amp; severity to the A/V standard and — if the bug is fixable — kicks off a <code>/bug-start</code> investigation so the findings ride along with the draft.</li>
+        <li><b>Writes one draft per bug</b> to <code>$TRIAGE_DIR</code> and opens the dashboard. It <b>never posts to Bugzilla itself</b> — every decision is a reviewable draft.</li>
+      </ol>
+      <div class="note">Scoped to the <b>Audio/Video</b> components by default. A single-bug or URL run is strictly isolated — it touches only the bugs you name and never polls the watch list or fetches others.</div>
 
-      <h3>Review &amp; apply on the dashboard</h3>
+      <h3>Review on the dashboard</h3>
       <pre><code><span class="cmd">/triage-dashboard</span></code></pre>
-      <p>Opens a local web UI over the drafts on <code>127.0.0.1:8765</code>. Each bug becomes a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when you've also run <code>/bug-start</code> on it — the investigation findings inline. Tabs split the work into <em>Analyzed</em>, <em>Needs Info</em>, <em>Close / Reassign</em>, and <em>Awaiting reply</em>.</p>
+      <p>Opens a local web UI over the drafts on <code>127.0.0.1:8765</code>. Each bug is a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when triage investigated it — the <code>/bug-start</code> findings inline.</p>
       <figure>
         <img src="./assets/triage-dashboard.png" alt="The FX Bug Toolkit triage dashboard">
-        <figcaption>The triage dashboard — the left rail lists the week's bugs (with <em>New</em> / <em>regression</em> / <em>Assigned</em> tags), the card on the right shows the proposed comment, the P/S it will set, and the linked investigation findings. <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044320" target="_blank">Bug 2044320</a> is a real, public bug; the rest of the board is sample data.</figcaption>
+        <figcaption>The triage dashboard — the left rail lists the bugs in the active tab (with <em>New</em> / <em>regression</em> / <em>Assigned</em> tags), the card on the right shows the proposed comment, the P/S it will set, and the linked investigation findings. <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044320" target="_blank">Bug 2044320</a> is a real, public bug; the rest of the board is sample data.</figcaption>
       </figure>
-      <p>Not happy with a draft? Type feedback into the card's box to have it re-drafted, toggle whether to CC/needinfo yourself, then hit <b>Apply</b> — the dashboard queues a <code>bugzilla-cli apply</code> that you confirm in the terminal. Nothing is posted to Bugzilla until you say yes.</p>
-      <div class="note">The dashboard is optional and installs itself the first time you run <code>/triage-dashboard</code> (a small FastAPI app in a managed virtualenv) — <code>/triage</code> works without it, it just writes the drafts to disk.</div>
-    </section>
-
-    <section id="commands">
-      <h2>All commands</h2>
+      <p>The four tabs <em>are</em> the four outcomes triage decided for each bug:</p>
       <table>
-        <tr><th>Command</th><th>What it does</th></tr>
-        <tr><td><code>/init</code></td><td>One-time setup + dependency install/health check</td></tr>
-        <tr><td><code>/bug-start &lt;id&gt;</code></td><td>Investigate a Firefox bug end to end</td></tr>
-        <tr><td><code>/analyze-profile &lt;url&gt;</code></td><td>Analyze a Firefox Profiler capture</td></tr>
-        <tr><td><code>/check-log &lt;path&gt;</code></td><td>Diagnose a Firefox log (media/EME/CDM-aware)</td></tr>
-        <tr><td><code>/browse</code></td><td>Open the investigation viewer</td></tr>
-        <tr><td><code>/triage</code> <span style="color:var(--faint)">[id|url]</span></td><td>Draft the weekly A/V bug triage</td></tr>
-        <tr><td><code>/triage-dashboard</code></td><td>Review &amp; apply the triage drafts in a web UI</td></tr>
-        <tr><td><code>/update</code></td><td>Update the plugin + its CLI dependencies</td></tr>
+        <tr><th>Tab</th><th>What's in it</th><th>The draft is…</th></tr>
+        <tr><td><b>Analyzed</b></td><td>Bugs triaged with a root cause or a clear assessment</td><td>a public comment with the analysis, plus the severity/priority it will set</td></tr>
+        <tr><td><b>Needs Info</b></td><td>Bugs missing something from the reporter</td><td>a needinfo question asking only for the missing items</td></tr>
+        <tr><td><b>Close / Reassign</b></td><td>Duplicates, invalid bugs, or ones in the wrong component</td><td>the closing (<code>INCOMPLETE</code> / <code>INVALID</code> / <code>WORKSFORME</code>) or hand-off comment</td></tr>
+        <tr><td><b>Awaiting reply</b></td><td>Bugs you've already needinfo'd and are waiting on</td><td>— a watch list; an entry is flagged <em>stalled</em> after 14 days with no reply</td></tr>
       </table>
-      <p class="lead" style="margin-top:14px">A few helpers (spec-check, download-guard, source-links, the gecko-navigator agent) run <em>behind the scenes</em> — Claude calls them from the commands above; you don't invoke them directly.</p>
+
+      <h3>The Process queue — how nothing ships by accident</h3>
+      <p>The dashboard is <b>read-only toward Bugzilla</b>. Every action on a card just <em>queues</em> an instruction; nothing is posted from the web UI:</p>
+      <ul class="feat">
+        <li><b>Revise draft</b> — type feedback in the card's box; it queues a <em>refine</em> so the next drain re-drafts that comment (a tricky one can spin up a fresh investigation first).</li>
+        <li><b>Apply</b> — queues the write: post the comment and set the fields (priority/severity, blockers, resolution, …). It's a toggle — click <em>Applied</em> again to un-queue it.</li>
+        <li><b>CC me / NI me</b> — adds your <code>TRIAGE_OWNER</code> address to the draft's CC or needinfo; a checked <em>NI me</em> is the “ready for me to pick up” signal.</li>
+      </ul>
+      <p>Queued actions collect under <b>Process queue</b> (top-right). When you're ready, open it and hit <b>Copy prompt → paste into Claude</b>: paste that short prompt into a Claude session and it drains the queue — applying your refines and running <code>bugzilla-cli apply</code> for each queued write. <b>Each apply asks you to confirm before it posts</b>, so the production write to Bugzilla is always gated on an explicit yes.</p>
+      <div class="note">The dashboard is optional and installs itself the first time you run <code>/triage-dashboard</code> (the <a href="https://github.com/alastor0325/firefox-triage-dashboard" target="_blank">firefox-triage-dashboard</a> app — FastAPI, in a managed virtualenv); override its port with <code>PORT</code>. <code>/triage</code> works without it — it just writes the drafts to <code>$TRIAGE_DIR</code>.</div>
     </section>
 
     <section id="wiki">
@@ -248,6 +315,12 @@
   </div></div>
 
   <div class="lightbox" id="lightbox"><img id="lightboxImg" alt="Enlarged viewer screenshot"></div>
+  <div class="lb-tools" id="lbTools" aria-label="Zoom controls">
+    <button type="button" data-z="out" title="Zoom out" aria-label="Zoom out">&minus;</button>
+    <span class="lb-zlabel" id="lbZoom">100%</span>
+    <button type="button" data-z="in" title="Zoom in" aria-label="Zoom in">+</button>
+    <button type="button" data-z="reset" title="Reset zoom" aria-label="Reset zoom">Reset</button>
+  </div>
 
 <script>
   const body = document.body, toc = document.getElementById("toc");
@@ -274,13 +347,89 @@
   }, { rootMargin: "-20% 0px -70% 0px" });
   document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
 
-  // click-to-enlarge: open on any figure click, close on backdrop click or Esc
+  // click-to-enlarge with zoom: open on any figure click; inside the lightbox
+  // scroll / click / +/− to zoom, drag to pan; close on backdrop click or Esc.
   const figs = document.querySelectorAll("figure img");
   const lb = document.getElementById("lightbox"), lbImg = document.getElementById("lightboxImg");
-  const closeLb = () => lb.classList.remove("open");
-  figs.forEach(fig => fig.addEventListener("click", () => { lbImg.src = fig.src; lb.classList.add("open"); }));
-  lb.addEventListener("click", e => { if (e.target !== lbImg) closeLb(); });  // click outside the image
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
+  const zlabel = document.getElementById("lbZoom");
+  const MIN = 1, MAX = 6;
+  let scale = 1, tx = 0, ty = 0;           // transform: translate(tx,ty) scale(scale), origin 0 0
+  const clamp = v => Math.min(MAX, Math.max(MIN, v));
+
+  function apply() {
+    lbImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    lbImg.classList.toggle("zoomed", scale > 1);
+    if (zlabel) zlabel.textContent = Math.round(scale * 100) + "%";
+  }
+  // Zoom to a target scale, keeping the point at viewport (cx,cy) fixed.
+  // With transform-origin 0 0, the leftover translate works out to tx += ox*(1-k).
+  function zoomTo(next, cx, cy) {
+    next = clamp(next);
+    const r = lbImg.getBoundingClientRect();
+    const ox = cx - r.left, oy = cy - r.top, k = next / scale;
+    tx += ox * (1 - k); ty += oy * (1 - k);
+    scale = next;
+    if (scale === 1) { tx = 0; ty = 0; }    // snap back to the flex-centered position
+    apply();
+  }
+  const center = () => { const r = lbImg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+
+  function openLb(src) {
+    lbImg.src = src; scale = 1; tx = 0; ty = 0; apply();
+    lb.classList.add("open"); document.body.style.overflow = "hidden";
+  }
+  function closeLb() {
+    lb.classList.remove("open"); document.body.style.overflow = "";
+    scale = 1; tx = 0; ty = 0; apply();
+  }
+
+  figs.forEach(fig => fig.addEventListener("click", () => openLb(fig.src)));
+  // Close only when the dim backdrop itself is clicked (not the image or tools).
+  lb.addEventListener("click", e => { if (e.target === lb) closeLb(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && lb.classList.contains("open")) closeLb(); });
+
+  // Wheel zoom toward the cursor.
+  lb.addEventListener("wheel", e => {
+    if (!lb.classList.contains("open")) return;
+    e.preventDefault();
+    zoomTo(scale * (e.deltaY < 0 ? 1.18 : 1 / 1.18), e.clientX, e.clientY);
+  }, { passive: false });
+
+  // Click image: toggle between fit (1×) and 2.5× at the click point. A click
+  // that ended a drag is suppressed via the `moved` flag below.
+  let moved = false;
+  lbImg.addEventListener("click", e => {
+    e.stopPropagation();
+    if (moved) { moved = false; return; }
+    if (scale > 1) zoomTo(1, e.clientX, e.clientY);
+    else zoomTo(2.5, e.clientX, e.clientY);
+  });
+
+  // Drag-to-pan when zoomed in (pointer events cover mouse + touch).
+  let dragging = false, sx = 0, sy = 0, stx = 0, sty = 0;
+  lbImg.addEventListener("pointerdown", e => {
+    if (scale <= 1) return;
+    dragging = true; moved = false; sx = e.clientX; sy = e.clientY; stx = tx; sty = ty;
+    lbImg.classList.add("dragging"); lbImg.setPointerCapture(e.pointerId);
+  });
+  lbImg.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    tx = stx + dx; ty = sty + dy; apply();
+  });
+  const endDrag = () => { dragging = false; lbImg.classList.remove("dragging"); };
+  lbImg.addEventListener("pointerup", endDrag);
+  lbImg.addEventListener("pointercancel", endDrag);
+
+  // Toolbar buttons (zoom about the image center).
+  document.getElementById("lbTools").addEventListener("click", e => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    e.stopPropagation();
+    const z = btn.dataset.z;
+    if (z === "reset") { scale = 1; tx = 0; ty = 0; apply(); return; }
+    zoomTo(scale * (z === "in" ? 1.4 : 1 / 1.4), ...center());
+  });
 </script>
 </body>
 </html>
