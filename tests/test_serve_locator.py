@@ -28,7 +28,9 @@ HEREDOC = re.compile(r"<<'PYEOF'\n(.*?)\nPYEOF", re.DOTALL)
 
 
 def extract_locator(skill_md: Path) -> str:
-    m = HEREDOC.search(skill_md.read_text())
+    # utf-8 explicitly — the SKILL.md files contain emoji/arrows, and Windows
+    # would otherwise decode with cp1252 and raise UnicodeDecodeError.
+    m = HEREDOC.search(skill_md.read_text(encoding="utf-8"))
     assert m, f"no PYEOF heredoc found in {skill_md}"
     return m.group(1)
 

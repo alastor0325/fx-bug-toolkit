@@ -84,7 +84,7 @@ class TestEndToEndBuild(unittest.TestCase):
         r = subprocess.run([sys.executable, str(VIEWER / "build_index.py")],
                            env=env, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
-        return json.loads(out.read_text())
+        return json.loads(out.read_text(encoding="utf-8"))
 
     def test_recursive_scan_numbers_slugs_folders_and_exclusions(self):
         with tempfile.TemporaryDirectory() as d:
