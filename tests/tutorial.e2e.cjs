@@ -43,6 +43,7 @@ async function main() {
   const browser = await chromium.launch();
   // wide viewport so the TOC is open by default
   const page = await browser.newPage({ viewport: { width: 1180, height: 840 } });
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   try {
     await page.goto(`${base}/tutorial.html`);
     await page.waitForSelector("h1");
@@ -129,6 +130,19 @@ async function main() {
       assert.match(await page.locator("#lightboxImg").evaluate(el => el.style.transform), /scale\(1\)/);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(300);
+    });
+
+    await check("every code block has a copy button", async () => {
+      const pres = await page.locator("pre").count();
+      const btns = await page.locator("pre .copy-btn").count();
+      assert.ok(pres > 0 && btns === pres, `pres=${pres} copy-btns=${btns}`);
+    });
+    await check("copy button copies the code text to the clipboard", async () => {
+      const first = page.locator("pre").first();
+      const codeText = await first.locator("code").textContent();
+      await first.locator(".copy-btn").click();
+      const clip = await page.evaluate(() => navigator.clipboard.readText());
+      assert.strictEqual(clip, codeText);
     });
   } finally {
     await browser.close();

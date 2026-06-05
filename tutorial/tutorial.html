@@ -63,9 +63,15 @@
   a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(106,215,198,.3)}
   a:hover{border-color:var(--cyan)}
   code{font-family:var(--mono);font-size:.86em;background:var(--raised);border:1px solid var(--line-soft);padding:2px 6px;border-radius:5px;color:#ffd8a8}
-  pre{background:#08080a;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:14px 0}
+  pre{position:relative;background:#08080a;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:14px 0}
   pre code{background:none;border:none;padding:0;color:#d7d7db;font-size:13.5px;line-height:1.7}
   .cmd{color:var(--amber)} .cmt{color:var(--faint)}
+  .copy-btn{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:11px;color:var(--faint);
+    background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:3px 9px;cursor:pointer;
+    opacity:.5;transition:opacity .15s,color .15s,border-color .15s}
+  pre:hover .copy-btn{opacity:1}
+  .copy-btn:hover{color:var(--amber);border-color:var(--amber-dim)}
+  .copy-btn.copied{color:var(--amber);border-color:var(--amber-dim);opacity:1}
   .lead{font-size:17px;color:var(--dim)}
 
   ul.feat{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
@@ -469,6 +475,28 @@
     const z = btn.dataset.z;
     if (z === "reset") { scale = 1; tx = 0; ty = 0; apply(); return; }
     zoomTo(scale * (z === "in" ? 1.4 : 1 / 1.4), ...center());
+  });
+
+  // Copy button on every code block.
+  document.querySelectorAll("pre").forEach(pre => {
+    const code = pre.querySelector("code");
+    if (!code) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy-btn";
+    btn.textContent = "Copy";
+    btn.setAttribute("aria-label", "Copy code to clipboard");
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        btn.textContent = "Copied!";
+      } catch {
+        btn.textContent = "Press ⌘C";
+      }
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1500);
+    });
+    pre.appendChild(btn);
   });
 </script>
 </body>
