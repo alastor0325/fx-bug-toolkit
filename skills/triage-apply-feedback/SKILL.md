@@ -165,8 +165,12 @@ truth for evaluating /triage's reliability over time.
 - It does NOT touch the queue file (`claude-queue.jsonl`). The drain
   orchestrator handles queue truncation after every refine in the
   batch has been processed.
-- It does NOT invoke `bugzilla-cli apply`. Apply happens in step 4 of
-  the drain prompt, after all refines are done.
+- It does NOT invoke `bugzilla-cli apply` — or any other Bugzilla write or
+  read. It only edits the local pending draft (plus the wiki / decisions-log),
+  so it is **mode-independent**: it runs identically in `/triage` read-only and
+  reply mode and needs no API key. The write happens later in step 4 of the
+  drain prompt (`apply`), which is **reply-mode only** — in read-only mode that
+  step is skipped (and `bugzilla-cli apply` refuses without a key anyway).
 - It does NOT dispatch `/bug-start`. That happens in step 5 of the
   drain prompt for queued bug-start actions.
 - It does NOT lookup the wiki at the start. Pre-session wiki lookup is

@@ -59,6 +59,16 @@ or strip.
       is optional) — a fuller "no `bugzilla-cli` at all, read via `bmo-to-md`/`moz`
       MCP" path was not pursued.
 
+- [ ] **Make the dashboard's Process-queue drain prompt read-only aware.** The
+      `apply` step (drain step 4) writes to Bugzilla, so in read-only `/triage` it
+      should be skipped/hidden rather than attempted. Today it's safe but ugly:
+      `bugzilla-cli apply` bails without a key, so no accidental writes — it just
+      errors per bug. The `/triage` Apply section already carries a read-only
+      guard; the remaining piece is the **dashboard-generated drain prompt** in
+      the `firefox-triage-dashboard` repo (detect read-only — e.g. no key / a flag
+      from `/triage` — and drop the apply step, leaving refines + drafts).
+      (`triage-apply-feedback` itself needs nothing — it makes no Bugzilla writes.)
+
 - [ ] **Local servers' fixed ports can collide.** `/triage-dashboard` (:8765),
       Revue / `/review-dashboard` (:7777), and the `/browse` viewer each bind a
       fixed default port; a stale instance or another app on that port makes the

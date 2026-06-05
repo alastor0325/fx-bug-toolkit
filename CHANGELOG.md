@@ -9,6 +9,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.10] — 2026-06-05
+
+### Changed
+- **`triage-apply-feedback` documents that it makes no Bugzilla writes** and is
+  mode-independent (read-only vs reply) — it only edits the local pending draft
+  plus the wiki/decisions-log, so it needs no API key. Clarifies that the write
+  (`apply`) is the drain prompt's reply-mode-only step. (No behaviour change.)
+
 ## [0.3.9] — 2026-06-05
 
 ### Changed
@@ -354,7 +362,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...HEAD
+[0.3.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...fx-bug-toolkit--v0.3.10
 [0.3.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.8...fx-bug-toolkit--v0.3.9
 [0.3.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.7...fx-bug-toolkit--v0.3.8
 [0.3.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.6...fx-bug-toolkit--v0.3.7
