@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.2] — 2026-06-04
+
+### Fixed
+- **`/triage` §1b drafts now needinfo the reporter when they ask for data.** A
+  §1b draft (P/S set, root cause investigatable) that requested a media-preset
+  profile from the reporter was phrased "No action needed from you" with no NI,
+  so the bug never entered Awaiting (bug 2044925). The §1b path now states that
+  requesting *any* artifact from the reporter (profile, media log, about:support,
+  sample, STR, workaround result) is a reporter needinfo — set `ni_targets` on
+  the reporter, never write "no action needed" while asking for data.
+
 ## [0.3.1] — 2026-06-04
 
 ### Changed

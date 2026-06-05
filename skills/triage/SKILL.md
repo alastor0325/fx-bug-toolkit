@@ -987,6 +987,18 @@ Apply the P/S standard. Check meta bug blocking.
    - **Investigation reveals missing info** → fall back to §1a; draft NI comment asking for the specific missing data, with P/S in the same `apply`.
 3. **Never set P/S or meta bug blocker as standalone operations** — always bundle them with a comment so Bugzilla shows a coherent update.
 
+**Asking the reporter for anything = a reporter needinfo.** Even on a §1b draft
+(P/S set, root cause investigatable), if the comment requests *any* artifact or
+action from the reporter — a media-preset profile, a media log, about:support, a
+sample, STR, or a workaround-test result — that is a reporter action: add the
+reporter (`bug_context.reporter_email`) to `ni_targets`, and never phrase it as
+"no action needed from you". The reporter NI is independent of the owner's "CC
+me"/"NI me" choice above. A profile/log request drafted with no NI silently
+strips the tracking (the bug never enters Awaiting) — surfaced by bug 2044925,
+whose §1b draft said "No action needed from you" while asking for a profile. If
+you genuinely need nothing from the reporter, then don't ask — omit the request
+entirely rather than leaving a dangling, untracked one.
+
 **If Fixable = No (root cause unknown, more data needed):** skip investigation, go directly to §1a.
 
 ### Priority & Severity Standard
