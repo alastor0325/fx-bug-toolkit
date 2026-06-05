@@ -23,33 +23,49 @@ Revue — Revue is installed lazily on first use (consent-gated).
 ## Step 1 — Pick the folder to open
 
 You tell Revue **which folder** to review. Revue shows a **patch series**: the
-commits a working tree has **on top of its base** (`origin/main`, else
-`origin/master`, else `origin/HEAD`). So point it at the folder that holds the
-work you want to review — a feature branch or a dedicated worktree with unlanded
-commits — **not** a clean checkout sitting on an up-to-date `main`, which has no
-series and opens an empty board.
+commits a working tree has on top of its base (`origin/main`, else
+`origin/master`, else `origin/HEAD`). So target the folder holding the work — a
+feature branch or a dedicated worktree with unlanded commits.
 
-Resolve the target, in order of preference:
+Revue **remembers a default repo** in `~/.revue/config.json` (set with
+`revue init <path>`); plain `revue` opens it. Use that as the memory — **do not
+invent a separate store**. Do **not** auto-pick from the current working
+directory: when this skill runs, the cwd is the Claude session's directory, not
+necessarily the repo you want to review.
 
-1. The path passed as the skill argument, if any.
-2. Otherwise, the git repo containing the current working directory.
+Resolve the target `REPO`:
 
+**1. A path was passed as the argument** → use it:
 ```bash
-TARGET="{argument}"   # the skill argument, or empty
-if [ -n "$TARGET" ]; then
-  REPO=$(cd "$TARGET" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
-else
-  REPO=$(git rev-parse --show-toplevel 2>/dev/null)
-fi
-echo "REPO=${REPO:-<none>}"
+REPO=$(cd "{argument}" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
+echo "REPO=${REPO:-<invalid>}"
 ```
+If it doesn't resolve to a git repo, tell the user and ask for a valid path.
 
-If `REPO` is empty (no argument and the current directory is not inside a git
-repo), **ask the user** for the path to the repo or worktree they want to
-review, then re-resolve. Do not guess a path.
+**2. No path was passed** → read the remembered default and decide:
+```bash
+DEFAULT=$(python3 -c 'import json,os;p=os.path.expanduser("~/.revue/config.json");print(json.load(open(p)).get("defaultRepo","") if os.path.exists(p) else "")' 2>/dev/null)
+echo "default: ${DEFAULT:-<none>}"
+```
+- **A default is set** → use `AskUserQuestion` to offer two choices:
+  - *Open `<DEFAULT>`* (the remembered repo) — set `REPO="$DEFAULT"`.
+  - *A different folder* — then prompt for the path and set `REPO` to its repo root.
+- **No default is set** → ask the user for the path to the repo/worktree to
+  review, set `REPO` to its repo root, and remember it for next time (safe —
+  there is no default to clobber):
+  ```bash
+  revue init "$REPO"
+  ```
 
-Then pre-flight the series, so you don't open an empty board by surprise — this
-mirrors how Revue picks the base:
+**Never silently overwrite an existing default.** If a default already exists and
+the user picks a different folder, just open it for this run (Step 3 uses
+`--repo`, which does not persist). Only run `revue init` on the new folder if the
+user explicitly asks to make it the default.
+
+### Pre-flight the series
+
+Once `REPO` is resolved, check it actually has something to review, so you don't
+open an empty board by surprise (this mirrors how Revue picks the base):
 
 ```bash
 base=$(git -C "$REPO" rev-parse --verify -q origin/main \

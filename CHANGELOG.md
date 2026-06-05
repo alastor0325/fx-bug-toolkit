@@ -9,6 +9,18 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.4] — 2026-06-04
+
+### Changed
+- **`/review-dashboard` remembers your repo instead of guessing from the working
+  directory.** When run with no path it now reuses Revue's stored default repo
+  (`~/.revue/config.json`, set via `revue init`): the first no-argument run asks
+  which folder to open and remembers it, then later runs offer that default or a
+  different folder. It no longer auto-picks the current directory — under a skill
+  the cwd is the Claude session's directory, not necessarily the repo you want to
+  review — and it never silently overwrites an existing default. README and the
+  tutorial document the remembered-default behaviour.
+
 ## [0.3.3] — 2026-06-04
 
 ### Changed
@@ -276,7 +288,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.4...HEAD
+[0.3.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.3...fx-bug-toolkit--v0.3.4
 [0.3.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.2...fx-bug-toolkit--v0.3.3
 [0.3.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.1...fx-bug-toolkit--v0.3.2
 [0.3.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.0...fx-bug-toolkit--v0.3.1
