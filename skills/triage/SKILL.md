@@ -82,19 +82,52 @@ above" means the resolved `$TRIAGE_COMPONENTS` set, not a fixed eight.
 
 ## Setup check
 
-Before doing anything, verify `bugzilla-cli` is available and resolve the bot identity:
+`/triage` needs the `bugzilla-cli` binary for all Bugzilla I/O. Verify it's
+installed; if missing, install the version this plugin targets:
 ```bash
 bugzilla-cli --version 2>/dev/null || echo "NOT FOUND"
-bugzilla-cli whoami
 ```
-If not found: "Run `cargo install --git https://github.com/alastor0325/bugzilla-cli` then `bugzilla-cli setup`."
+If not found: "Run `cargo install --git https://github.com/alastor0325/bugzilla-cli --tag v0.2.0`." (Needs `cargo` — see `/init`.)
 
-Cache the email returned by `whoami` as `$BOT_EMAIL` for the rest of the session. Use it
-wherever the skill refers to "bot account" (NI targets, ACTIONS blocks, pending JSON).
+### Mode — reply vs read-only
 
-### Resolve `$TRIAGE_OWNER` (required — gate the run on it)
+`/triage` runs in one of two modes:
 
-The skill CCs and needinfo's the triage owner on every draft, so it **must not
+- **Reply mode** — posts comments, sets needinfo, and updates fields on apply.
+  Needs a BMO API key (`bugzilla-cli` configured for writes) and `$TRIAGE_OWNER`.
+- **Read-only mode (default)** — fetches bugs and drafts every action, but makes
+  **no Bugzilla writes**. Needs no API key and no `$TRIAGE_OWNER`. Reads run
+  anonymously, so **security-restricted bugs are not visible**.
+
+Resolve the mode — **if a key is already configured, that *is* reply mode** (don't
+ask); otherwise ask:
+```bash
+if [ -n "$BUGZILLA_BOT_API_KEY" ] || bugzilla-cli whoami >/dev/null 2>&1; then
+  echo "MODE=reply"
+else
+  echo "MODE=ask"
+fi
+```
+
+- **`MODE=reply`** — run in **reply mode**. Cache the email from `bugzilla-cli
+  whoami` as `$BOT_EMAIL` (used wherever the skill refers to the "bot account":
+  NI targets, ACTIONS blocks, pending JSON).
+- **`MODE=ask`** — no key configured. Ask with `AskUserQuestion` whether to enable
+  reply mode:
+  - **Read-only (recommended default)** — proceed read-only. There is no
+    `$BOT_EMAIL`; **skip every Bugzilla write** — produce the pending drafts and
+    the dashboard view, but do **not** run `apply`/`post-comment`/`set-ni`/
+    `set-fields`, and do **not** require `$TRIAGE_OWNER`. Tell the user the drafts
+    are reviewable but won't be written back until they enable reply mode
+    (`bugzilla-cli setup`).
+  - **Enable reply mode** — run `bugzilla-cli setup` (choose write mode, provide a
+    key), then re-run `bugzilla-cli whoami`, cache `$BOT_EMAIL`, and continue in
+    reply mode.
+
+### Resolve `$TRIAGE_OWNER` (reply mode only)
+
+**Read-only mode skips this entirely** (no writes ⇒ no owner needed). In **reply
+mode** the skill CCs/needinfo's the triage owner on writes, so it **must not
 proceed without `$TRIAGE_OWNER`.** Resolve it before any triage work:
 
 ```bash
@@ -1129,6 +1162,11 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 ---
 
 ## Apply / Skip commands
+
+> **Reply mode only.** `apply` performs Bugzilla writes, so it requires reply
+> mode (a configured API key — see Setup check). In **read-only mode** there is no
+> apply/skip step: the drafts stand as a reviewable record and nothing is written
+> back. Skip this whole section when running read-only.
 
 > **Setting `See Also` (relating bugs).** When a refine asks to "set see also",
 > add the related bug IDs to the draft's **`see_also_add`** array. Apply writes

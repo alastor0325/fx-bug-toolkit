@@ -9,6 +9,21 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.9] — 2026-06-05
+
+### Changed
+- **`/triage` now runs read-only by default; reply mode is opt-in.** Triage no
+  longer requires a Bugzilla API key (or `$TRIAGE_OWNER`) to run: with no key it
+  fetches and drafts everything but makes **no writes** (reads hit BMO's public
+  API, so security-restricted bugs aren't visible). If a key is already configured
+  it picks **reply mode** automatically; otherwise it asks, defaulting to
+  read-only. `$TRIAGE_OWNER` and the `apply`/write steps are now gated on reply
+  mode. Requires [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli)
+  **≥ v0.2.0** (the release that added anonymous reads + a read-only setup mode);
+  the install hint is pinned to `--tag v0.2.0`.
+- **`bugzilla-cli` is now listed in the README Dependencies table** (it was only
+  mentioned in prose), marked required for `/triage` with reads needing no key.
+
 ## [0.3.8] — 2026-06-05
 
 ### Changed
@@ -339,7 +354,10 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.6...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...HEAD
+[0.3.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.8...fx-bug-toolkit--v0.3.9
+[0.3.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.7...fx-bug-toolkit--v0.3.8
+[0.3.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.6...fx-bug-toolkit--v0.3.7
 [0.3.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.5...fx-bug-toolkit--v0.3.6
 [0.3.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.4...fx-bug-toolkit--v0.3.5
 [0.3.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.3...fx-bug-toolkit--v0.3.4

@@ -48,16 +48,16 @@ or strip.
       in `/init`, stop install-if-missing in `/update` (refresh-only when
       present), and update the README/dependency table.
 
-- [ ] **Let `/triage` run without `bugzilla-cli` (and with no settings).**
-      `/triage` hard-depends on `bugzilla-cli` for Bugzilla I/O and requires
-      `$TRIAGE_OWNER`. Add a **no-config / read-only mode**: produce drafts (and
-      feed the dashboard) without any Bugzilla credentials or `$TRIAGE_OWNER`, so
-      someone who can't/won't configure anything can still triage — the
-      write/apply path (needinfos, field sets) stays gated on `bugzilla-cli` +
-      `$TRIAGE_OWNER` and is simply unavailable until configured. Likely split:
-      read bug data via `bmo-to-md`/`moz` MCP, gate only *apply* on `bugzilla-cli`.
-      ⚠️ **Clarify with Alastor** what "no setting allowed" means exactly (no env
-      vars? no credentials? no writes?) before scoping.
+- [x] **Let `/triage` run without an API key (read-only by default).** Done in
+      fx-bug-toolkit 0.3.9 + `bugzilla-cli` v0.2.0. `bugzilla-cli` reads
+      (`get`/`fetch`/`search`/`watch-poll`) now run anonymously when no key is set
+      (public bugs only); `setup` asks read-only vs write mode; `/triage` defaults
+      to read-only (no `$TRIAGE_OWNER`, no writes), auto-selects reply mode when a
+      key is already configured, else asks. Writes (`apply`/`post-comment`/
+      `set-ni`/`set-fields`) + `$TRIAGE_OWNER` are gated on reply mode.
+      Still uses `bugzilla-cli` for reads (the binary is required; only the *key*
+      is optional) — a fuller "no `bugzilla-cli` at all, read via `bmo-to-md`/`moz`
+      MCP" path was not pursued.
 
 - [ ] **Local servers' fixed ports can collide.** `/triage-dashboard` (:8765),
       Revue / `/review-dashboard` (:7777), and the `/browse` viewer each bind a

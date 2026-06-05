@@ -103,12 +103,15 @@ These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
 
 > **Triage extras (only for `/triage`):** triage needs [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli)
-> for Bugzilla I/O and a `$TRIAGE_OWNER` — the triage owner's Bugzilla email. The
-> owner is CC'd/needinfo'd on a draft only when they **opt in** via the dashboard's
-> per-draft **"CC me" / "NI me"** checkboxes (**default off**); the skill no longer
-> auto-adds the owner. `$TRIAGE_OWNER` is **required and has no default** — the first
-> `/triage` run prompts you for it and persists your answer, so you never set it
-> by hand. The **dashboard** is a separate web app installed **lazily**
+> for Bugzilla I/O. It runs **read-only by default** — fetching and drafting every
+> action with **no API key** (reads hit BMO's public API; security-restricted bugs
+> aren't visible). To write back (post comments, set needinfo/fields), enable
+> **reply mode**: configure a key via `bugzilla-cli setup`, which also unlocks the
+> `apply` step. Reply mode also needs a `$TRIAGE_OWNER` (the triage owner's Bugzilla
+> email) — CC'd/needinfo'd only when they **opt in** via the dashboard's per-draft
+> **"CC me" / "NI me"** checkboxes (**default off**). If a key is already configured
+> when you run `/triage`, it picks reply mode automatically; otherwise it asks (and
+> defaults to read-only). The **dashboard** is a separate web app installed **lazily**
 > the first time you run `/triage` or `/triage-dashboard` (a one-time venv + pip
 > bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
 
@@ -123,18 +126,19 @@ things live:
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
 | `FX_REVIEW_DIR` | `~/.fx-bug-toolkit/patches-review` | where `/review` writes its review documents |
-| `TRIAGE_OWNER` | _(none — required for `/triage`)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off) |
+| `TRIAGE_OWNER` | _(none — required for `/triage` **reply mode** only)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off). Not needed in read-only mode |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
 | `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
 [Optional: the shared wiki](#optional-the-shared-wiki).)
 
-> **`TRIAGE_OWNER` has no default.** The **first time you run `/triage`**, if
-> it's unset the skill asks you for the Bugzilla email (defaulting to your own
-> account) and persists it to `~/.fx-bug-toolkit.env.sh` so later runs reuse it.
-> `/triage` will not proceed without one, since it CCs/needinfo's that address on
-> every draft.
+> **`TRIAGE_OWNER` has no default — and only `/triage` reply mode needs it.** In
+> read-only mode (the default when no API key is configured) it isn't required.
+> In reply mode, the **first run** with it unset asks you for the Bugzilla email
+> (defaulting to your own account) and persists it to `~/.fx-bug-toolkit.env.sh`
+> so later runs reuse it; reply mode won't proceed without one, since it
+> CCs/needinfo's that address when writing.
 
 > **`TRIAGE_COMPONENTS` is optional.** The components `/triage` covers are
 > defined in [`skills/triage/components.md`](skills/triage/components.md) — the
@@ -179,6 +183,7 @@ multi-select to install them. Here's the lay of the land:
 | [`cargo`](https://rustup.rs) (Rust) | building the two CLIs above | **required** | yes (via rustup) |
 | [`node`](https://nodejs.org) + `npm` | building/running profiler-cli | **required** | yes (via nvm) |
 | [`git`](https://git-scm.com), [`python3`](https://www.python.org) | source links, helper scripts | **required** | guide-only (use your system) |
+| [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) | `/triage` Bugzilla I/O — reads need **no** API key; writes (reply mode) need one | **for `/triage`** | yes (on first `/triage`, pinned `v0.2.0`) |
 | [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/review-dashboard` (human patch review UI) | optional | yes (lazily, on first `/review-dashboard`) |
