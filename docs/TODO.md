@@ -34,6 +34,43 @@ or strip.
 
 ---
 
+## 🟡 Dependency slimming & robustness (raised 2026-06-05)
+
+- [ ] **Make `bmo-to-md` optional (it's REQUIRED today).** It's the
+      Bugzilla-content fetcher used by `bug-start`, `triage`, and
+      `download-guard` (the `bmo-to-md -a -o …` attachment pull). It's currently
+      a hard requirement in `/init`, `/update` (now even *installs* it if
+      missing), and the README dependency table. Demote it to **optional** with a
+      graceful fallback when absent — e.g. the `moz` MCP `get_bugzilla_bug`, or a
+      direct fetch of the bug's REST/HTML. Decide the fallback per consumer and
+      which skills must degrade (read-bug in `bug-start`, the `/triage` fetch,
+      `download-guard`'s attachment pull). Then move it below the required divider
+      in `/init`, stop install-if-missing in `/update` (refresh-only when
+      present), and update the README/dependency table.
+
+- [ ] **Let `/triage` run without `bugzilla-cli` (and with no settings).**
+      `/triage` hard-depends on `bugzilla-cli` for Bugzilla I/O and requires
+      `$TRIAGE_OWNER`. Add a **no-config / read-only mode**: produce drafts (and
+      feed the dashboard) without any Bugzilla credentials or `$TRIAGE_OWNER`, so
+      someone who can't/won't configure anything can still triage — the
+      write/apply path (needinfos, field sets) stays gated on `bugzilla-cli` +
+      `$TRIAGE_OWNER` and is simply unavailable until configured. Likely split:
+      read bug data via `bmo-to-md`/`moz` MCP, gate only *apply* on `bugzilla-cli`.
+      ⚠️ **Clarify with Alastor** what "no setting allowed" means exactly (no env
+      vars? no credentials? no writes?) before scoping.
+
+- [ ] **Local servers' fixed ports can collide.** `/triage-dashboard` (:8765),
+      Revue / `/review-dashboard` (:7777), and the `/browse` viewer each bind a
+      fixed default port; a stale instance or another app on that port makes the
+      launch fail or attach to the wrong server. Make port handling robust and
+      consistent: auto-pick a free port when the default is busy (the viewer's
+      `serve.py` and the shoot scripts already do a free-port probe — reuse that
+      everywhere), surface the actual chosen port to the user, and keep the
+      `PORT` override. ⚠️ **Get the specific symptom Alastor hit** (which tool,
+      what error) to confirm the fix.
+
+---
+
 ## 🟢 Cross-platform polish (win/mac/linux)
 
 Verified: the executable code (`build_index.py`, `serve.py`) is cross-platform,
