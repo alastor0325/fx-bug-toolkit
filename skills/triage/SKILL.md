@@ -1130,17 +1130,16 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 
 ## Apply / Skip commands
 
-> **`See Also` cannot be written by apply.** `bugzilla-cli set-fields`/`apply` has
-> no see-also field — only priority/severity/status/resolution/dupe-of/blocks-add/
-> regressed-by-add/keywords-add/cc-add/product/component/assigned-to. So when a
-> refine asks to "set see also" (relate this bug to another), there is no field to
-> set: **surface the relation in the comment** by mentioning the bug number (BMO
-> auto-links it), and tell the user they can add the formal *See Also* entry
-> manually in Bugzilla if they want it. Use `blocks_add` only for an actual
-> blocks/meta relationship, not as a stand-in for "see also". (Surfaced by bug
-> 2044925.)
+> **Setting `See Also` (relating bugs).** When a refine asks to "set see also",
+> add the related bug IDs to the draft's **`see_also_add`** array. Apply writes
+> them via `set-fields --see-also-add` (mapping each ID to its canonical BMO URL).
+> This requires `bugzilla-cli` ≥ the build that added `--see-also-add`; if the
+> installed CLI predates it, the field is silently skipped — so also mention the
+> related bug in the **comment** (BMO auto-links the number) as a durable fallback.
+> Use `blocks_add` only for a real blocks/meta relationship, never as a stand-in
+> for "see also". (Surfaced by bug 2044925.)
 
-- **`apply {id}`** — write the pending JSON first, then run `bugzilla-cli apply {id}`, which posts comment, sets needinfo flags, sets priority/severity, reassigns product/component, adds CC via `set-fields --cc-add` (`cc_add`), adds blockers (`blocks_add`), sets the `regressed_by` relation via `set-fields --regressed-by-add` (`regressed_by_add`), assigns the bug via `set-fields --assigned-to`/`--status` (`assigned_to`/`status`), sets resolution/keywords, removes pending file. If any step was already done manually (e.g. comment already posted), skip that step and run the remaining ones individually. If `ni_targets` is non-empty, also runs:
+- **`apply {id}`** — write the pending JSON first, then run `bugzilla-cli apply {id}`, which posts comment, sets needinfo flags, sets priority/severity, reassigns product/component, adds CC via `set-fields --cc-add` (`cc_add`), adds blockers (`blocks_add`), sets the `regressed_by` relation via `set-fields --regressed-by-add` (`regressed_by_add`), adds See Also relations via `set-fields --see-also-add` (`see_also_add`), assigns the bug via `set-fields --assigned-to`/`--status` (`assigned_to`/`status`), sets resolution/keywords, removes pending file. If any step was already done manually (e.g. comment already posted), skip that step and run the remaining ones individually. If `ni_targets` is non-empty, also runs:
   ```bash
   bugzilla-cli watch-add {id} --title "{title}" --ni {email1} [--ni {email2}]
   ```
@@ -1168,6 +1167,7 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
   "severity": null,
   "blocks_add": [],
   "regressed_by_add": [],
+  "see_also_add": [],
   "cc_add": [],
   "resolution": null,
   "keywords_add": [],

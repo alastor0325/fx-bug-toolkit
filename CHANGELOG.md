@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.7] — 2026-06-05
+
+### Changed
+- **`/triage` can now set `See Also` on apply.** `bugzilla-cli` gained
+  `set-fields --see-also-add`, so a "set see also" refine now adds the related
+  bug IDs to the draft's new `see_also_add` array and apply writes the formal
+  *See Also* field (each ID → canonical BMO URL). Supersedes the 0.3.5 note that
+  it couldn't be set; the comment-mention is now a fallback for older
+  `bugzilla-cli` builds. Requires `bugzilla-cli` ≥ the build that adds
+  `--see-also-add`.
+
 ## [0.3.6] — 2026-06-05
 
 ### Fixed
