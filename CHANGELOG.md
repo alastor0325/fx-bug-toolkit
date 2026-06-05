@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.12] — 2026-06-05
+
+### Changed
+- **Pinned dependency versions now have a single source of truth —
+  `.claude-plugin/versions.json`** (currently `bugzilla-cli` and the triage
+  dashboard; the HEAD-tracked CLIs aren't pinned). The inline skill pins still
+  carry the values (skill Bash can't read the manifest at runtime), but a new
+  structure test fails if any of them drifts from the manifest — so a dependency
+  bump can no longer ship with a half-updated set of pins. Maintenance only; no
+  user-facing behaviour change.
+
 ## [0.3.11] — 2026-06-05
 
 ### Changed
@@ -382,7 +393,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.11...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.12...HEAD
+[0.3.12]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.11...fx-bug-toolkit--v0.3.12
 [0.3.11]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...fx-bug-toolkit--v0.3.11
 [0.3.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...fx-bug-toolkit--v0.3.10
 [0.3.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.8...fx-bug-toolkit--v0.3.9

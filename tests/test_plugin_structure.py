@@ -78,6 +78,32 @@ class TestSkills(unittest.TestCase):
             self.assertEqual(fm.get("name"), agent.stem,
                              f"{agent.name}: frontmatter name != filename")
 
+    def test_inline_pins_match_versions_manifest(self):
+        # `.claude-plugin/versions.json` is the source of truth for pinned deps;
+        # the inline pins in skills/ must match it (skill Bash can't read the
+        # manifest at runtime). This guards against the "bumped one block,
+        # forgot the others" drift the dev loop warns about.
+        manifest = json.loads((ROOT / ".claude-plugin" / "versions.json").read_text())
+        dash = manifest["firefox-triage-dashboard"]
+        bz = manifest["bugzilla-cli"]
+
+        # Triage dashboard: every `REQUIRED="x.y.z"` pin must equal the manifest.
+        required_pins = []
+        for rel in ("skills/triage-dashboard/SKILL.md", "skills/update/SKILL.md"):
+            text = (SKILLS.parent / rel).read_text()
+            found = re.findall(r'REQUIRED="([0-9][^"]*)"', text)
+            self.assertTrue(found, f"{rel}: no REQUIRED= dashboard pin found")
+            required_pins += found
+        for v in required_pins:
+            self.assertEqual(v, dash, f"dashboard pin {v!r} != versions.json {dash!r}")
+
+        # bugzilla-cli: the `--tag vX.Y.Z` install pin must equal the manifest.
+        bz_text = (SKILLS / "triage" / "SKILL.md").read_text()
+        bz_tags = re.findall(r"bugzilla-cli --tag v([0-9]+\.[0-9]+\.[0-9]+)", bz_text)
+        self.assertTrue(bz_tags, "no `bugzilla-cli --tag v…` pin found in triage/SKILL.md")
+        for v in bz_tags:
+            self.assertEqual(v, bz, f"bugzilla-cli pin v{v} != versions.json v{bz}")
+
 
 if __name__ == "__main__":
     unittest.main()

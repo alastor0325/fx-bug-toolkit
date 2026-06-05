@@ -1,0 +1,5 @@
+{
+  "_comment": "Source of truth for fx-bug-toolkit's PINNED external dependency versions. The inline pins in skills/ (bugzilla-cli `--tag v…`, the triage dashboard `REQUIRED=…`) must match these exactly — enforced by tests/test_plugin_structure.py, since skill Bash can't reliably read this file at runtime (CLAUDE_PLUGIN_ROOT is unreliable). To bump a dependency: edit the version here AND the inline pins, then run the tests. HEAD-tracked deps (bmo-to-md, searchfox-cli, profiler-cli, revue) are intentionally not pinned and are not listed.",
+  "bugzilla-cli": "0.2.0",
+  "firefox-triage-dashboard": "0.3.0"
+}

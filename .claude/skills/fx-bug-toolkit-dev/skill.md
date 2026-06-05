@@ -100,6 +100,19 @@ new version if you released.
 
 ---
 
+## Dependency version pins
+
+Pinned external dependency versions live in **`.claude-plugin/versions.json`** —
+the single source of truth (currently `bugzilla-cli` and the triage dashboard;
+the other CLIs track HEAD and aren't pinned). Skill Bash can't read that file at
+runtime (`CLAUDE_PLUGIN_ROOT` is unreliable), so the actual install pins are
+**inline** in the skills (`bugzilla-cli --tag v…`, the dashboard `REQUIRED=…`).
+**To bump a dependency:** edit the version in `versions.json` **and** every inline
+pin, then run the tests — `test_inline_pins_match_versions_manifest` fails if any
+inline pin drifts from the manifest, so a missed block can't ship. (When bumping
+the triage dashboard, its inline pins are 3× in `skills/triage-dashboard/SKILL.md`
+plus `skills/update/SKILL.md`.)
+
 ## Releasing
 
 This plugin **pins `version`** in `.claude-plugin/plugin.json`, so `claude plugin
