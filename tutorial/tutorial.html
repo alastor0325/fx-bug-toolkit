@@ -130,6 +130,7 @@
     <a href="#commands">All commands</a>
     <a href="#investigate">Investigate a bug</a>
     <a href="#browse">Browse investigations</a>
+    <a href="#review">Review a patch</a>
     <a href="#triage">Bug triage</a>
     <a href="#wiki">Shared wiki</a>
     <div class="sep"></div>
@@ -247,6 +248,29 @@
         <tr><td><kbd>w</kbd> / <kbd>s</kbd></td><td>move up / down the list (<kbd>j</kbd>/<kbd>k</kbd> too)</td></tr>
         <tr><td><kbd>b</kbd> / <kbd>\</kbd></td><td>fold / expand the sidebar</td></tr>
       </table>
+    </section>
+
+    <section id="review">
+      <h2>Review a patch</h2>
+      <pre><code><span class="cmd">/review</span> D12345     <span class="cmt"># a Phabricator revision</span>
+<span class="cmd">/review</span> local      <span class="cmt"># committed patches on the current branch</span>
+<span class="cmd">/review</span> diff       <span class="cmt"># uncommitted working-tree changes</span></code></pre>
+      <p><code>/review</code> is the <b>AI reviewer</b>. It reads the patch, verifies its stated purpose against the relevant spec (via <a href="#commands">spec-check</a>), checks architecture — threading, lifetime/ownership, IPC validation, error paths — by delegating to the gecko-navigator agent, reviews the code line by line, and writes a structured document to <code>~/firefox-patches-review/</code>. Every finding is graded <b>BLOCKER / IMPORTANT / MINOR / NIT</b> and pinned to a searchfox <code>file:line</code>, so it's actionable rather than vague.</p>
+
+      <p>Think of getting a patch ready as <b>three review layers</b>, innermost first:</p>
+      <table>
+        <tr><th>Layer</th><th>Who</th><th>What</th></tr>
+        <tr><td>1 · build-time checks</td><td>Claude + <code>verify</code></td><td>While writing each patch, the edit → <code>verify</code> (lint, build, format, commit-message &amp; comment checks) → commit loop keeps the baseline clean.</td></tr>
+        <tr><td>2 · <code>/review</code></td><td>AI (domain)</td><td>Firefox-specific purpose, spec, architecture, and code review → the review document.</td></tr>
+        <tr><td>3 · <code>/review-dashboard</code></td><td>You (human)</td><td>The final local gate before the patch leaves your machine (below).</td></tr>
+      </table>
+      <div class="note"><b>It runs for you during a fix.</b> If you drive the change with <code>/firefox-implementation</code>, layer&nbsp;2 is <em>automatic and mandatory</em>: after the patches build and tests pass, it runs a <b>Pre-Submission Review Loop</b> — spawns <code>/review</code> on the local branch, <b>auto-fixes every BLOCKER and IMPORTANT</b> (squashing each into the right patch), and loops until the review comes back clean (MINOR/NITs are collected for you to decide on). You can also run <code>/review</code> on its own at any time — on a <code>D</code>-revision, the <code>local</code> branch, or an uncommitted <code>diff</code>.</div>
+
+      <h3>Human guard — <code>/review-dashboard</code></h3>
+      <pre><code><span class="cmd">/review-dashboard</span>                 <span class="cmt"># the current git repo</span>
+<span class="cmd">/review-dashboard</span> ~/firefox-12345   <span class="cmt"># a specific repo / worktree</span></code></pre>
+      <p>Once the AI review is clean, <b>you're the last gate</b>. <code>/review-dashboard</code> opens <a href="https://github.com/alastor0325/revue" target="_blank">Revue</a> — a local web UI — pointed at your repo. Browse the series worktree by worktree, leave inline comments, approve or deny each patch, then click <b>Generate Review Prompt</b>: Revue writes a single structured prompt and copies it, you paste it to Claude, Claude amends the commits, you reload and keep going. Approvals survive rebases.</p>
+      <div class="note"><b>A middle layer between local and remote.</b> Revue sits between local AI review and the remote platform (Phabricator / GitHub PR). Doing the round trip <em>here</em> — instead of in Phabricator or PR comments — is a far better surface for iterating with Claude: your scattered comments become one prompt, fixes land as commit amendments, and only a polished series ever reaches the remote reviewer. Revue is an <b>optional</b> dependency, installed lazily from GitHub (and asked for first) the first time you run <code>/review-dashboard</code>; <code>/review</code> itself needs nothing extra.</div>
     </section>
 
     <section id="triage">

@@ -50,7 +50,7 @@ async function main() {
     await check("hero shows the display title", async () =>
       assert.match(await page.locator("h1").innerText(), /FX Bug Toolkit/));
     await check("TOC has all chapter links", async () =>
-      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 7));
+      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 8));
     await check("repo link present and correct", async () =>
       assert.ok((await page.locator('#toc a.ext').getAttribute("href")).includes("alastor0325/fx-bug-toolkit")));
     await check("wiki link points at firefox-wiki-plugin", async () =>
