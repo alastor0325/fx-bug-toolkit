@@ -117,9 +117,12 @@ fi
   - **Read-only (recommended default)** — proceed read-only. There is no
     `$BOT_EMAIL`; **skip every Bugzilla write** — produce the pending drafts and
     the dashboard view, but do **not** run `apply`/`post-comment`/`set-ni`/
-    `set-fields`, and do **not** require `$TRIAGE_OWNER`. Tell the user the drafts
-    are reviewable but won't be written back until they enable reply mode
-    (`bugzilla-cli setup`).
+    `set-fields`, and do **not** require `$TRIAGE_OWNER`. The drafts' `ACTIONS ON
+    APPROVAL` blocks are then a **proposal only** (nothing is posted); never
+    resolve or reference `$BOT_EMAIL`, and skip any bot-account-only step (e.g. the
+    §1b "set NI on the bot account" ready-for-investigation signal). Tell the user
+    the drafts are reviewable but won't be written back until they enable reply
+    mode (`bugzilla-cli setup`).
   - **Enable reply mode** — run `bugzilla-cli setup` (choose write mode, provide a
     key), then re-run `bugzilla-cli whoami`, cache `$BOT_EMAIL`, and continue in
     reply mode.
@@ -999,10 +1002,11 @@ off-channel; closing INCOMPLETE"). The dashboard renders it as a row so the move
 from Awaiting is self-explanatory. Leave `change_note` empty when the bug was not
 previously in Awaiting (a fresh bug carries no change note).
 
-If the response now contains enough information to proceed to investigation
-(re-triage result is §1b, not another §1a), set a needinfo on the bot account
-itself (`$BOT_EMAIL`) as a signal that the bug is ready for investigation. This
-surfaces the bug in the bot's NI queue so it is not lost.
+In **reply mode**, if the response now contains enough information to proceed to
+investigation (re-triage result is §1b, not another §1a), set a needinfo on the
+bot account itself (`$BOT_EMAIL`) as a signal that the bug is ready for
+investigation. This surfaces the bug in the bot's NI queue so it is not lost.
+(Read-only mode has no bot account — skip this signal.)
 
 `stale` bugs (14 days, no reply) → propose INCOMPLETE via §1c.
 `auto_removed` and `inaccessible` → log, no Bugzilla action.

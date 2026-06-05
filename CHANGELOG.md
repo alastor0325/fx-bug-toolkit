@@ -7,7 +7,12 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Changed
+- **`/triage` read-only drafts no longer assume a bot account.** In read-only
+  mode the draft's `ACTIONS ON APPROVAL` blocks are a proposal only (nothing is
+  posted), `$BOT_EMAIL` is never resolved/referenced, and bot-account-only steps
+  (the §1b "set NI on the bot account" ready-for-investigation signal) are
+  skipped — so the no-key path produces clean, reviewable drafts.
 
 ## [0.3.10] — 2026-06-05
 
