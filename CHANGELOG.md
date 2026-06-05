@@ -9,6 +9,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.8] — 2026-06-05
+
+### Changed
+- **Bump the pinned triage dashboard to v0.2.2.** The dashboard now renders
+  `see_also_add` in the Will-apply diff (and dry-run plan) as linked "+see also
+  bug N" refs — so a "set see also" refine is visible before you apply, matching
+  the new `bugzilla-cli --see-also-add` write path.
+
 ## [0.3.7] — 2026-06-05
 
 ### Changed
