@@ -83,6 +83,8 @@ source plugin shown next to each.
 | `/browse` | Open a local web viewer to search & read all your past investigations |
 | `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
 | `/triage-dashboard` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
+| `/review <D-rev\|local\|diff>` | AI patch review — verifies purpose against the spec, checks architecture & code, writes a structured review doc |
+| `/review-dashboard [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand; lazily installs it on first use |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)
@@ -95,6 +97,7 @@ source plugin shown next to each.
 | `download-guard` | Asks before downloading any external file, into one safe folder |
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
 | `gecko-navigator` (agent) | Orients in the Gecko codebase and traces execution flows |
+| `firefox-review` (agent) | The Opus reviewer `/review` delegates to — purpose/spec/architecture/code review |
 
 These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
@@ -177,13 +180,16 @@ multi-select to install them. Here's the lay of the land:
 | [`git`](https://git-scm.com), [`python3`](https://www.python.org) | source links, helper scripts | **required** | guide-only (use your system) |
 | [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
+| [`revue`](https://github.com/alastor0325/revue) | `/review-dashboard` (human patch review UI) | optional | yes (lazily, on first `/review-dashboard`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
 they're installed. `profiler-cli` is part of the core set; installing it also
 pulls a headless **Playwright Firefox** browser (~tens of MB), which it drives to
 read Firefox Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
-server, and the shared wiki are optional extras.
+server, `revue`, and the shared wiki are optional extras. `revue` powers
+`/review-dashboard` and is installed lazily (from GitHub) the first time you open
+the dashboard — `/review` (the AI reviewer) needs nothing extra.
 
 ---
 

@@ -68,11 +68,15 @@ class TestSkills(unittest.TestCase):
                 internal.add(s.name)
         self.assertEqual(internal, EXPECTED_INTERNAL)
 
-    def test_agent_has_frontmatter_name(self):
-        agent = ROOT / "agents" / "gecko-navigator.md"
-        self.assertTrue(agent.is_file())
-        fm = parse_frontmatter(agent)
-        self.assertEqual(fm.get("name"), "gecko-navigator")
+    def test_every_agent_has_frontmatter_name_matching_filename(self):
+        # Claude Code resolves an agent by its frontmatter name; keep it in sync
+        # with the filename so `subagent_type` lookups (e.g. firefox-review) work.
+        agents = sorted((ROOT / "agents").glob("*.md"))
+        self.assertTrue(agents, "no agents found")
+        for agent in agents:
+            fm = parse_frontmatter(agent)
+            self.assertEqual(fm.get("name"), agent.stem,
+                             f"{agent.name}: frontmatter name != filename")
 
 
 if __name__ == "__main__":

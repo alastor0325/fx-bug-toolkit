@@ -9,6 +9,22 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.0] — 2026-06-04
+
+### Added
+- **`/review` — AI patch review.** Reviews a Firefox patch (`D<rev>`, `local`
+  committed branch patches, or uncommitted `diff`) for purpose correctness
+  against the relevant spec, architecture/threading/lifetime, code-level
+  correctness, and tests — writing a structured review document to
+  `~/firefox-patches-review/`. Delegates to a new Opus **`firefox-review`** agent
+  that reuses the toolkit's `spec-check`, `source-links`, and `gecko-navigator`.
+- **`/review-dashboard` — open Revue, the human-review UI.** Resolves which git
+  repo to review (the skill argument, else the current repo) and launches
+  [Revue](https://github.com/alastor0325/revue) — a local web dashboard for
+  reviewing a patch series by hand and generating a review prompt to hand back to
+  Claude. Revue is an **optional** dependency, installed lazily (from GitHub) and
+  consent-gated on first use; `/review` itself needs nothing extra.
+
 ## [0.2.8] — 2026-06-04
 
 ### Fixed
@@ -229,7 +245,9 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.7...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.0...HEAD
+[0.3.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.8...fx-bug-toolkit--v0.3.0
+[0.2.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.7...fx-bug-toolkit--v0.2.8
 [0.2.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.6...fx-bug-toolkit--v0.2.7
 [0.2.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.5...fx-bug-toolkit--v0.2.6
 [0.2.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.4...fx-bug-toolkit--v0.2.5
