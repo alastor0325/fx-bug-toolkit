@@ -23,7 +23,7 @@ installed against the pin:
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"   # unix vs Windows venv layout
-REQUIRED="0.2.2"                                        # dashboard release this plugin targets
+REQUIRED="0.3.0"                                        # dashboard release this plugin targets
 have=""
 [ -x "$BIN/pip" ] && have="$("$BIN/pip" show triage-dashboard 2>/dev/null | sed -n 's/^Version: //p')"
 if [ "$have" = "$REQUIRED" ]; then
@@ -40,7 +40,7 @@ fi
   (fast — the heavy deps are already present), no prompt needed:
   ```bash
   VENV="$HOME/.fx-bug-toolkit/venv"; BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
-  REQUIRED="0.2.2"
+  REQUIRED="0.3.0"
   "$BIN/pip" install --quiet --upgrade \
     "git+https://github.com/alastor0325/firefox-triage-dashboard@v$REQUIRED"
   echo "✅ upgraded triage dashboard to v$REQUIRED"
@@ -58,7 +58,7 @@ fi
   VENV="$HOME/.fx-bug-toolkit/venv"
   PY="$(command -v python3 || command -v python)"
   [ -n "$PY" ] || { echo "Python 3 is required but not on PATH (see /init)."; exit 1; }
-  REQUIRED="0.2.2"
+  REQUIRED="0.3.0"
   "$PY" -m venv "$VENV"
   BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
   "$BIN/pip" install --quiet --upgrade pip

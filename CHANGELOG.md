@@ -7,12 +7,27 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.3.11] — 2026-06-05
+
 ### Changed
+- **Triage read-only mode is now end-to-end.** Pins the triage dashboard to
+  **v0.3.0**, which makes the dashboard read-only aware: with no Bugzilla API key
+  it shows a "read-only · drafts only" badge and hides every write affordance —
+  Apply, the owner *CC me / NI me / Assign me* toggles, and the editable
+  will-apply diff with its cc/ni/assign rows — while the Process-queue drain skips
+  the apply step. The AI drafts stay fully reviewable; nothing writes back until
+  you configure a key.
 - **`/triage` read-only drafts no longer assume a bot account.** In read-only
-  mode the draft's `ACTIONS ON APPROVAL` blocks are a proposal only (nothing is
-  posted), `$BOT_EMAIL` is never resolved/referenced, and bot-account-only steps
-  (the §1b "set NI on the bot account" ready-for-investigation signal) are
-  skipped — so the no-key path produces clean, reviewable drafts.
+  mode the draft's `ACTIONS ON APPROVAL` blocks are a proposal only, `$BOT_EMAIL`
+  is never resolved/referenced, and bot-account-only steps (the §1b "set NI on
+  the bot account" ready-for-investigation signal) are skipped.
+
+### Documentation
+- **Tutorial explains the two triage modes** — read-only (default, no key, no
+  `$TRIAGE_OWNER`) vs reply mode, and how to enable reply mode via `bugzilla-cli`.
+  The `$TRIAGE_OWNER` summary is corrected to reply-mode-only.
 
 ## [0.3.10] — 2026-06-05
 
@@ -367,7 +382,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.11...HEAD
+[0.3.11]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...fx-bug-toolkit--v0.3.11
 [0.3.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...fx-bug-toolkit--v0.3.10
 [0.3.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.8...fx-bug-toolkit--v0.3.9
 [0.3.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.7...fx-bug-toolkit--v0.3.8
