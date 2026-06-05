@@ -20,9 +20,16 @@ reviewer). It runs as a local daemon and opens your browser.
 This skill resolves **which repo** Revue opens and launches it. It does not ship
 Revue — Revue is installed lazily on first use (consent-gated).
 
-## Step 1 — Resolve the repo to open
+## Step 1 — Pick the folder to open
 
-The repo Revue should review is, in order of preference:
+You tell Revue **which folder** to review. Revue shows a **patch series**: the
+commits a working tree has **on top of its base** (`origin/main`, else
+`origin/master`, else `origin/HEAD`). So point it at the folder that holds the
+work you want to review — a feature branch or a dedicated worktree with unlanded
+commits — **not** a clean checkout sitting on an up-to-date `main`, which has no
+series and opens an empty board.
+
+Resolve the target, in order of preference:
 
 1. The path passed as the skill argument, if any.
 2. Otherwise, the git repo containing the current working directory.
@@ -40,6 +47,25 @@ echo "REPO=${REPO:-<none>}"
 If `REPO` is empty (no argument and the current directory is not inside a git
 repo), **ask the user** for the path to the repo or worktree they want to
 review, then re-resolve. Do not guess a path.
+
+Then pre-flight the series, so you don't open an empty board by surprise — this
+mirrors how Revue picks the base:
+
+```bash
+base=$(git -C "$REPO" rev-parse --verify -q origin/main \
+     || git -C "$REPO" rev-parse --verify -q origin/master \
+     || git -C "$REPO" rev-parse --verify -q origin/HEAD)
+if [ -n "$base" ]; then
+  echo "series: $(git -C "$REPO" rev-list --count "$base"..HEAD 2>/dev/null) commit(s) ahead of base"
+else
+  echo "series: base unknown (no origin/main|master|HEAD)"
+fi
+```
+
+If the count is `0` (or the base is unknown), tell the user this folder has
+nothing to review on top of its base, and **ask which repo or worktree** they
+meant — e.g. a feature worktree with unlanded commits. Only go to Step 3 once the
+target has a non-empty series, or the user explicitly says to open it anyway.
 
 ## Step 2 — Ensure Revue is installed (consent-gated on first use)
 

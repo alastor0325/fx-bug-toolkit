@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.3] — 2026-06-04
+
+### Changed
+- **`/review-dashboard` now explains which folder to open and pre-flights it.**
+  Revue shows a worktree's patch series (commits on top of `origin/main`), so the
+  skill now teaches you to point it at the folder holding the work — a feature
+  branch or a dedicated worktree with unlanded commits, not a clean `main`
+  checkout — and checks the series before launching, asking which repo/worktree
+  you meant instead of silently opening an empty board. The tutorial's Review
+  chapter gained the same guidance.
+
 ## [0.3.2] — 2026-06-04
 
 ### Fixed
@@ -265,7 +276,9 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.1...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.3...HEAD
+[0.3.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.2...fx-bug-toolkit--v0.3.3
+[0.3.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.1...fx-bug-toolkit--v0.3.2
 [0.3.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.0...fx-bug-toolkit--v0.3.1
 [0.3.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.8...fx-bug-toolkit--v0.3.0
 [0.2.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.7...fx-bug-toolkit--v0.2.8
