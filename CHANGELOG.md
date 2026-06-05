@@ -9,6 +9,19 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.2.8] — 2026-06-04
+
+### Fixed
+- **`/triage` no longer re-needinfos a bug it's already awaiting.** A
+  recently-filed bug we already needinfo'd in a prior round also re-appears in
+  the 14-day `fetch`, and the fetch path would draft a duplicate §1a needs-info —
+  pulling an Awaiting bug back into NeedInfos and re-pinging the reporter (bug
+  2043826: NI set 06-02, re-drafted 06-04). New pre-flight skip condition checks
+  `ni-watch.json`: if the bug has an active NI on the needed party with no
+  substantive reply since (and isn't stale), it stays Awaiting — and any
+  duplicate pending draft is dropped. The "are we still awaiting?" gate now
+  applies to fetched bugs, not just `watch-poll` hits.
+
 ## [0.2.7] — 2026-06-04
 
 ### Documentation

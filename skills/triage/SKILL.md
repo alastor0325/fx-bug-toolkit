@@ -434,7 +434,7 @@ context-window headroom. As each subagent finishes, start the next.
 
 ## Pre-flight skip check
 
-Before running the 6-step workflow, check four conditions and skip immediately if any is true:
+Before running the 6-step workflow, check five conditions and skip immediately if any is true:
 
 **1. Out-of-scope component:**
 Bug's `component` field is not in the configured component set (resolved
@@ -475,6 +475,38 @@ before you apply (e.g. the assignee lands a patch), the next `/triage` must
 **drop the stale pending draft** — never keep showing a fixed bug in the
 dashboard. (Surfaced by bug 2044408: RESOLVED FIXED while a §1b draft was still
 pending.)
+
+**5. Already awaiting a reply (on the NI watch list):**
+The bug is already in the NI watch store (`$TRIAGE_DIR/ni-watch.json`, a JSON
+object keyed by bug id) with a needinfo we set, and the party we need has **not
+substantively replied since**. This is the gate that makes "are we still
+awaiting?" (see the watch-poll section) apply to bugs reached via `fetch`, not
+just those surfaced by `watch-poll`: a recently-filed bug we already needinfo'd
+in a prior round *also* re-appears in the 14-day `fetch`, and without this check
+the fetch path re-drafts a duplicate §1a needs-info for a bug we are already
+waiting on (surfaced by bug 2043826 — NI set 2026-06-02, re-drafted two days
+later).
+
+Check: look up `<id>` in `ni-watch.json`. If present, read its `ni_set_date` /
+`ni_targets`, then determine — using the **same substantive-vs-non-substantive
+test as the watch-poll handling** — whether an `ni_targets` party has
+substantively replied after `ni_set_date` and whether the NI flag is still
+active on that party.
+- **Still awaiting** (NI flag still active on the needed party, no substantive
+  reply since `ni_set_date`, and not yet stale — set < 14 days ago): →
+  Print: `Skipping bug {id} — already awaiting reply (NI on {target} since
+  {date}).` Do NOT create a §1a needs-info draft (it would re-ping a reporter we
+  already asked). **And if a pending §1a draft already exists for this bug**
+  (e.g. written by a prior run's fetch path before this guard), **drop it**
+  (`rm $TRIAGE_DIR/pending/bug-{id}.json`) so it leaves NeedInfos and the bug
+  shows correctly under Awaiting. Move to next.
+- **Not awaiting anymore** — a substantive reply arrived after `ni_set_date`, the
+  NI was cleared, or the NI is stale (≥ 14 days): do NOT skip. Fall through to the
+  6-step workflow (this is the legitimate `replied` / `ni_cleared` re-triage or
+  `stale` → INCOMPLETE path).
+
+This check reads `ni-watch.json` directly; it does **not** call `watch-poll`, so
+it is also safe in single-bug mode.
 
 ---
 
