@@ -1,15 +1,20 @@
 ---
 name: update
-description: Update everything fx-bug-toolkit depends on — pull the plugin's own upstream changes (marketplace + plugin), and refresh the external CLIs (bmo-to-md, searchfox-cli, profiler-cli) to their latest versions. Triggers on "update fx-bug-toolkit", "update the toolkit", "fx-bug-toolkit update", "refresh dependencies".
+description: Update everything fx-bug-toolkit depends on — pull the plugin's own upstream changes (marketplace + plugin), and refresh the required CLIs (bmo-to-md, searchfox-cli, profiler-cli) to their latest versions, installing any that are missing. Triggers on "update fx-bug-toolkit", "update the toolkit", "fx-bug-toolkit update", "refresh dependencies".
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
 # fx-bug-toolkit — update
 
-Refresh the plugin and all its dependencies to their latest versions. Unlike
-`/init` (which *installs* what's missing, asking first), this **updates what is
-already installed**. It only touches things that are present — if a dependency
-isn't installed, skip it and note that `/init` installs it.
+Refresh the plugin and all its dependencies to their latest versions. For the
+**required** CLIs (`bmo-to-md`, `searchfox-cli`, `profiler-cli`) this also
+**installs them when they're missing** — they're mandatory, so `/update` must not
+leave a gap. It still needs the underlying toolchain present (`cargo` for the
+Rust CLIs, `git`+`node`/`npm` for `profiler-cli`); if the toolchain itself is
+missing, it stops and points you to `/init` (which installs Rust/Node, asking
+first). **Optional** pieces — the triage dashboard, and Revue for
+`/review-dashboard` — are only refreshed when already installed; they stay
+lazily installed on first use and are not pulled in here.
 
 Run the steps, capture before/after versions where available, and print a
 summary at the end.
@@ -20,59 +25,87 @@ The plugin ships from a git-backed marketplace. Refresh the marketplace from its
 source, then update the plugin itself. A **Claude Code restart is required** to
 apply a plugin update.
 
+First record the **current version** (to report the bump at the end) — note the
+`fx-bug-toolkit@fx-bug-toolkit` line:
+
 ```bash
-claude plugin marketplace update fx-bug-toolkit   # refresh the marketplace from git
-claude plugin update fx-bug-toolkit               # update the plugin (restart to apply)
+claude plugin list | grep -A1 "fx-bug-toolkit@fx-bug-toolkit"   # remember this version as OLD
 ```
 
-If the install used the `plugin@marketplace` form, use that name (e.g.
-`fx-bug-toolkit@fx-bug-toolkit`). Confirm with `claude plugin list` if unsure.
-Tell the user to **restart Claude Code** afterward so the updated skills load.
+Then refresh and update:
 
-## Step 2 — Update the CLI dependencies
-
-Only run each block if the tool is already installed (`command -v` succeeds).
-Skip-and-note otherwise.
-
-Use an explicit `if`/`else` for each — **not** `command -v … && install || echo
-"not installed"`. With `A && B || C`, a *failed* install (`B`) falls through to
-`C` and falsely reports the tool as "not installed", masking a real update
-failure. Surface install failures as failures:
-
-**`bmo-to-md`** (from git — re-pull and rebuild latest):
 ```bash
-if command -v bmo-to-md >/dev/null; then
-  cargo install --git https://github.com/padenot/bmo-to-md --force \
-    || echo "⚠️  bmo-to-md update FAILED"
+claude plugin marketplace update fx-bug-toolkit            # refresh the marketplace from git
+claude plugin update fx-bug-toolkit@fx-bug-toolkit         # update the plugin (restart to apply)
+```
+
+Use the **qualified `plugin@marketplace` name** (`fx-bug-toolkit@fx-bug-toolkit`)
+— it matches how the toolkit is installed and how `claude plugin list` shows it.
+The bare `claude plugin update fx-bug-toolkit` can fail to resolve, so don't rely
+on it. (The `marketplace update` line above correctly takes the bare marketplace
+name, `fx-bug-toolkit`.) Tell the user to **restart Claude Code** afterward so the
+updated skills load.
+
+## Step 2 — Update (and install-if-missing) the CLI dependencies
+
+The **required** CLIs install when absent and upgrade when present; **optional**
+pieces (triage dashboard) are only refreshed if already installed. Report each
+outcome ("installed", "updated to <v>", "already current", or "skipped").
+
+Surface failures as failures — don't use `command -v … && install || echo "…"`:
+with `A && B || C`, a *failed* install (`B`) falls through to `C` and is
+misreported as "not installed", masking a real failure.
+
+### Required Rust CLIs — `bmo-to-md` + `searchfox-cli`
+
+`cargo install` does everything in one shot: it **installs when absent**,
+upgrades when a newer version/commit exists, and is a **no-op when already
+current**. **Do not pass `--force`** — that rebuilds from source on every run
+even when nothing changed (slow compiles for nothing); without it cargo still
+picks up a newer crates.io release or git commit.
+
+They need `cargo`. If `cargo` itself is missing, that's a toolchain gap `/update`
+won't paper over — stop and point the user to `/init` (it installs Rust via
+rustup, asking first):
+
+```bash
+if ! command -v cargo >/dev/null; then
+  echo "⚠️  cargo not found — required to install bmo-to-md/searchfox-cli. Run /init (installs Rust)."
 else
-  echo "skip bmo-to-md (not installed — run /init)"
+  cargo install --git https://github.com/padenot/bmo-to-md \
+    && echo "✅ bmo-to-md installed/updated" || echo "⚠️  bmo-to-md FAILED"
+  cargo install searchfox-cli \
+    && echo "✅ searchfox-cli installed/updated" || echo "⚠️  searchfox-cli FAILED"
 fi
 ```
 
-**`searchfox-cli`** (from crates.io — latest published):
-```bash
-if command -v searchfox-cli >/dev/null; then
-  cargo install searchfox-cli --force \
-    || echo "⚠️  searchfox-cli update FAILED"
-else
-  echo "skip searchfox-cli (not installed — run /init)"
-fi
-```
-
-**`profiler-cli`** (git pull + rebuild). `profiler-cli` drives a headless
-Playwright **Firefox** to load the profiler SPA, so re-assert the browser is
-installed after rebuilding (Playwright versions can bump):
+**`profiler-cli`** (git pull; **rebuild only when the pull brought new commits**).
+`profiler-cli` drives a headless Playwright **Firefox** to load the profiler SPA,
+so re-assert the browser after a rebuild (Playwright versions can bump):
 ```bash
 PDIR="${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
 if [ -d "$PDIR/.git" ]; then
-  if git -C "$PDIR" pull --ff-only \
-       && ( cd "$PDIR" && npm install && npm run build && npx playwright install firefox ); then
-    echo "✅ profiler-cli rebuilt"
+  before=$(git -C "$PDIR" rev-parse HEAD 2>/dev/null)
+  if git -C "$PDIR" pull --ff-only; then
+    after=$(git -C "$PDIR" rev-parse HEAD 2>/dev/null)
+    if [ "$before" != "$after" ]; then
+      ( cd "$PDIR" && npm install && npm run build && npx playwright install firefox ) \
+        && echo "✅ profiler-cli rebuilt ($after)" \
+        || echo "⚠️  profiler-cli rebuild FAILED — check $PDIR"
+    else
+      echo "profiler-cli already up to date ($after)"
+    fi
   else
-    echo "⚠️  profiler-cli update FAILED — check $PDIR"
+    echo "⚠️  profiler-cli git pull FAILED — check $PDIR"
   fi
+elif command -v git >/dev/null && command -v npm >/dev/null; then
+  echo "profiler-cli not present — installing (required)…"
+  git clone https://github.com/dpalmeiro/profiler-cli "$PDIR" \
+    && ( cd "$PDIR" && npm install && npm run build && npm link && npx playwright install firefox ) \
+    && echo "✅ profiler-cli installed at $PDIR" \
+    || echo "⚠️  profiler-cli install FAILED — check $PDIR"
 else
-  echo "skip profiler-cli (not cloned at $PDIR — run /init)"
+  echo "⚠️  profiler-cli missing and needs git + node/npm to install — run /init"
 fi
 ```
 
@@ -105,5 +138,20 @@ updated wherever you registered it — neither is touched here.
 
 ## Step 4 — Summary
 
-Print a table: each item → previous → now (or "up to date" / "skipped"), and a
-reminder to **restart Claude Code** if the plugin itself was updated in Step 1.
+End every run with a short, concrete summary:
+
+1. **Plugin version + what changed.** Compare the version recorded in Step 1
+   (OLD) with the now-current one (NEW), and say what landed between them. Pull
+   the canonical changelog rather than guessing:
+   ```bash
+   curl -fsS https://raw.githubusercontent.com/alastor0325/fx-bug-toolkit/main/CHANGELOG.md | head -80
+   ```
+   - The newest released `## [X.Y.Z]` heading is **NEW**.
+   - If `NEW == OLD` → say "already on the latest (vNEW)".
+   - Otherwise report `vOLD → vNEW`, and for each released version newer than
+     OLD (skip `## [Unreleased]`) print one line: the version + the **bolded
+     headline** of its entry. A few lines total — not the whole changelog.
+2. **CLIs / dashboard.** One line each from Step 2: "updated to `<v>`", "already
+   up to date", or "skipped (not installed)".
+3. **Restart.** If the plugin version changed, remind the user to **restart
+   Claude Code** — a plugin update does not apply to the running session.

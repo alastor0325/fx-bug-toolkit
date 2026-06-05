@@ -9,6 +9,29 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.6] — 2026-06-05
+
+### Fixed
+- **`/update` used the wrong plugin-update command.** It told Claude to run the
+  unqualified `claude plugin update fx-bug-toolkit`, which can fail to resolve;
+  it now uses the qualified `fx-bug-toolkit@fx-bug-toolkit` form (matching how the
+  toolkit is installed and how `claude plugin list` shows it).
+
+### Changed
+- **`/update` installs missing required CLIs instead of skipping them.**
+  `bmo-to-md`, `searchfox-cli`, and `profiler-cli` are mandatory, so `/update`
+  now installs them when absent (and upgrades when present), rather than telling
+  you to go run `/init`. It still defers to `/init` when the underlying toolchain
+  (`cargo`, or `git`+`node`/`npm`) is missing. Optional pieces (triage dashboard,
+  Revue) stay lazily installed and are only refreshed if already present.
+- **`/update` no longer rebuilds tools that are already current.** Dropped
+  `cargo install --force` (cargo is a no-op when the version/commit is unchanged)
+  and `profiler-cli` now rebuilds only when its `git pull` brought new commits —
+  so a same-day re-run doesn't trigger pointless recompiles.
+- **`/update` ends with a version + changes summary** — the plugin's `vOLD → vNEW`
+  with a one-line-per-version changelog highlight, each CLI's outcome, and the
+  restart reminder.
+
 ## [0.3.5] — 2026-06-05
 
 ### Changed
@@ -297,7 +320,9 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.4...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.6...HEAD
+[0.3.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.5...fx-bug-toolkit--v0.3.6
+[0.3.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.4...fx-bug-toolkit--v0.3.5
 [0.3.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.3...fx-bug-toolkit--v0.3.4
 [0.3.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.2...fx-bug-toolkit--v0.3.3
 [0.3.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.1...fx-bug-toolkit--v0.3.2
