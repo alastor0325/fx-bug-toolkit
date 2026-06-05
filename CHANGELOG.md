@@ -9,6 +9,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.5] — 2026-06-05
+
+### Changed
+- **`/triage` Apply docs: `See Also` can't be written by apply.** `bugzilla-cli
+  set-fields`/`apply` has no see-also field, so a "set see also" refine now
+  surfaces the related bug in the **comment** (BMO auto-links) and flags that the
+  formal *See Also* entry can be added manually — rather than silently dropping
+  it or misusing `blocks_add`. (Surfaced by bug 2044925.)
+
 ## [0.3.4] — 2026-06-04
 
 ### Changed

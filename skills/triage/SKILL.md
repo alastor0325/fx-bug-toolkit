@@ -1130,6 +1130,16 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 
 ## Apply / Skip commands
 
+> **`See Also` cannot be written by apply.** `bugzilla-cli set-fields`/`apply` has
+> no see-also field — only priority/severity/status/resolution/dupe-of/blocks-add/
+> regressed-by-add/keywords-add/cc-add/product/component/assigned-to. So when a
+> refine asks to "set see also" (relate this bug to another), there is no field to
+> set: **surface the relation in the comment** by mentioning the bug number (BMO
+> auto-links it), and tell the user they can add the formal *See Also* entry
+> manually in Bugzilla if they want it. Use `blocks_add` only for an actual
+> blocks/meta relationship, not as a stand-in for "see also". (Surfaced by bug
+> 2044925.)
+
 - **`apply {id}`** — write the pending JSON first, then run `bugzilla-cli apply {id}`, which posts comment, sets needinfo flags, sets priority/severity, reassigns product/component, adds CC via `set-fields --cc-add` (`cc_add`), adds blockers (`blocks_add`), sets the `regressed_by` relation via `set-fields --regressed-by-add` (`regressed_by_add`), assigns the bug via `set-fields --assigned-to`/`--status` (`assigned_to`/`status`), sets resolution/keywords, removes pending file. If any step was already done manually (e.g. comment already posted), skip that step and run the remaining ones individually. If `ni_targets` is non-empty, also runs:
   ```bash
   bugzilla-cli watch-add {id} --title "{title}" --ni {email1} [--ni {email2}]
