@@ -222,7 +222,7 @@
       <h3>Run the analyzers on their own</h3>
       <p>The evidence-reading tools <code>/bug-start</code> leans on are full commands too — handy when you just have a capture or a log and no bug to attach it to yet:</p>
       <pre><code><span class="cmd">/analyze-profile</span> https://share.firefox.dev/public/...   <span class="cmt"># a Firefox Profiler capture</span>
-<span class="cmd">/check-log</span> /path/to/firefox.log                      <span class="cmt"># a Firefox log file</span></code></pre>
+<span class="cmd">/check-log</span> /path/to/firefox.log                         <span class="cmt"># a Firefox log file</span></code></pre>
       <ul class="feat">
         <li><b><code>/analyze-profile</code></b> — runs a standard query set over a Profiler capture, checks the relevant threads, pattern-matches known signatures, and returns a findings report.</li>
         <li><b><code>/check-log</code></b> — diagnoses a Firefox log: process crashes, HRESULT and <code>NS_ERROR</code> codes, and the like — with extra depth for media/EME/CDM issues (hardware-context resets, CDM crashes).</li>
@@ -264,10 +264,9 @@
         <tr><td><code>/review</code></td><td>this toolkit</td><td>AI review — purpose vs. spec, architecture, and code → the review document.</td></tr>
         <tr><td><code>/review-dashboard</code></td><td>this toolkit</td><td>Your own human pass before the patch leaves your machine (below).</td></tr>
       </table>
-      <div class="note"><b>Already wired in, if you implement with <code>/firefox-implementation</code>.</b> That's a <em>separate</em> skill (not part of this toolkit) for writing and landing patches; when you use it, it runs <code>/review</code> for you as a mandatory pre-submission step — spawning it on your branch, auto-fixing every BLOCKER and IMPORTANT, and looping until the review is clean — then hands off to the human pass below. Either way, you can run <code>/review</code> on its own anytime — on a <code>D</code>-revision, the <code>local</code> branch, or an uncommitted <code>diff</code>.</div>
 
       <h3>Human guard — <code>/review-dashboard</code></h3>
-      <pre><code><span class="cmd">/review-dashboard</span>                 <span class="cmt"># the current git repo</span>
+      <pre><code><span class="cmd">/review-dashboard</span>                   <span class="cmt"># the current git repo</span>
 <span class="cmd">/review-dashboard</span> ~/firefox-12345   <span class="cmt"># a specific repo / worktree</span></code></pre>
       <p>Once the AI review is clean, <b>you're the last gate</b>. <code>/review-dashboard</code> opens <a href="https://github.com/alastor0325/revue" target="_blank">Revue</a> — a local web UI — pointed at your repo. Browse the series worktree by worktree, leave inline comments, approve or deny each patch, then click <b>Generate Review Prompt</b>: Revue writes a single structured prompt and copies it, you paste it to Claude, Claude amends the commits, you reload and keep going. Approvals survive rebases.</p>
       <figure>
