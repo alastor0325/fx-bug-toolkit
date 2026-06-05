@@ -59,15 +59,16 @@ or strip.
       is optional) — a fuller "no `bugzilla-cli` at all, read via `bmo-to-md`/`moz`
       MCP" path was not pursued.
 
-- [ ] **Make the dashboard's Process-queue drain prompt read-only aware.** The
-      `apply` step (drain step 4) writes to Bugzilla, so in read-only `/triage` it
-      should be skipped/hidden rather than attempted. Today it's safe but ugly:
-      `bugzilla-cli apply` bails without a key, so no accidental writes — it just
-      errors per bug. The `/triage` Apply section already carries a read-only
-      guard; the remaining piece is the **dashboard-generated drain prompt** in
-      the `firefox-triage-dashboard` repo (detect read-only — e.g. no key / a flag
-      from `/triage` — and drop the apply step, leaving refines + drafts).
-      (`triage-apply-feedback` itself needs nothing — it makes no Bugzilla writes.)
+- [x] **Made the dashboard read-only aware.** Done in `firefox-triage-dashboard`
+      (unreleased on `main`, pending a version bump + pin sync): a live
+      `reply_mode()` check (mirrors `bugzilla-cli`'s key detection) drives the UX —
+      a "read-only · drafts only" badge, the per-card Apply becomes a disabled
+      pill, the `/draft/{id}/apply` route is a no-op, and the Process-queue drain
+      prompt skips the apply step (`prepare_queue_drain(reply_mode=False)`). The
+      `/triage` Apply section guard + the `bugzilla-cli apply` backstop remain.
+      (`triage-apply-feedback` needs nothing — it makes no Bugzilla writes.)
+      **Follow-up when bumping:** tag the dashboard `vX.Y.Z` and bump its `REQUIRED`
+      pin in `skills/triage-dashboard/SKILL.md` + `skills/update/SKILL.md`.
 
 - [ ] **Local servers' fixed ports can collide.** `/triage-dashboard` (:8765),
       Revue / `/review-dashboard` (:7777), and the `/browse` viewer each bind a
