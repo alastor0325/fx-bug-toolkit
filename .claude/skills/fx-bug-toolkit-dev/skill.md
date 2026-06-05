@@ -74,12 +74,27 @@ invocable-vs-internal contract.
 ### Step 4 — Agent Review
 Run `/simplify` (or `/code-review`) on the diff and apply the fixes.
 
-### Step 5 — Commit & Push
+### Step 5 — Commit, push & verify CI
 ```bash
 git commit -m "<type>: <what and why>"
 git push
 ```
-Both are required. Never commit without pushing.
+Both are required — never commit without pushing.
+
+**Then verify CI — never assume a push is green.** CI (`.github/workflows/ci.yml`)
+is **authoritative**: it runs the full suite (the three Python/Node suites + the
+browser E2Es) across an **OS matrix that includes Windows**, which a local run on
+one OS cannot cover — e.g. a Windows-only `UnicodeDecodeError` once sailed past a
+green macOS run and only CI caught it. So "passed locally" ≠ green. After pushing,
+watch the run and fix forward until it's green:
+```bash
+gh run watch "$(gh run list -L 1 --json databaseId -q '.[0].databaseId')" --exit-status
+```
+
+**Prefer a PR for anything non-trivial.** Branch → push → open a PR → let CI run →
+**merge only when green.** That keeps `main` always-green and stops a red commit
+(or a release tag cut from one) from ever landing. Committing straight to `main`
+is acceptable only for trivial doc tweaks — and you still verify CI afterward.
 
 ### Step 6 — Sync the tutorial
 If this task changed the **viewer** (`viewer.html` / `viewer.logic.js`) or
@@ -119,6 +134,11 @@ This plugin **pins `version`** in `.claude-plugin/plugin.json`, so `claude plugi
 update` compares the version *string* — **users only receive changes when the
 version is bumped.** Pushing commits without a bump is a no-op for installed
 users.
+
+**Tag a release only from a commit whose CI is green on `main`.** A tag cut from a
+red commit ships a release whose CI is permanently red (it happened with
+`v0.3.12`). Confirm green first (`gh run list -L 3` / `gh run watch … --exit-status`),
+then tag.
 
 To publish a shippable change:
 
