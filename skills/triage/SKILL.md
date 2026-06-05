@@ -11,15 +11,16 @@ information completeness, duplicate detection, P/S assessment, NI drafting, and
 meta-bug blocking. All BMO I/O goes through `bugzilla-cli` — never call the REST
 API directly.
 
-**Setup — `$TRIAGE_OWNER` (required):** the **triage owner** (the person
+**Setup — `$TRIAGE_OWNER` (reply mode only):** the **triage owner** (the person
 responsible for the §1b "ready for implementation" bugs) can opt into being CC'd
 and/or needinfo'd on a draft via the dashboard's **"CC me" / "NI me"** checkboxes
 — **default off**, decided per bug. The skill does **not** auto-CC/NI the owner;
 it just leaves `cc_add`/`ni_targets` for those toggles to populate. `TRIAGE_OWNER`
-is that Bugzilla email (yours, if you run triage) — required so the toggles know
-whom to add. The **first time you run `/triage`**
-the Setup check explicitly resolves it: if `$TRIAGE_OWNER` is unset it **asks you
-for the email and persists it** before any triage work begins (see Setup check).
+is that Bugzilla email (yours, if you run triage) — needed so the toggles know
+whom to add. It is **only required in reply mode** (when triage writes back);
+**read-only mode needs no owner.** In reply mode, the **first run** with it unset
+resolves it in the Setup check — it **asks for the email and persists it** before
+any triage work begins (see Setup check).
 `bugzilla-cli` (BMO I/O) and a configured triage data dir (`$TRIAGE_DIR`, default
 `~/firefox-triage/`) are also required — see Setup check.
 
