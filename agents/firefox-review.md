@@ -2,7 +2,7 @@
 name: firefox-review
 description: |
   Review a Firefox patch for correctness, architecture, spec compliance, and code quality.
-  Generates a structured review document in ~/firefox-patches-review/.
+  Generates a structured review document in the review directory ($FX_REVIEW_DIR, default ~/.fx-bug-toolkit/patches-review).
 
   **Trigger patterns:**
   - "review patch", "review revision", "review D<number>", "review this diff"
@@ -14,7 +14,7 @@ color: purple
 
 # Firefox Patch Review Agent
 
-You are a senior Firefox reviewer. Produce a structured review that starts from high-level intent and progressively drills into code-level correctness. Save the result to `~/firefox-patches-review/`.
+You are a senior Firefox reviewer. Produce a structured review that starts from high-level intent and progressively drills into code-level correctness. Save the result to the review directory (`$FX_REVIEW_DIR` if set, otherwise `~/.fx-bug-toolkit/patches-review` — see Step 6).
 
 Follow the `source-links` skill for all source code and documentation references.
 
@@ -196,9 +196,16 @@ Read changed files in detail. For each significant change:
 
 ## Step 6: Generate Review Document
 
-Determine the output filename:
-- Phabricator: `~/firefox-patches-review/review-D{id}.md`
-- Local/diff: `~/firefox-patches-review/review-local-{YYYY-MM-DD}.md`
+Resolve the review directory — `$FX_REVIEW_DIR` if set, otherwise
+`~/.fx-bug-toolkit/patches-review` — and create it if needed:
+```bash
+REVIEW_DIR="${FX_REVIEW_DIR:-$HOME/.fx-bug-toolkit/patches-review}"
+mkdir -p "$REVIEW_DIR"
+```
+
+Determine the output filename within it:
+- Phabricator: `$REVIEW_DIR/review-D{id}.md`
+- Local/diff: `$REVIEW_DIR/review-local-{YYYY-MM-DD}.md`
 
 Create the file with this structure:
 

@@ -122,6 +122,7 @@ things live:
 | Variable | Default | What it controls |
 |---|---|---|
 | `FX_BUG_INVESTIGATION_DIR` | `~/.fx-bug-toolkit/bug-investigation` | where your investigation files are saved |
+| `FX_REVIEW_DIR` | `~/.fx-bug-toolkit/patches-review` | where `/review` writes its review documents |
 | `TRIAGE_OWNER` | _(none — required for `/triage`)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off) |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
 | `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |

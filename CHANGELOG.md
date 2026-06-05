@@ -9,6 +9,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.1] — 2026-06-04
+
+### Changed
+- **`/review`'s output directory is now configurable and lives in a dot folder.**
+  Reviews are written to `$FX_REVIEW_DIR` if set, otherwise
+  `~/.fx-bug-toolkit/patches-review` (was a hardcoded `~/firefox-patches-review/`),
+  matching how `FX_BUG_INVESTIGATION_DIR` works. Added to the README
+  Configuration table.
+
 ## [0.3.0] — 2026-06-04
 
 ### Added
@@ -245,7 +254,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.1...HEAD
+[0.3.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.0...fx-bug-toolkit--v0.3.1
 [0.3.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.8...fx-bug-toolkit--v0.3.0
 [0.2.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.7...fx-bug-toolkit--v0.2.8
 [0.2.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.2.6...fx-bug-toolkit--v0.2.7

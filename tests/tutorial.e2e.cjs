@@ -57,6 +57,8 @@ async function main() {
       assert.ok((await page.locator('#wiki a[href*="firefox-wiki-plugin"]').first().getAttribute("href")).includes("firefox-wiki-plugin")));
     await check("triage section embeds the dashboard screenshot", async () =>
       assert.strictEqual(await page.locator('#triage figure img[src*="triage-dashboard"]').count(), 1));
+    await check("review section embeds the revue screenshot", async () =>
+      assert.strictEqual(await page.locator('#review figure img[src*="review-dashboard"]').count(), 1));
 
     await check("clicking a TOC chapter sets the URL hash", async () => {
       await page.click('#toc a[href="#commands"]');

@@ -2,7 +2,7 @@
 name: review
 description: >
   Review a Firefox patch for correctness, architecture, spec compliance, and code quality.
-  Generates a structured review document in ~/firefox-patches-review/.
+  Generates a structured review document in the review directory ($FX_REVIEW_DIR, default ~/.fx-bug-toolkit/patches-review).
   Triggers on: "review patch", "review revision", "review D<number>", "review this diff",
   "review my changes", "code review", "review the patch".
 argument-hint: <revision-id, "local", or "diff">
@@ -26,5 +26,6 @@ Where `{argument}` is:
 
 The agent reads the patch, verifies its purpose against the relevant specs,
 reviews architecture and code-level correctness, and writes a structured review
-document to `~/firefox-patches-review/`. When it finishes, relay its verdict and
-the file path.
+document to the review directory (`$FX_REVIEW_DIR`, default
+`~/.fx-bug-toolkit/patches-review`). When it finishes, relay its verdict and the
+file path.
