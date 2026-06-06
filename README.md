@@ -114,6 +114,11 @@ picker — `bug-start` and friends pull them in when needed.
 > defaults to read-only). The **dashboard** is a separate web app installed **lazily**
 > the first time you run `/triage` or `/triage-dashboard` (a one-time venv + pip
 > bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
+Because that install pulls code from a GitHub repo, Claude Code's auto-mode
+classifier may block the agent from running it; `/init` has an **optional** step
+that adds a narrowly-scoped `autoMode.allow` rule (naming only the dashboard repo)
+to your `~/.claude/settings.json` so the install goes through — or you can run the
+install yourself with the `!` prefix.
 
 ---
 

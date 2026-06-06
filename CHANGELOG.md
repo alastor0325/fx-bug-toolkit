@@ -9,6 +9,22 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.13] — 2026-06-06
+
+### Changed
+- **`/init` can pre-authorize the triage dashboard install.** Installing the
+  dashboard (`pip install git+https://github.com/alastor0325/firefox-triage-dashboard@…`,
+  done lazily by `/triage-dashboard` and by `/update`) is code fetched from an
+  external GitHub repo, which Claude Code's auto-mode classifier `soft_deny`s — so
+  first-use and every version bump could fail with a denial ("installs and executes
+  code from an external GitHub repo not in trusted source control"). `/init` now has
+  an **optional, opt-in** step that merges a **narrowly-scoped** `autoMode.allow`
+  carve-out — naming **only** the dashboard repo, never a `Bash(*)` wildcard, and
+  keeping `"$defaults"` so all built-in safety rules stay in force — into the user's
+  `~/.claude/settings.json` (the classifier ignores project/plugin-shipped settings).
+  Declining is safe: the dashboard still works and the install can be run by hand
+  with the `!` prefix.
+
 ## [0.3.12] — 2026-06-05
 
 ### Changed
@@ -393,7 +409,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.12...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.13...HEAD
+[0.3.13]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.12...fx-bug-toolkit--v0.3.13
 [0.3.12]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.11...fx-bug-toolkit--v0.3.12
 [0.3.11]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...fx-bug-toolkit--v0.3.11
 [0.3.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.9...fx-bug-toolkit--v0.3.10

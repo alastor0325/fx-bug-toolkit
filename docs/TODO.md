@@ -59,6 +59,27 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       still force a port. Cross-platform (python3 free-port probe + git-bash POSIX
       tools). serve.py has unit tests for the pure port helpers.
 
+- [x] **Auto-mode classifier blocks the dashboard install ("cyber block").**
+      (raised + partly fixed 2026-06-06) `/triage-dashboard` and `/update` install
+      the dashboard via `pip install git+https://github.com/alastor0325/firefox-triage-dashboard@…`.
+      Claude Code's auto-mode classifier `soft_deny`s agent-run installs of code
+      from an external GitHub repo ("Code from External" / "Untrusted Code
+      Integration"), so first-use and every version bump can fail with a denial.
+      **Done:** added an optional `/init` step that merges a *narrowly-scoped*
+      `autoMode.allow` carve-out (names only the dashboard repo, not `Bash(*)`)
+      into the user's `~/.claude/settings.json`. **Deferred follow-ups (not chosen
+      this round):**
+      - 🟡 **(A) STALE shouldn't block opening** — `/triage-dashboard` Step 1 hard-
+        requires the upgrade before serving; a pending version bump should still
+        open the already-installed version and surface the upgrade as optional.
+      - 🟡 **(B) Graceful fallback** — when an install/upgrade must run and the
+        classifier denies it, the skill should hand the user a copy-paste `!`
+        command instead of dying on the raw denial (applies to `/triage-dashboard`
+        + `/update`).
+      - 🟢 **(D) Publish the dashboard to PyPI** (in the `firefox-triage-dashboard`
+        repo) → `pip install triage-dashboard==X.Y.Z`, which removes the "external
+        GitHub repo" trigger at the source and is the deepest long-term fix.
+
 - [ ] **`/update` doesn't refresh `bugzilla-cli`.** `/update` Step 2 updates
       `bmo-to-md`/`searchfox-cli`/`profiler-cli` + the triage dashboard, but never
       touches `bugzilla-cli` (installed only by `/triage`'s pinned hint). Add a
