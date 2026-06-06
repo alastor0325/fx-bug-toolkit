@@ -70,10 +70,15 @@ or strip.
       (`cargo install --git … --tag v<versions.json bugzilla-cli>`), and extend the
       drift test to cover that pin too.
 
-- [ ] **Dashboard read-only polish** (firefox-triage-dashboard): in read-only the
-      will-apply footer still reads **"WILL APPLY"** (nothing applies → relabel to
-      "Proposed"), and a `status: ASSIGNED` pill can render without an assignee.
-      Cosmetic.
+- [x] **Dashboard read-only polish** (firefox-triage-dashboard, unreleased on
+      `main` — ships when the dashboard is bumped + re-pinned): the will-apply diff
+      is now labelled **"Proposed"** in read-only (`.diff--proposed`), which also
+      reframes the `status: ASSIGNED` pill as a proposal rather than a plan.
+
+- [ ] **`firefox-triage-dashboard` has no CI.** Unlike fx-bug-toolkit (full
+      matrix + e2e in GitHub Actions), the dashboard repo has no CI workflow — its
+      only gate is a local `pytest`. Add a GitHub Actions workflow (pytest, maybe
+      across an OS matrix) so dashboard changes are verified like the toolkit's.
 
 - [ ] **Manifest sync script (deferred).** Option 2 from the versions-manifest
       work: a `scripts/sync_versions.py` that rewrites the inline pins from
