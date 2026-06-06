@@ -199,6 +199,102 @@ lines and show the new status.
 
 ---
 
+## (Optional) Pre-authorize the triage dashboard install
+
+**Only relevant if you use `/triage-dashboard`** — skip otherwise; it has nothing
+to do with the core CLIs.
+
+`/triage-dashboard` (and `/update`) install the optional dashboard with a
+`pip install` straight from its GitHub repo:
+
+```text
+pip install "git+https://github.com/alastor0325/firefox-triage-dashboard@v<pinned>"
+```
+
+Claude Code's **auto-mode classifier** treats an agent-run install of code from an
+external GitHub repo as untrusted and **blocks it** — its built-in *"Code from
+External" / "Untrusted Code Integration"* `soft_deny` rules (run `claude auto-mode
+defaults` to see them). So the **first** `/triage-dashboard` on a new machine, or
+any later **version bump**, can fail with a classifier denial ("installs and
+executes code from an external GitHub repo not in trusted source control").
+
+The fix is a **narrowly-scoped** `autoMode.allow` carve-out that names **only this
+one repo** — *not* a blanket `Bash(*)` allow. Because `autoMode` rules are
+natural-language (the classifier reads them), a prose carve-out naming the repo
+matches reliably even though the install runs inside a multi-line shell script.
+It must go in your **user** settings `~/.claude/settings.json` — the classifier
+reads user + managed settings and **ignores** project `.claude/settings.json` and
+anything a plugin ships, so it cannot be bundled with this toolkit; each user adds
+it once:
+
+```json
+{
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "fx-bug-toolkit triage dashboard: running pip install from github.com/alastor0325/firefox-triage-dashboard (e.g. pip install \"git+https://github.com/alastor0325/firefox-triage-dashboard@v0.3.0\") is allowed — it is the plugin's pinned, vetted dashboard release. This carve-out is limited to that single repo and trusts no other external code."
+    ]
+  }
+}
+```
+
+`"$defaults"` keeps **every** built-in safety rule; the second line only adds this
+one exception. Detect whether it's already there:
+
+```bash
+SETTINGS="$HOME/.claude/settings.json"
+if [ -f "$SETTINGS" ] && grep -q "firefox-triage-dashboard" "$SETTINGS" 2>/dev/null; then
+  echo "✅ triage dashboard install already pre-authorized in $SETTINGS"
+else
+  echo "ℹ️  not pre-authorized yet (optional — only if you use /triage-dashboard)"
+fi
+```
+
+If it's **not** present, ask with `AskUserQuestion` (Yes/No) whether to add the
+scoped rule now. On **Yes**, merge it in (cross-platform, preserves any existing
+settings — never overwrite the file wholesale):
+
+```bash
+SETTINGS="$HOME/.claude/settings.json"
+PY="$(command -v python3 || command -v python)"
+[ -n "$PY" ] || { echo "Python 3 needed to edit settings — add the JSON above by hand."; exit 1; }
+"$PY" - "$SETTINGS" <<'PYEOF'
+import json, os, sys
+p = sys.argv[1]
+os.makedirs(os.path.dirname(p), exist_ok=True)
+try:
+    with open(p, encoding="utf-8") as f: cfg = json.load(f)
+except (FileNotFoundError, ValueError):
+    cfg = {}
+allow = cfg.setdefault("autoMode", {}).setdefault("allow", [])
+if "$defaults" not in allow:
+    allow.insert(0, "$defaults")
+rule = ('fx-bug-toolkit triage dashboard: running pip install from '
+        'github.com/alastor0325/firefox-triage-dashboard (e.g. pip install '
+        '"git+https://github.com/alastor0325/firefox-triage-dashboard@v0.3.0") is '
+        'allowed — the plugin\'s pinned, vetted dashboard release. Limited to that '
+        'single repo; trusts no other external code.')
+if not any("firefox-triage-dashboard" in str(x) for x in allow):
+    allow.append(rule)
+with open(p, "w", encoding="utf-8") as f:
+    json.dump(cfg, f, indent=2)
+print("✅ added scoped autoMode.allow rule to", p)
+PYEOF
+```
+
+> Editing `~/.claude/settings.json` is itself classifier-guarded
+> (*"Self-Modification"*), and the documented exception is an **explicit user
+> request** — which the Yes answer above is. If the merge is still blocked, fall
+> back to having the user paste the JSON snippet in by hand (or run
+> `/update-config`, the skill built for editing settings safely).
+
+On **No**: skip — the dashboard still works without it; the user will just be
+prompted/blocked on the install and can run it themselves with the `!` prefix
+(`! pip install "git+https://github.com/alastor0325/firefox-triage-dashboard@v…"`),
+or add the rule later. This step never gates "core investigation ready".
+
+---
+
 ## Windows / non-interactive PATH
 
 Claude Code runs skill commands through a **non-interactive** shell. On Windows
