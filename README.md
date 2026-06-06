@@ -172,6 +172,11 @@ things live:
 
 ## Dependencies
 
+> **Platforms.** Works on **macOS, Linux, and Windows**. On Windows the skills
+> run under Claude Code's bundled **git-bash**, where the POSIX tools they use
+> (`curl`, `cat`, `seq`, …) and `python`/`python3` are available; the launchers
+> (`serve.py`, the dashboards) are cross-platform.
+
 `init` handles these for you — it detects what's missing and offers a one-tick
 multi-select to install them. Here's the lay of the land:
 

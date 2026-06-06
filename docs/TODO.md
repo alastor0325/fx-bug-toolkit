@@ -54,16 +54,14 @@ or strip.
       **Follow-up when bumping:** tag the dashboard `vX.Y.Z` and bump its `REQUIRED`
       pin in `skills/triage-dashboard/SKILL.md` + `skills/update/SKILL.md`.
 
-- [ ] **Don't hardcode server ports — pick a free one and pass it.** Decided
-      approach: each launcher (`/triage-dashboard`, `/review-dashboard` → Revue,
-      `/browse` → viewer `serve.py`) should **always resolve a free port** (the
-      skill picks one — e.g. `python3 -c 'import socket;s=socket.socket();
-      s.bind(("127.0.0.1",0));print(s.getsockname()[1])'`) and **pass it
-      explicitly** (`--port`), rather than relying on a fixed default
-      (8765 / 7777 / 8777) that a stale instance or another app may already hold.
-      Surface the chosen port in the URL; keep a `PORT` override to force one.
-      Must be cross-platform (Windows/macOS/Linux). **TODO: implement** across the
-      three launch skills.
+- [x] **Don't hardcode server ports — pick a free one and pass it.** Done across
+      all three launchers: `/browse` (`serve.py` baaa586 — picks a free port,
+      persists it in `.run/viewer.port` for reuse/status/URL) and
+      `/triage-dashboard` + `/review-dashboard`→Revue (0f313f6 — skill picks a free
+      port, passes `--port`, remembers it in `~/.fx-bug-toolkit/*.port` and reuses
+      a still-answering instance, else picks a fresh one). `$PORT`/`FX_VIEWER_PORT`
+      still force a port. Cross-platform (python3 free-port probe + git-bash POSIX
+      tools). serve.py has unit tests for the pure port helpers.
 
 - [ ] **`/update` doesn't refresh `bugzilla-cli`.** `/update` Step 2 updates
       `bmo-to-md`/`searchfox-cli`/`profiler-cli` + the triage dashboard, but never
@@ -92,11 +90,15 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 (per-OS detach/kill). Remaining is unix-worded *guidance*:
 - [x] `init`: Windows install notes added — `rustup-init.exe`, `nvm-windows`,
       `%USERPROFILE%\.cargo\bin` on PATH.
-- [ ] Skill bash snippets (`command -v`, `~/`, `curl`, `||`) assume a POSIX
-      shell — fine under Claude Code's bundled git-bash on Windows; document that
-      Windows users need git-bash (Claude Code's default).
-- [ ] Optional: `serve.py` could auto-open the browser per-OS
-      (`open`/`xdg-open`/`start`).
+- [x] Skill bash snippets (`command -v`, `~/`, `curl`, `||`) assume a POSIX
+      shell — documented in the README **Platforms** note (Windows runs them under
+      Claude Code's bundled git-bash). Also hardened `review-dashboard` to resolve
+      `python3 || python` (was bare `python3`, which Windows git-bash lacks),
+      matching the other skills.
+- [x] ~~Optional: `serve.py` auto-open the browser per-OS.~~ Decided **no** — the
+      launch *skills* open the URL per-OS (`open`/`xdg-open`/`start`); a detached
+      background server shouldn't spawn a browser itself (flaky, and it'd open in
+      the wrong session).
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 

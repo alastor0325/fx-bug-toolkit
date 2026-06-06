@@ -44,7 +44,8 @@ If it doesn't resolve to a git repo, tell the user and ask for a valid path.
 
 **2. No path was passed** → read the remembered default and decide:
 ```bash
-DEFAULT=$(python3 -c 'import json,os;p=os.path.expanduser("~/.revue/config.json");print(json.load(open(p)).get("defaultRepo","") if os.path.exists(p) else "")' 2>/dev/null)
+PY="$(command -v python3 || command -v python)"   # python3 on macOS/Linux, python on Windows git-bash
+DEFAULT=$("$PY" -c 'import json,os;p=os.path.expanduser("~/.revue/config.json");print(json.load(open(p)).get("defaultRepo","") if os.path.exists(p) else "")' 2>/dev/null)
 echo "default: ${DEFAULT:-<none>}"
 ```
 - **A default is set** → use `AskUserQuestion` to offer two choices:
@@ -115,13 +116,14 @@ another app, and remember it so a re-run reuses the same board instead of
 spawning a second daemon (`$PORT` forces a specific port):
 
 ```bash
+PY="$(command -v python3 || command -v python)"   # python3 on macOS/Linux, python on Windows git-bash
 PORTFILE="$HOME/.fx-bug-toolkit/review-dashboard.port"
 mkdir -p "$HOME/.fx-bug-toolkit"
 REMEMBERED="$(cat "$PORTFILE" 2>/dev/null)"
 if [ -z "${PORT:-}" ] && [ -n "$REMEMBERED" ] && curl -fsS -o /dev/null "http://localhost:$REMEMBERED/" 2>/dev/null; then
   echo "Revue already open — http://localhost:$REMEMBERED/ (for $REPO)"
 else
-  PORT="${PORT:-$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')}"
+  PORT="${PORT:-$("$PY" -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')}"
   revue --repo "$REPO" --port "$PORT"
   printf '%s' "$PORT" > "$PORTFILE"
   echo "Revue open — http://localhost:$PORT/ (for $REPO)"
