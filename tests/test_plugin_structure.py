@@ -99,10 +99,13 @@ class TestSkills(unittest.TestCase):
         for v in required_pins:
             self.assertEqual(v, dash, f"dashboard pin {v!r} != versions.json {dash!r}")
 
-        # bugzilla-cli: the `--tag vX.Y.Z` install pin must equal the manifest.
-        bz_text = (SKILLS / "triage" / "SKILL.md").read_text(encoding="utf-8")
-        bz_tags = re.findall(r"bugzilla-cli --tag v([0-9]+\.[0-9]+\.[0-9]+)", bz_text)
-        self.assertTrue(bz_tags, "no `bugzilla-cli --tag v…` pin found in triage/SKILL.md")
+        # bugzilla-cli: every `--tag vX.Y.Z` install pin (in /triage's install
+        # hint and /update's refresh step) must equal the manifest.
+        bz_tags = []
+        for rel in ("skills/triage/SKILL.md", "skills/update/SKILL.md"):
+            text = (SKILLS.parent / rel).read_text(encoding="utf-8")
+            bz_tags += re.findall(r"bugzilla-cli --tag v([0-9]+\.[0-9]+\.[0-9]+)", text)
+        self.assertTrue(bz_tags, "no `bugzilla-cli --tag v…` pin found in the skills")
         for v in bz_tags:
             self.assertEqual(v, bz, f"bugzilla-cli pin v{v} != versions.json v{bz}")
 
