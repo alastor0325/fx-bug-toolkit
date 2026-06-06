@@ -116,9 +116,10 @@ picker — `bug-start` and friends pull them in when needed.
 > bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
 Because that install pulls code from a GitHub repo, Claude Code's auto-mode
 classifier may block the agent from running it; `/init` has an **optional** step
-that adds a narrowly-scoped `autoMode.allow` rule (naming only the dashboard repo)
-to your `~/.claude/settings.json` so the install goes through — or you can run the
-install yourself with the `!` prefix.
+that shows you a narrowly-scoped `autoMode.allow` rule (naming only the dashboard
+repo) to add to your **own** `~/.claude/settings.json` so the install goes through.
+You add it yourself — the classifier hard-blocks an agent from editing settings to
+widen what it permits — or just run the install yourself with the `!` prefix.
 
 ---
 
