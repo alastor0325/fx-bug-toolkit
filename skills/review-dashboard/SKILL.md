@@ -108,18 +108,32 @@ command -v revue >/dev/null 2>&1 && echo "INSTALLED ($(revue --help 2>/dev/null 
 
 ## Step 3 — Launch the dashboard on the resolved repo
 
-Launch Revue pointed at the resolved repo for this run (`--repo` overrides
-Revue's configured default without persisting it):
+Launch Revue pointed at the resolved repo (`--repo` overrides Revue's configured
+default without persisting it). Don't rely on Revue's fixed default port (7777) —
+**pick a free port and pass it** so it can't collide with a stale instance or
+another app, and remember it so a re-run reuses the same board instead of
+spawning a second daemon (`$PORT` forces a specific port):
 
 ```bash
-revue --repo "$REPO"
+PORTFILE="$HOME/.fx-bug-toolkit/review-dashboard.port"
+mkdir -p "$HOME/.fx-bug-toolkit"
+REMEMBERED="$(cat "$PORTFILE" 2>/dev/null)"
+if [ -z "${PORT:-}" ] && [ -n "$REMEMBERED" ] && curl -fsS -o /dev/null "http://localhost:$REMEMBERED/" 2>/dev/null; then
+  echo "Revue already open — http://localhost:$REMEMBERED/ (for $REPO)"
+else
+  PORT="${PORT:-$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')}"
+  revue --repo "$REPO" --port "$PORT"
+  printf '%s' "$PORT" > "$PORTFILE"
+  echo "Revue open — http://localhost:$PORT/ (for $REPO)"
+fi
 ```
 
-Revue starts its daemon (default `http://localhost:7777`) and opens the browser.
-Tell the user the URL and that the review board is now open for `$REPO`.
+Revue starts its daemon on the chosen port and opens the browser. Tell the user
+the exact URL the block printed (read the port from the output — it's auto-picked)
+and that the review board is now open for `$REPO`.
 
 Useful follow-ups (relay if the user asks):
 - `revue --restart` — restart the running instance
 - `revue --stop` — stop the daemon
-- `revue --port <port>` — use a non-default port
+- `revue --port <port>` — force a specific port
 - `revue --no-open` — start the daemon without opening a browser

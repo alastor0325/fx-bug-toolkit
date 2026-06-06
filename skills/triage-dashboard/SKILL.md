@@ -71,31 +71,40 @@ fi
 
 ## Step 2 — Start it (if not already running) and give the URL
 
-The dashboard serves on `127.0.0.1:8765` (override with `PORT`). Start it detached
-so this skill returns; skip if it's already up.
+The dashboard serves on `127.0.0.1` on an **auto-picked free port** (set `PORT` to
+force one). The chosen port is remembered in `~/.fx-bug-toolkit/triage-dashboard.port`
+so a re-run reuses the running instance instead of starting a second one. Start it
+detached so this skill returns; reuse it if it's already up.
 
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
 PY="$BIN/python"; [ -x "$PY" ] || PY="$(command -v python3 || command -v python)"
 LOG="$HOME/.fx-bug-toolkit/dashboard.log"
-URL="http://127.0.0.1:${PORT:-8765}/"
-if curl -fsS -o /dev/null "$URL" 2>/dev/null; then
-  echo "already running — $URL"
+PORTFILE="$HOME/.fx-bug-toolkit/triage-dashboard.port"
+mkdir -p "$HOME/.fx-bug-toolkit"
+
+# Reuse a still-running instance on its remembered port; otherwise pick a FRESH
+# free port (never reuse a dead port — another app may now hold it). $PORT forces
+# a specific port and skips reuse-detection.
+REMEMBERED="$(cat "$PORTFILE" 2>/dev/null)"
+if [ -z "${PORT:-}" ] && [ -n "$REMEMBERED" ] && curl -fsS -o /dev/null "http://127.0.0.1:$REMEMBERED/" 2>/dev/null; then
+  echo "already running — http://127.0.0.1:$REMEMBERED/"
 else
-  mkdir -p "$HOME/.fx-bug-toolkit"
+  PORT="${PORT:-$("$PY" -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')}"
+  URL="http://127.0.0.1:$PORT/"
   # Detach via a new session/process group so the server survives this
   # (non-interactive) shell exiting — a bare `nohup … &` is unreliable here,
   # especially on Windows. Same cross-platform approach as the viewer's serve.py.
-  "$PY" - "$BIN/triage-dashboard" "$LOG" <<'PYEOF'
+  "$PY" - "$BIN/triage-dashboard" "$LOG" "$PORT" <<'PYEOF'
 import os, subprocess, sys
-exe, log = sys.argv[1], sys.argv[2]
+exe, log, port = sys.argv[1], sys.argv[2], sys.argv[3]
 kw = {"stdout": open(log, "ab"), "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL}
 if os.name == "nt":
     kw["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
 else:
     kw["start_new_session"] = True
-subprocess.Popen([exe], **kw)
+subprocess.Popen([exe, "--host", "127.0.0.1", "--port", port, "--no-browser"], **kw)
 PYEOF
   # Poll for readiness — uvicorn cold-start can exceed any fixed sleep, so
   # verify the server actually answers before claiming it's up.
@@ -104,6 +113,7 @@ PYEOF
     sleep 0.5
   done
   if curl -fsS -o /dev/null "$URL" 2>/dev/null; then
+    printf '%s' "$PORT" > "$PORTFILE"   # remember it for next time's reuse check
     echo "serving — $URL"
   else
     echo "failed to start — see $LOG"; tail -5 "$LOG"
@@ -111,9 +121,10 @@ PYEOF
 fi
 ```
 
-Then tell the user it's at **http://127.0.0.1:8765/** and offer to open it
-(macOS `open`, Linux `xdg-open`, Windows `start`). The server binds to
-`127.0.0.1` only — triage data stays local.
+Then tell the user the exact URL the block printed (`http://127.0.0.1:<port>/` —
+the port is auto-picked, so read it from the output, don't assume a number) and
+offer to open it (macOS `open`, Linux `xdg-open`, Windows `start`). The server
+binds to `127.0.0.1` only — triage data stays local.
 
 ## Data it reads (shared with the rest of the toolkit)
 
