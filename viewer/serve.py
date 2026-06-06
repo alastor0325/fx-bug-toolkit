@@ -7,7 +7,12 @@ process so the caller (a skill) returns immediately.
     python3 serve.py start | stop | restart | status
 
 Bound to 127.0.0.1 only — investigation content never leaves the machine.
-Port via FX_VIEWER_PORT (default 8777).
+
+Port: set `FX_VIEWER_PORT` to force a specific port; otherwise a **free port is
+picked automatically** and persisted (so a fixed default can't collide with a
+stale instance or another app). The chosen port is recorded in `.run/viewer.port`
+so `status`/`stop` and the printed URL stay correct, and a re-`start` reuses the
+running instance on its actual port.
 """
 from __future__ import annotations
 
@@ -15,6 +20,7 @@ import functools
 import http.server
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -23,10 +29,41 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 RUN = DIR / ".run"
 PIDFILE = RUN / "viewer.pid"
+PORTFILE = RUN / "viewer.port"
 LOGFILE = RUN / "viewer.log"
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("FX_VIEWER_PORT", "8777"))
-URL = f"http://{HOST}:{PORT}/viewer.html"
+
+
+def env_port() -> int | None:
+    """The user's `FX_VIEWER_PORT` override, or None if unset/invalid."""
+    v = (os.environ.get("FX_VIEWER_PORT") or "").strip()
+    return int(v) if v.isdigit() else None
+
+
+def pick_free_port() -> int:
+    """Ask the OS for a free TCP port on HOST (bind to 0, read it back)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, 0))
+        return s.getsockname()[1]
+
+
+def url_for(port: int) -> str:
+    return f"http://{HOST}:{port}/viewer.html"
+
+
+def resolve_port(env: int | None, alive: bool, persisted: int | None):
+    """Pure decision of which port to serve on.
+
+    Returns `(port, reuse)`:
+    - a live instance with a recorded port → reuse it (report that port);
+    - else an explicit `FX_VIEWER_PORT` → use it;
+    - else `(None, False)` → the caller should pick a fresh free port.
+    """
+    if alive and persisted is not None:
+        return (persisted, True)
+    if env is not None:
+        return (env, False)
+    return (None, False)
 
 
 def _alive(pid: int) -> bool:
@@ -49,35 +86,52 @@ def running_pid():
     return pid if _alive(pid) else None
 
 
+def read_port() -> int | None:
+    try:
+        return int(PORTFILE.read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def build_index() -> None:
     subprocess.run([sys.executable, str(DIR / "build_index.py")])
 
 
 def _serve() -> None:  # blocking; runs in the detached child
     os.chdir(DIR)
+    # The parent always passes the chosen port via FX_VIEWER_PORT; fall back to a
+    # free port if somehow unset so the child never crashes on a missing value.
+    port = env_port() or pick_free_port()
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(DIR))
-    http.server.ThreadingHTTPServer((HOST, PORT), handler).serve_forever()
+    http.server.ThreadingHTTPServer((HOST, port), handler).serve_forever()
 
 
 def start() -> int:
     RUN.mkdir(exist_ok=True)
     build_index()
     pid = running_pid()
-    if pid:
-        print(f"already serving (pid {pid}) — {URL}")
+    port, reuse = resolve_port(env_port(), pid is not None, read_port())
+    if reuse:
+        print(f"already serving (pid {pid}) — {url_for(port)}")
         return 0
+    if port is None:
+        port = pick_free_port()
     kwargs = {}
     if os.name == "nt":
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kwargs["start_new_session"] = True
+    # Pin the child to the port we chose (it must not re-pick a different one).
+    child_env = {**os.environ, "FX_VIEWER_PORT": str(port)}
     with open(LOGFILE, "ab") as log:
         p = subprocess.Popen([sys.executable, str(DIR / "serve.py"), "--serve"],
-                             stdout=log, stderr=log, stdin=subprocess.DEVNULL, **kwargs)
+                             stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                             env=child_env, **kwargs)
     PIDFILE.write_text(str(p.pid))
+    PORTFILE.write_text(str(port))
     time.sleep(1)
     if running_pid():
-        print(f"serving (pid {p.pid}) — {URL}")
+        print(f"serving (pid {p.pid}) — {url_for(port)}")
         return 0
     print(f"failed to start — see {LOGFILE}", file=sys.stderr)
     return 1
@@ -94,6 +148,7 @@ def stop() -> int:
     else:
         print("not running.")
     PIDFILE.unlink(missing_ok=True)
+    PORTFILE.unlink(missing_ok=True)
     return 0
 
 
@@ -109,7 +164,8 @@ def main(argv) -> int:
         stop(); time.sleep(1); return start()
     if cmd == "status":
         pid = running_pid()
-        print(f"running (pid {pid}) — {URL}" if pid else "stopped.")
+        port = read_port()
+        print(f"running (pid {pid}) — {url_for(port)}" if pid and port else "stopped.")
         return 0
     print("usage: serve.py {start|stop|restart|status}  (env: FX_VIEWER_PORT)", file=sys.stderr)
     return 2

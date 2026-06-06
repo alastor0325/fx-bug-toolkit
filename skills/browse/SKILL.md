@@ -60,13 +60,15 @@ works the same in bash, zsh, and sh. Pick `python3`/`python` once — never
 `python3` exists.
 
 Then:
-- Tell the user it's at **http://127.0.0.1:8777/viewer.html** (the launcher
-  prints the exact URL). Offer to open it — macOS `open <url>`, Linux
-  `xdg-open <url>`, Windows `start <url>`.
+- **Relay the exact URL the launcher prints** (e.g. `serving (pid …) —
+  http://127.0.0.1:<port>/viewer.html`). The port is **picked automatically** —
+  a free one each fresh start, persisted so a re-run reuses the same instance —
+  so don't assume a fixed number; read it from the launcher's output. Offer to
+  open it — macOS `open <url>`, Linux `xdg-open <url>`, Windows `start <url>`.
 - The server binds to `127.0.0.1` only, so investigation content stays local.
 - It reads from `$FX_BUG_INVESTIGATION_DIR` (default
   `~/.fx-bug-toolkit/bug-investigation`), recursively across all subfolders.
 - To refresh after new investigations, re-run this (it rebuilds the index), or
   `serve.py restart`. To stop: `serve.py stop`.
 
-If it reports the port is busy, set `FX_VIEWER_PORT` to another port and retry.
+To force a specific port, set `FX_VIEWER_PORT` before launching.

@@ -23,6 +23,9 @@ VIEWER = Path(__file__).resolve().parents[1]  # viewer/tests -> viewer/
 ASSETS = ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg"]
 LAUNCHER_FILES = ASSETS + ["serve.py", "build_index.py"]
 
+sys.path.insert(0, str(VIEWER))
+import serve  # noqa: E402  — the launcher under test (no import side effects)
+
 
 def free_port() -> int:
     s = socket.socket()
@@ -150,6 +153,49 @@ class TestServeLauncher(unittest.TestCase):
             finally:
                 subprocess.run([sys.executable, serve, "stop"], env=env,
                                capture_output=True, text=True, timeout=10)
+
+
+class TestPortHelpers(unittest.TestCase):
+    """Pure port-resolution helpers (no I/O)."""
+
+    def test_url_for(self):
+        self.assertEqual(serve.url_for(8777), "http://127.0.0.1:8777/viewer.html")
+
+    def test_resolve_reuses_live_instance(self):
+        # A live instance with a recorded port → reuse it, ignore env.
+        self.assertEqual(serve.resolve_port(9999, True, 8800), (8800, True))
+
+    def test_resolve_env_override_when_not_running(self):
+        self.assertEqual(serve.resolve_port(9999, False, None), (9999, False))
+
+    def test_resolve_picks_fresh_when_nothing_set(self):
+        # No env, no live instance → caller picks a fresh free port.
+        self.assertEqual(serve.resolve_port(None, False, None), (None, False))
+
+    def test_resolve_no_persisted_port_falls_through(self):
+        # Alive flag but no recorded port (shouldn't reuse a guessed port).
+        self.assertEqual(serve.resolve_port(None, True, None), (None, False))
+
+    def test_env_port_parsing(self):
+        os.environ.pop("FX_VIEWER_PORT", None)
+        self.assertIsNone(serve.env_port())
+        os.environ["FX_VIEWER_PORT"] = "8801"
+        try:
+            self.assertEqual(serve.env_port(), 8801)
+            os.environ["FX_VIEWER_PORT"] = "  nope  "
+            self.assertIsNone(serve.env_port())
+        finally:
+            os.environ.pop("FX_VIEWER_PORT", None)
+
+    def test_pick_free_port_is_bindable(self):
+        port = serve.pick_free_port()
+        self.assertTrue(1024 <= port <= 65535)
+        # The port the OS handed back must actually be bindable.
+        s = socket.socket()
+        try:
+            s.bind(("127.0.0.1", port))
+        finally:
+            s.close()
 
 
 if __name__ == "__main__":
