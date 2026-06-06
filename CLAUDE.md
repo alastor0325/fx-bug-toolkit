@@ -26,3 +26,13 @@ Non-negotiables (see the skill for the full loop):
   shipped plugin (`skills/`/`agents/`/`viewer/`/`.claude-plugin/`) should reach
   users, bump the semver version and `claude plugin tag --push` (see the dev
   loop's **Releasing** section). Contributor-only files don't need a bump.
+- **Verify CI, never assume green.** CI runs the full suite across an OS matrix
+  (incl. Windows) that local one-OS runs can't cover. After any push, watch the
+  run to green; prefer a branch + PR merged only when green; tag a release only
+  from a green `main` commit. (See the dev loop's Step 5 + Releasing.)
+- **Capture TODOs in `docs/TODO.md`, not just chat.** Whenever a follow-up,
+  known gap, deferred decision, or "we should also…" surfaces during any task —
+  even mid-conversation — append it to `docs/TODO.md` under the right section
+  (🔴/🟡/🟢/🧪) with a one-line context and the date, before concluding. Check
+  items off (or move to **✅ Done**) when they land. A TODO that lives only in
+  the conversation is lost at the end of the session.

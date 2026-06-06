@@ -7,15 +7,11 @@ top of each section. Check items off as they land.
 
 ## 🔴 Cross-plugin (must do before fx-triage / the dashboard ships)
 
-- [ ] **Align the dashboard to `FX_BUG_INVESTIGATION_DIR`.** Plugin ② (the
-      `firefox-triage-dashboard` repo) still reads `FIREFOX_INVESTIGATION_DIR`
-      with default `~/firefox-bug-investigation`. This toolkit now uses
-      `FX_BUG_INVESTIGATION_DIR` with default `~/.fx-bug-toolkit/bug-investigation`.
-      Until the dashboard is updated, the two halves look in **different
-      directories**. When packaging fx-triage: make the dashboard read
-      `FX_BUG_INVESTIGATION_DIR` and adopt the same default.
-      (Dashboard code today: `src/triage_dashboard/data.py` —
-      `FIREFOX_INVESTIGATION_DIR` / `DEFAULT_INVESTIGATION_DIR`.)
+- [x] **Align the dashboard to `FX_BUG_INVESTIGATION_DIR`.** Done — the dashboard
+      now reads `$FX_BUG_INVESTIGATION_DIR` with the same default
+      `~/.fx-bug-toolkit/bug-investigation` as the toolkit
+      (`src/triage_dashboard/data.py`: `DEFAULT_INVESTIGATION_DIR` +
+      `investigation_dir_from_env`). The two halves look in the same directory.
 
 ---
 
@@ -35,18 +31,6 @@ or strip.
 ---
 
 ## 🟡 Dependency slimming & robustness (raised 2026-06-05)
-
-- [ ] **Make `bmo-to-md` optional (it's REQUIRED today).** It's the
-      Bugzilla-content fetcher used by `bug-start`, `triage`, and
-      `download-guard` (the `bmo-to-md -a -o …` attachment pull). It's currently
-      a hard requirement in `/init`, `/update` (now even *installs* it if
-      missing), and the README dependency table. Demote it to **optional** with a
-      graceful fallback when absent — e.g. the `moz` MCP `get_bugzilla_bug`, or a
-      direct fetch of the bug's REST/HTML. Decide the fallback per consumer and
-      which skills must degrade (read-bug in `bug-start`, the `/triage` fetch,
-      `download-guard`'s attachment pull). Then move it below the required divider
-      in `/init`, stop install-if-missing in `/update` (refresh-only when
-      present), and update the README/dependency table.
 
 - [x] **Let `/triage` run without an API key (read-only by default).** Done in
       fx-bug-toolkit 0.3.9 + `bugzilla-cli` v0.2.0. `bugzilla-cli` reads
@@ -70,15 +54,34 @@ or strip.
       **Follow-up when bumping:** tag the dashboard `vX.Y.Z` and bump its `REQUIRED`
       pin in `skills/triage-dashboard/SKILL.md` + `skills/update/SKILL.md`.
 
-- [ ] **Local servers' fixed ports can collide.** `/triage-dashboard` (:8765),
-      Revue / `/review-dashboard` (:7777), and the `/browse` viewer each bind a
-      fixed default port; a stale instance or another app on that port makes the
-      launch fail or attach to the wrong server. Make port handling robust and
-      consistent: auto-pick a free port when the default is busy (the viewer's
-      `serve.py` and the shoot scripts already do a free-port probe — reuse that
-      everywhere), surface the actual chosen port to the user, and keep the
-      `PORT` override. ⚠️ **Get the specific symptom Alastor hit** (which tool,
-      what error) to confirm the fix.
+- [ ] **Don't hardcode server ports — pick a free one and pass it.** Decided
+      approach: each launcher (`/triage-dashboard`, `/review-dashboard` → Revue,
+      `/browse` → viewer `serve.py`) should **always resolve a free port** (the
+      skill picks one — e.g. `python3 -c 'import socket;s=socket.socket();
+      s.bind(("127.0.0.1",0));print(s.getsockname()[1])'`) and **pass it
+      explicitly** (`--port`), rather than relying on a fixed default
+      (8765 / 7777 / 8777) that a stale instance or another app may already hold.
+      Surface the chosen port in the URL; keep a `PORT` override to force one.
+      Must be cross-platform (Windows/macOS/Linux). **TODO: implement** across the
+      three launch skills.
+
+- [ ] **`/update` doesn't refresh `bugzilla-cli`.** `/update` Step 2 updates
+      `bmo-to-md`/`searchfox-cli`/`profiler-cli` + the triage dashboard, but never
+      touches `bugzilla-cli` (installed only by `/triage`'s pinned hint). Add a
+      step that installs/refreshes it at the manifest-pinned tag
+      (`cargo install --git … --tag v<versions.json bugzilla-cli>`), and extend the
+      drift test to cover that pin too.
+
+- [ ] **Dashboard read-only polish** (firefox-triage-dashboard): in read-only the
+      will-apply footer still reads **"WILL APPLY"** (nothing applies → relabel to
+      "Proposed"), and a `status: ASSIGNED` pill can render without an assignee.
+      Cosmetic.
+
+- [ ] **Manifest sync script (deferred).** Option 2 from the versions-manifest
+      work: a `scripts/sync_versions.py` that rewrites the inline pins from
+      `.claude-plugin/versions.json`. Skipped for now (only 2 pinned deps; the
+      drift test already guarantees consistency). Revisit if the pinned-dep count
+      grows.
 
 ---
 
