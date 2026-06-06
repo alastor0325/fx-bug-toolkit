@@ -102,10 +102,11 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
-- [ ] Consider moving the download-guard cache under the toolkit namespace too
-      (`~/.cache/firefox-download-guard` → e.g. `~/.fx-bug-toolkit/download-cache`)
-      for consistency with `FX_BUG_INVESTIGATION_DIR`. Touch `download-guard`,
-      `bug-start` (the `bmo-to-md -a -o …` call), and `init`.
+- [x] Moved the download-guard cache under the toolkit namespace:
+      `~/.cache/firefox-download-guard` → **`~/.fx-bug-toolkit/download-cache`**
+      (consistent with `FX_BUG_INVESTIGATION_DIR`). Updated `download-guard`,
+      `bug-start`, `triage`, `init`, and the README. (The old cache, if present,
+      is just orphaned transient files — no migration needed.)
 - [ ] `history.log` now lives in the investigation dir (moved automatically with
       `FX_BUG_INVESTIGATION_DIR`) — confirm that's the desired home.
 - [ ] Scripted, sanitized re-sync from `~/.claude/skills` → this repo (so future

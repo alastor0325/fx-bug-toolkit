@@ -961,9 +961,9 @@ If neither condition is met, document the rationale in the investigation's Test 
 **ALWAYS start by writing a test if possible:**
 
 1. **Evaluate the bug's testcase (if one exists):**
-   If the bug has a `testcase` keyword or an attached test file, fetch and read it **before writing anything new**. Pulling the attachment is a file download, so go through the **`/download-guard` rule** (Yes/No `AskUserQuestion`; on Yes it fetches into the one shared folder `~/.cache/firefox-download-guard/`) — do NOT auto-download. On approval:
+   If the bug has a `testcase` keyword or an attached test file, fetch and read it **before writing anything new**. Pulling the attachment is a file download, so go through the **`/download-guard` rule** (Yes/No `AskUserQuestion`; on Yes it fetches into the one shared folder `~/.fx-bug-toolkit/download-cache/`) — do NOT auto-download. On approval:
    ```bash
-   bmo-to-md -a -o ~/.cache/firefox-download-guard/bug{bug_id} {bug_id}
+   bmo-to-md -a -o ~/.fx-bug-toolkit/download-cache/bug{bug_id} {bug_id}
    # then read the downloaded test file
    ```
    Assess robustness using the same "When NOT to write a test" criteria above. Common issues:

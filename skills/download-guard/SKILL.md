@@ -5,7 +5,7 @@ description: >
   The single approval gate for downloading any external file (bug attachment,
   media sample, test fixture, profile, screen recording, etc.). Never
   auto-download — surface a Yes/No AskUserQuestion, and on Yes fetch into the
-  one shared transient folder ~/.cache/firefox-download-guard/. Invoke this
+  one shared transient folder ~/.fx-bug-toolkit/download-cache/. Invoke this
   whenever any skill or flow (/triage, /bug-start, the Process-queue drain, …)
   needs a file pulled to disk.
 argument-hint: <url-or-file-description> [why it is needed]
@@ -23,7 +23,7 @@ There is **one** download location, shared by every caller and owned by this
 rule (not by `/triage`, `/bug-start`, or any other skill):
 
 ```
-~/.cache/firefox-download-guard/
+~/.fx-bug-toolkit/download-cache/
 ```
 
 It is deliberately neutral — not under a git repo (so nothing gets committed),
@@ -37,7 +37,7 @@ Run this **on every invocation** (so even a standalone `/bug-start` keeps the
 folder clean — no caller has to remember to prune):
 
 ```bash
-DLDIR=~/.cache/firefox-download-guard
+DLDIR=~/.fx-bug-toolkit/download-cache
 mkdir -p "$DLDIR"
 # delete downloaded files older than 30 days (never the manifest)
 find "$DLDIR" -maxdepth 1 -type f ! -name manifest.jsonl -mtime +30 -delete 2>/dev/null
@@ -60,7 +60,7 @@ prose. Never download off a prose "should I download this?" — only after an
 explicit **Yes**.
 
 Before asking, check the manifest for a fresh copy (dedup): if
-`~/.cache/firefox-download-guard/bug-<id>-<name>` already exists, reuse it
+`~/.fx-bug-toolkit/download-cache/bug-<id>-<name>` already exists, reuse it
 instead of re-asking.
 
 ## 3. On Yes — fetch + record
@@ -69,7 +69,7 @@ Name the file `bug-<id>-<name>` so it is self-describing, fetch into the folder,
 and append one provenance row to the manifest:
 
 ```bash
-DLDIR=~/.cache/firefox-download-guard
+DLDIR=~/.fx-bug-toolkit/download-cache
 curl -fsSL "<url>" -o "$DLDIR/bug-<id>-<name>"
 printf '%s\n' "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"bug_id\":<id>,\"source_url\":\"<url>\",\"path\":\"bug-<id>-<name>\",\"reason\":\"<why>\"}" >> "$DLDIR/manifest.jsonl"
 ```

@@ -223,7 +223,7 @@ Never auto-download anything (bug attachments, media samples, test fixtures,
 profiles, screen recordings). Whenever any step — including a parallel triage
 sub-agent or the Process-queue drain — needs a file pulled to disk, **follow the
 `/download-guard` rule**: it presents a Yes/No `AskUserQuestion` per file and, on
-Yes, fetches into the one shared folder `~/.cache/firefox-download-guard/`. That
+Yes, fetches into the one shared folder `~/.fx-bug-toolkit/download-cache/`. That
 rule owns the temp folder and its pruning (>30 days, on every invocation) — do
 not manage downloads or call `curl`/`wget`/`yt-dlp` here directly.
 

@@ -29,8 +29,8 @@ install anything still missing.
 
 ```bash
 INVDIR="${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}"
-mkdir -p "$INVDIR" ~/.cache/firefox-download-guard
-ls -d "$INVDIR" ~/.cache/firefox-download-guard
+mkdir -p "$INVDIR" ~/.fx-bug-toolkit/download-cache
+ls -d "$INVDIR" ~/.fx-bug-toolkit/download-cache
 ```
 
 ---

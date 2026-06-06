@@ -162,7 +162,7 @@ things live:
 - **The location is configurable** via `FX_BUG_INVESTIGATION_DIR` (default
   `~/.fx-bug-toolkit/bug-investigation`) — point it at any folder, including an
   existing notes repo.
-- **Downloaded files** go to `~/.cache/firefox-download-guard/` (temporary staging).
+- **Downloaded files** go to `~/.fx-bug-toolkit/download-cache/` (temporary staging).
 - **Optional shared knowledge:** connect to a team knowledge base (the Firefox
   wiki) via the [firefox-wiki-plugin](https://github.com/alastor0325/firefox-wiki-plugin)
   — see [below](#optional-the-shared-wiki). It's purely additive; the toolkit
