@@ -5,28 +5,24 @@ top of each section. Check items off as they land.
 
 ---
 
-## 🔴 Cross-plugin (must do before fx-triage / the dashboard ships)
+## ✅ Decided: one plugin — no `fx-triage` spinoff
 
-- [x] **Align the dashboard to `FX_BUG_INVESTIGATION_DIR`.** Done — the dashboard
-      now reads `$FX_BUG_INVESTIGATION_DIR` with the same default
-      `~/.fx-bug-toolkit/bug-investigation` as the toolkit
-      (`src/triage_dashboard/data.py`: `DEFAULT_INVESTIGATION_DIR` +
-      `investigation_dir_from_env`). The two halves look in the same directory.
+fx-bug-toolkit stays a single, unified plugin (investigate + triage + review);
+the triage workflow is **not** being split into a separate `fx-triage` plugin. So
+the old "plugin-②" / "cross-plugin" items are resolved as **leave-as-is** — they
+were only conditional on a split that isn't happening:
 
----
+- [x] **Dashboard aligned to `FX_BUG_INVESTIGATION_DIR`** — it reads
+      `$FX_BUG_INVESTIGATION_DIR` (default `~/.fx-bug-toolkit/bug-investigation`),
+      the same dir the toolkit uses; both halves look in the same place.
+- [x] `bug-start`'s references to the **triage dashboard** (frontmatter / lock
+      files it consumes) — **keep**; they're correct in one plugin.
+- [x] `bug-start`'s references to **`/triage`** — **keep**.
+- [x] `bug-start`'s **`--triage-mode`** path (§6.5) — **keep**; it's how `/triage`
+      dispatches a fast investigation, same plugin.
 
-## 🟡 Plugin-② coupling left inside bug-start (review when scoping fx-triage)
-
-These are harmless for a standalone toolkit but reference things a toolkit-only
-user won't have. Decide per item: leave (becomes correct once ② ships), soften,
-or strip.
-
-- [ ] ~8 "the triage dashboard …" references in `bug-start` (explain how its
-      output frontmatter — `depth: triage`, `affected_files`, lock files — is
-      consumed by the dashboard).
-- [ ] ~8 `/triage` references in `bug-start` (describe `--triage-mode` dispatch).
-- [ ] `bug-start`'s entire `--triage-mode` path (section 6.5) is only ever
-      invoked *by* `/triage`; dead weight standalone, but harmless.
+(The triage **dashboard** stays a separate pip web-app, installed lazily and
+version-pinned — that's a dependency, not a "plugin," and is unaffected.)
 
 ---
 
