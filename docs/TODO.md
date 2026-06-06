@@ -65,9 +65,13 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       Claude Code's auto-mode classifier `soft_deny`s agent-run installs of code
       from an external GitHub repo ("Code from External" / "Untrusted Code
       Integration"), so first-use and every version bump can fail with a denial.
-      **Done:** added an optional `/init` step that merges a *narrowly-scoped*
-      `autoMode.allow` carve-out (names only the dashboard repo, not `Bash(*)`)
-      into the user's `~/.claude/settings.json`. **Deferred follow-ups (not chosen
+      **Done (0.3.13, corrected in 0.3.14):** added an optional `/init` step that
+      surfaces a *narrowly-scoped* `autoMode.allow` carve-out (names only the
+      dashboard repo, not `Bash(*)`). Note the agent **cannot** add it: editing
+      `~/.claude/settings.json` to insert an `autoMode` rule is `hard_deny`
+      *Auto-Mode Bypass* (user authorization can't clear it), so the step only
+      *shows* the rule + detection and the **user** adds it (paste, or a `!`-prefix
+      one-liner that runs as their own command). **Deferred follow-ups (not chosen
       this round):**
       - 🟡 **(A) STALE shouldn't block opening** — `/triage-dashboard` Step 1 hard-
         requires the upgrade before serving; a pending version bump should still

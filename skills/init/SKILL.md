@@ -250,46 +250,33 @@ else
 fi
 ```
 
-If it's **not** present, ask with `AskUserQuestion` (Yes/No) whether to add the
-scoped rule now. On **Yes**, merge it in (cross-platform, preserves any existing
-settings — never overwrite the file wholesale):
+If it's **not** present, **the user adds it — the agent must not.** Do **not**
+run a command (Bash, `/update-config`, or anything else) that edits
+`~/.claude/settings.json` to insert this rule: Claude Code's classifier
+**hard-blocks** an agent from editing settings to add an `autoMode` rule. Making
+the classifier permit external-GitHub installs from inside the session is
+*Auto-Mode Bypass* — a `hard_deny` rule that **user authorization cannot clear**
+(run `claude auto-mode defaults` and read the `hard_deny` list). That guard is
+working as intended: an agent must never widen its own guardrails. So the skill's
+job here is only to **show** the rule and tell the user to paste it in.
 
-```bash
-SETTINGS="$HOME/.claude/settings.json"
-PY="$(command -v python3 || command -v python)"
-[ -n "$PY" ] || { echo "Python 3 needed to edit settings — add the JSON above by hand."; exit 1; }
-"$PY" - "$SETTINGS" <<'PYEOF'
-import json, os, sys
-p = sys.argv[1]
-os.makedirs(os.path.dirname(p), exist_ok=True)
-try:
-    with open(p, encoding="utf-8") as f: cfg = json.load(f)
-except (FileNotFoundError, ValueError):
-    cfg = {}
-allow = cfg.setdefault("autoMode", {}).setdefault("allow", [])
-if "$defaults" not in allow:
-    allow.insert(0, "$defaults")
-rule = ('fx-bug-toolkit triage dashboard: running pip install from '
-        'github.com/alastor0325/firefox-triage-dashboard (e.g. pip install '
-        '"git+https://github.com/alastor0325/firefox-triage-dashboard@v0.3.0") is '
-        'allowed — the plugin\'s pinned, vetted dashboard release. Limited to that '
-        'single repo; trusts no other external code.')
-if not any("firefox-triage-dashboard" in str(x) for x in allow):
-    allow.append(rule)
-with open(p, "w", encoding="utf-8") as f:
-    json.dump(cfg, f, indent=2)
-print("✅ added scoped autoMode.allow rule to", p)
-PYEOF
-```
+Tell the user to add the JSON block shown above to their **user** settings
+`~/.claude/settings.json` (create the file if it doesn't exist; merge into any
+existing `autoMode`/`allow`; keep `"$defaults"` first so every built-in safety
+rule stays in force) — one of two ways, **both their own action, not the
+agent's**:
 
-> Editing `~/.claude/settings.json` is itself classifier-guarded
-> (*"Self-Modification"*), and the documented exception is an **explicit user
-> request** — which the Yes answer above is. If the merge is still blocked, fall
-> back to having the user paste the JSON snippet in by hand (or run
-> `/update-config`, the skill built for editing settings safely).
+- **Paste** the block into `~/.claude/settings.json` by hand, or
+- **Run it themselves with the `!` prefix** (so it executes as the user's command,
+  not the agent's) — paste this whole line into the prompt:
+  ```text
+  ! python3 -c "import json,os; p=os.path.expanduser('~/.claude/settings.json'); d=(json.load(open(p)) if os.path.exists(p) else {}); a=d.setdefault('autoMode',{}).setdefault('allow',[]); ('\$defaults' in a) or a.insert(0,'\$defaults'); any('firefox-triage-dashboard' in str(x) for x in a) or a.append('fx-bug-toolkit triage dashboard: pip install from github.com/alastor0325/firefox-triage-dashboard is allowed — pinned, vetted dashboard release; limited to that single repo.'); json.dump(d,open(p,'w'),indent=2); print('added scoped autoMode.allow rule to',p)"
+  ```
 
-On **No**: skip — the dashboard still works without it; the user will just be
-prompted/blocked on the install and can run it themselves with the `!` prefix
+Then the user should **restart Claude Code** so the classifier reloads settings.
+
+Skipping is safe: the dashboard still works without the rule; the user will just
+be prompted/blocked on the install and can run it themselves with the `!` prefix
 (`! pip install "git+https://github.com/alastor0325/firefox-triage-dashboard@v…"`),
 or add the rule later. This step never gates "core investigation ready".
 

@@ -9,6 +9,20 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.14] — 2026-06-06
+
+### Fixed
+- **The `/init` pre-authorization step now has the *user* add the rule, not the
+  agent.** 0.3.13 tried to have the agent merge the `autoMode.allow` carve-out
+  into `~/.claude/settings.json` on consent — but Claude Code's classifier
+  **hard-blocks** an agent from editing settings to add an `autoMode` rule
+  (*Auto-Mode Bypass*: an agent widening what the classifier permits), and that
+  `hard_deny` **cannot be cleared by user authorization**. So the agent-run merge
+  always failed. `/init` now only **shows** the scoped rule and the detection
+  check, and instructs the user to add it themselves — by pasting the JSON into
+  `~/.claude/settings.json` or running a one-liner with the `!` prefix (which
+  executes as the user's own command), then restarting Claude Code.
+
 ## [0.3.13] — 2026-06-06
 
 ### Changed
@@ -409,7 +423,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.13...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.14...HEAD
+[0.3.14]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.13...fx-bug-toolkit--v0.3.14
 [0.3.13]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.12...fx-bug-toolkit--v0.3.13
 [0.3.12]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.11...fx-bug-toolkit--v0.3.12
 [0.3.11]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.10...fx-bug-toolkit--v0.3.11
