@@ -65,24 +65,40 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       Claude Code's auto-mode classifier `soft_deny`s agent-run installs of code
       from an external GitHub repo ("Code from External" / "Untrusted Code
       Integration"), so first-use and every version bump can fail with a denial.
-      **Done (0.3.13, corrected in 0.3.14):** added an optional `/init` step that
-      surfaces a *narrowly-scoped* `autoMode.allow` carve-out (names only the
-      dashboard repo, not `Bash(*)`). Note the agent **cannot** add it: editing
-      `~/.claude/settings.json` to insert an `autoMode` rule is `hard_deny`
-      *Auto-Mode Bypass* (user authorization can't clear it), so the step only
-      *shows* the rule + detection and the **user** adds it (paste, or a `!`-prefix
-      one-liner that runs as their own command). **Deferred follow-ups (not chosen
-      this round):**
-      - 🟡 **(A) STALE shouldn't block opening** — `/triage-dashboard` Step 1 hard-
-        requires the upgrade before serving; a pending version bump should still
-        open the already-installed version and surface the upgrade as optional.
-      - 🟡 **(B) Graceful fallback** — when an install/upgrade must run and the
-        classifier denies it, the skill should hand the user a copy-paste `!`
-        command instead of dying on the raw denial (applies to `/triage-dashboard`
-        + `/update`).
-      - 🟢 **(D) Publish the dashboard to PyPI** (in the `firefox-triage-dashboard`
-        repo) → `pip install triage-dashboard==X.Y.Z`, which removes the "external
-        GitHub repo" trigger at the source and is the deepest long-term fix.
+      **RESOLVED at the source (0.3.15) via option D — PyPI.** The dashboard was
+      published to PyPI as [`triage-dashboard`](https://pypi.org/project/triage-dashboard/),
+      and `/triage-dashboard`, `/update`, and the lazy install/upgrade now run
+      `pip install "triage-dashboard==<pin>"` instead of `pip install git+https://…`.
+      A registry install of a named package isn't "external GitHub repo" code, so the
+      classifier no longer blocks the agent — first-use and version-bump failures are
+      gone. The intermediate `/init` `autoMode.allow` workaround (0.3.13/0.3.14) was
+      **removed** in 0.3.15 (the agent couldn't apply it anyway — editing settings to
+      add an `autoMode` rule is `hard_deny` *Auto-Mode Bypass*). Options A/B below
+      became unnecessary for the dashboard.
+      - ~~🟡 **(A) STALE shouldn't block opening**~~ — moot: the PyPI upgrade no
+        longer hits a classifier block, so STALE upgrades just work.
+      - ~~🟡 **(B) Graceful fallback**~~ — moot for the dashboard (no denial to fall
+        back from). Still relevant if any *other* git-installed dep needs it.
+      - ✅ **(D) Publish the dashboard to PyPI** — done (0.3.15).
+
+- [ ] **Move the remaining git-installed deps to registries (same fix as the
+      dashboard).** (raised 2026-06-06) The classifier blocks any agent-run install
+      of code straight from a GitHub repo. With the dashboard now on PyPI, three
+      remain:
+      - 🟡 **bugzilla-cli** (yours) → publish to **crates.io**, then
+        `cargo install bugzilla-cli --version <pin>` in `skills/triage/SKILL.md:91`
+        + `skills/update/SKILL.md:84`.
+      - 🟢 **bmo-to-md** (padenot's) → `cargo install --git padenot/bmo-to-md`
+        (`skills/init/SKILL.md:173`, `skills/update/SKILL.md:75`). A `bmo-to-md 0.1.0`
+        already exists on crates.io but with no repo metadata — **verify it's
+        padenot's** before switching to `cargo install bmo-to-md`.
+      - 🟢 **profiler-cli** (dpalmeiro's) → `git clone + npm build + link`
+        (`skills/init/SKILL.md:183`, `skills/update/SKILL.md:113`). Ask dpalmeiro to
+        publish to **npm** → `npm i -g profiler-cli`; until then keep the git clone
+        (only the `git clone` step is blocked; npm build/link/playwright run fine).
+      - ⚠️ **nvm bootstrap** (`skills/init/SKILL.md:166`) is a `curl …raw.githubusercontent…|bash`
+        whose host isn't on the classifier's Toolchain-Bootstrap allow-list — consider
+        node via `deb.nodesource.com`/nodejs.org for an agent-installable path.
 
 - [ ] **`/update` doesn't refresh `bugzilla-cli`.** `/update` Step 2 updates
       `bmo-to-md`/`searchfox-cli`/`profiler-cli` + the triage dashboard, but never
@@ -95,6 +111,44 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       `main` — ships when the dashboard is bumped + re-pinned): the will-apply diff
       is now labelled **"Proposed"** in read-only (`.diff--proposed`), which also
       reframes the `status: ASSIGNED` pill as a proposal rather than a plan.
+
+- [ ] **Bundle the wiki as a standard dependency (build-your-own personal wiki).**
+      (raised 2026-06-06) Decision: stop treating `firefox-wiki` as an optional,
+      presence-gated accelerator — install it like the other deps so the
+      compounding-knowledge loop is **on by default**, even for users who don't
+      share the maintainer's wiki (they build their own local one). **No opt-in
+      toggle** — it joins `/init`'s required set (still consent-shown at install,
+      like every other tool).
+
+      **Readiness check (done):**
+      - ✅ **Distributable.** `alastor0325/firefox-wiki-plugin` is **public** and
+        its repo doubles as a marketplace (`.claude-plugin/marketplace.json`), so
+        `/init` can `claude plugin marketplace add alastor0325/firefox-wiki-plugin`
+        + `claude plugin install firefox-wiki@firefox-wiki-plugin` (currently
+        v0.10.0). (The separate `~/projects/firefox-wiki-marketplace` dir has no
+        git remote — unpublished, not needed.)
+      - ⚠️ **New deps.** The wiki needs `jq` + `pandoc` (plus a `log-wiki-read.sh`
+        hook, git `user.email`, `wiki-config.json`) — `/init`'s required set grows.
+      - ❌ **BLOCKER: no empty/personal-wiki init.** `firefox-wiki:init` is
+        "run once *after cloning the wiki content repo*" — it checks
+        `$WIKI_PATH/INDEX.md` and **hard-stops** if absent. There is no
+        "scaffold an empty wiki from scratch" mode, so a solo user with no shared
+        content repo gets the plugin installed but `init` refusing to set anything
+        up — a non-functional personal wiki.
+
+      **Plan (in order):**
+      1. **(firefox-wiki-plugin)** Add an "init empty/personal wiki" path: when
+         `$WIKI_PATH` has no `INDEX.md`, scaffold the structure (empty `INDEX.md`,
+         dir layout, default `wiki-config.json`) instead of stopping. Release it.
+      2. **(fx-bug-toolkit)** `/init` installs the wiki plugin + `jq` + `pandoc`
+         as standard deps, then scaffolds a personal wiki at the default `$WIKI_PATH`.
+      3. **Pin + `/update`** — add the wiki plugin version to
+         `.claude-plugin/versions.json` and refresh it in `/update` (same as the
+         dashboard / `bugzilla-cli`), and extend the drift test to cover the pin.
+
+      Cost to weigh: bundling makes the wiki's whole machinery (jq/pandoc +
+      ingest/lint/verify/stats cadence) part of every install — the price of
+      flipping the compounding-loop on by default.
 
 - [ ] **`firefox-triage-dashboard` has no CI.** Unlike fx-bug-toolkit (full
       matrix + e2e in GitHub Actions), the dashboard repo has no CI workflow — its
@@ -121,6 +175,19 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       Claude Code's bundled git-bash). Also hardened `review-dashboard` to resolve
       `python3 || python` (was bare `python3`, which Windows git-bash lacks),
       matching the other skills.
+- [ ] **`/triage` uses bare `python3` (breaks on Windows git-bash).** (raised
+      2026-06-06) `skills/triage/SKILL.md` "Merge results" step calls bare
+      `python3` four times — the heredoc at line ~423 (merge triage-log tmp files)
+      and three inline `python3 -c` calls at lines ~437–439 (deferred `watch-add`
+      drain). Windows git-bash typically only has `python` on PATH, so these fail.
+      Every other shipped skill (`browse`, `bug-start`, `review-dashboard`,
+      `triage-dashboard`) already resolves `PY="$(command -v python3 || command -v
+      python)"` first — apply the same pattern to triage and call `"$PY"`.
+      *Minor / lower priority (graceful today):* `download-guard` line ~45 (bare
+      `python3` but guarded with `2>/dev/null || true`, so it degrades silently)
+      and `init` line ~273 (a `!`-prefixed one-liner the **user** pastes; `init`
+      already detects `python3||python`). Harden both for consistency when touching
+      triage.
 - [x] ~~Optional: `serve.py` auto-open the browser per-OS.~~ Decided **no** — the
       launch *skills* open the URL per-OS (`open`/`xdg-open`/`start`); a detached
       background server shouldn't spawn a browser itself (flaky, and it'd open in
