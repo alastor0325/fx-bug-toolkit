@@ -13,7 +13,7 @@ leave a gap. It still needs the underlying toolchain present (`cargo` for the
 Rust CLIs, `git`+`node`/`npm` for `profiler-cli`); if the toolchain itself is
 missing, it stops and points you to `/init` (which installs Rust/Node, asking
 first). **Optional** pieces — the triage dashboard, and Revue for
-`/review-dashboard` — are only refreshed when already installed; they stay
+`/open-review` — are only refreshed when already installed; they stay
 lazily installed on first use and are not pulled in here.
 
 Run the steps, capture before/after versions where available, and print a
@@ -119,9 +119,9 @@ else
 fi
 ```
 
-**triage dashboard** (only if it was lazily installed by `/triage-dashboard`):
+**triage dashboard** (only if it was lazily installed by `/open-triage`):
 Install the version this plugin pins — keep `REQUIRED` in sync with
-`skills/triage-dashboard/SKILL.md`.
+`skills/open-triage/SKILL.md`.
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
@@ -130,7 +130,7 @@ if [ -x "$BIN/pip" ]; then
   "$BIN/pip" install --quiet --upgrade "triage-dashboard==$REQUIRED" \
     && echo "✅ triage dashboard updated to v$REQUIRED" || echo "⚠️  triage dashboard update FAILED"
 else
-  echo "skip triage dashboard (not installed — /triage-dashboard installs it on first use)"
+  echo "skip triage dashboard (not installed — /open-triage installs it on first use)"
 fi
 ```
 

@@ -1,5 +1,5 @@
 /* Capture a screenshot of the REVUE review dashboard for the tutorial. Revue is
- * the separate `revue` npm CLI (github:alastor0325/revue) that /review-dashboard
+ * the separate `revue` npm CLI (github:alastor0325/revue) that /open-review
  * launches. We never screenshot a real repo — it can hold private/security work.
  * Instead we build a throwaway git repo with a SYNTHETIC, public-only patch
  * series (the same public Bug 2044320 colr fix the viewer/triage tutorials use)

@@ -9,6 +9,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.18] — 2026-06-06
+
+### Changed
+- **Renamed the three web-UI launchers to a consistent `/open-*` family**
+  (breaking): `/browse` → **`/open-investigation`**, `/triage-dashboard` →
+  **`/open-triage`**, `/review-dashboard` → **`/open-review`**. They now group
+  together in the slash menu and read in parallel ("open the investigation /
+  triage / review UI"). Update any muscle memory or notes; the old names no
+  longer resolve. Arguments, behavior, ports, and lazy-install are unchanged.
+
 ## [0.3.17] — 2026-06-06
 
 ### Changed
@@ -465,7 +475,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.18...HEAD
+[0.3.18]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...fx-bug-toolkit--v0.3.18
 [0.3.17]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...fx-bug-toolkit--v0.3.17
 [0.3.16]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.15...fx-bug-toolkit--v0.3.16
 [0.3.15]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.14...fx-bug-toolkit--v0.3.15

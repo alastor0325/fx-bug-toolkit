@@ -1,4 +1,4 @@
-"""Guards the shipped serve.py locator embedded in the browse / bug-start skills.
+"""Guards the shipped serve.py locator embedded in the open-investigation / bug-start skills.
 
 The skills can't rely on ${CLAUDE_PLUGIN_ROOT} in Bash (claude-code#9354), so each
 ships an inline Python snippet that locates viewer/serve.py via, in order:
@@ -20,7 +20,7 @@ import unittest
 from pathlib import Path
 
 SKILLS = Path(__file__).resolve().parents[1] / "skills"
-BROWSE = SKILLS / "browse" / "SKILL.md"
+BROWSE = SKILLS / "open-investigation" / "SKILL.md"
 BUGSTART = SKILLS / "bug-start" / "SKILL.md"
 
 # pull the python heredoc body:  <<'PYEOF' ... PYEOF
