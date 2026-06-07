@@ -72,7 +72,7 @@ rustup, asking first):
 if ! command -v cargo >/dev/null; then
   echo "⚠️  cargo not found — required to install bmo-to-md/searchfox-cli/bugzilla-cli. Run /init (installs Rust)."
 else
-  cargo install --git https://github.com/padenot/bmo-to-md \
+  cargo install bmo-to-md \
     && echo "✅ bmo-to-md installed/updated" || echo "⚠️  bmo-to-md FAILED"
   cargo install searchfox-cli \
     && echo "✅ searchfox-cli installed/updated" || echo "⚠️  searchfox-cli FAILED"

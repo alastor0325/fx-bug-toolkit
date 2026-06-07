@@ -170,8 +170,8 @@ Then install **only the selected** items, in this dependency order:
    *Windows:* use [nvm-windows](https://github.com/coreybutler/nvm-windows) or install Node from <https://nodejs.org>.
 3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`:
    ```bash
-   cargo install --git https://github.com/padenot/bmo-to-md   # bmo-to-md
-   cargo install searchfox-cli                                 # searchfox-cli
+   cargo install bmo-to-md       # bmo-to-md (crates.io)
+   cargo install searchfox-cli   # searchfox-cli (crates.io)
    ```
 4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build,
    `npm link`, then install its headless browser. profiler-cli drives a headless

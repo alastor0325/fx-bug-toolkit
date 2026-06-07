@@ -9,6 +9,17 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.17] — 2026-06-06
+
+### Changed
+- **`bmo-to-md` now installs from crates.io, not GitHub.** `/init` and `/update`
+  now run `cargo install bmo-to-md` instead of
+  `cargo install --git https://github.com/padenot/bmo-to-md`. The crate on
+  crates.io is owned by its author (padenot) and matches the repo, so this is the
+  same registry crate — just installed the agent-friendly way that the auto-mode
+  classifier doesn't block. Completes the GitHub→registry move for every install
+  except `profiler-cli` (upstream isn't on npm yet).
+
 ## [0.3.16] — 2026-06-06
 
 ### Changed
@@ -454,7 +465,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...HEAD
+[0.3.17]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...fx-bug-toolkit--v0.3.17
 [0.3.16]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.15...fx-bug-toolkit--v0.3.16
 [0.3.15]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.14...fx-bug-toolkit--v0.3.15
 [0.3.14]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.13...fx-bug-toolkit--v0.3.14
