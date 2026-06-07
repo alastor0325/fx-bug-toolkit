@@ -85,9 +85,10 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       dashboard).** (raised 2026-06-06) The classifier blocks any agent-run install
       of code straight from a GitHub repo. With the dashboard now on PyPI, three
       remain:
-      - 🟡 **bugzilla-cli** (yours) → publish to **crates.io**, then
-        `cargo install bugzilla-cli --version <pin>` in `skills/triage/SKILL.md:91`
-        + `skills/update/SKILL.md:84`.
+      - ✅ **bugzilla-cli** (yours) → **done (0.3.16).** Published to
+        [crates.io](https://crates.io/crates/bugzilla-cli) at 0.2.0; skills now use
+        `cargo install bugzilla-cli --version 0.2.0` (`skills/triage/SKILL.md:91`,
+        `skills/update/SKILL.md:84`); pin-drift test updated to the `--version` form.
       - 🟢 **bmo-to-md** (padenot's) → `cargo install --git padenot/bmo-to-md`
         (`skills/init/SKILL.md:173`, `skills/update/SKILL.md:75`). A `bmo-to-md 0.1.0`
         already exists on crates.io but with no repo metadata — **verify it's
