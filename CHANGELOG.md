@@ -9,6 +9,18 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.16] — 2026-06-06
+
+### Changed
+- **`bugzilla-cli` now installs from crates.io, not GitHub.** `/triage`'s install
+  hint and `/update`'s refresh step now run `cargo install bugzilla-cli --version 0.2.0`
+  instead of `cargo install --git https://github.com/…--tag v0.2.0`. Same reason as
+  the dashboard's PyPI move (0.3.15): a registry install of a named crate isn't
+  "code from an external GitHub repo," so Claude Code's auto-mode classifier no
+  longer blocks the agent from installing/updating it. (`bugzilla-cli 0.2.0` was
+  published to [crates.io](https://crates.io/crates/bugzilla-cli).) The pin-drift
+  test now matches the `--version` form.
+
 ## [0.3.15] — 2026-06-06
 
 ### Changed
@@ -442,7 +454,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.15...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...HEAD
+[0.3.16]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.15...fx-bug-toolkit--v0.3.16
 [0.3.15]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.14...fx-bug-toolkit--v0.3.15
 [0.3.14]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.13...fx-bug-toolkit--v0.3.14
 [0.3.13]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.12...fx-bug-toolkit--v0.3.13

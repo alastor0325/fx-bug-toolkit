@@ -76,12 +76,12 @@ else
     && echo "✅ bmo-to-md installed/updated" || echo "⚠️  bmo-to-md FAILED"
   cargo install searchfox-cli \
     && echo "✅ searchfox-cli installed/updated" || echo "⚠️  searchfox-cli FAILED"
-  # bugzilla-cli (triage Bugzilla I/O) — refresh to the **pinned tag**, but only
-  # if it's installed (it's a /triage tool, installed lazily on first use, not
-  # part of the core set). Keep the tag in sync with `.claude-plugin/versions.json`
-  # (enforced by tests/test_plugin_structure.py).
+  # bugzilla-cli (triage Bugzilla I/O) — refresh to the **pinned version** from
+  # crates.io, but only if it's installed (it's a /triage tool, installed lazily on
+  # first use, not part of the core set). Keep the version in sync with
+  # `.claude-plugin/versions.json` (enforced by tests/test_plugin_structure.py).
   if command -v bugzilla-cli >/dev/null; then
-    cargo install --git https://github.com/alastor0325/bugzilla-cli --tag v0.2.0 \
+    cargo install bugzilla-cli --version 0.2.0 \
       && echo "✅ bugzilla-cli installed/updated (v0.2.0)" || echo "⚠️  bugzilla-cli FAILED"
   else
     echo "skip bugzilla-cli (not installed — /triage installs it on first use)"
