@@ -1,6 +1,6 @@
 /* Capture a screenshot of the TRIAGE DASHBOARD for the tutorial. The dashboard
  * is the separate firefox-triage-dashboard pip app (installed in the managed
- * venv at ~/.fx-bug-toolkit/venv by /triage-dashboard). We never screenshot a
+ * venv at ~/.fx-bug-toolkit/venv by /open-triage). We never screenshot a
  * real triage dir — it can hold private/security bugs and the owner's email.
  * Instead we point the dashboard at a TEMP dir of SYNTHETIC, public-bug-only
  * drafts (the featured card is the same real, public Bug 2044320 the viewer
@@ -27,7 +27,7 @@ const EXE = path.join(BIN, process.platform === "win32" ? "triage-dashboard.exe"
                                                         : "triage-dashboard");
 if (!fs.existsSync(EXE)) {
   console.error(`triage-dashboard not found at ${EXE}\n` +
-    "Install it first: run /triage-dashboard in a Claude session (or pip install " +
+    "Install it first: run /open-triage in a Claude session (or pip install " +
     "the pinned release into ~/.fx-bug-toolkit/venv). Skipping screenshot.");
   process.exit(0);
 }

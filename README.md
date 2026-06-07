@@ -61,8 +61,8 @@ When `init` says **"Setup complete,"** you're good to go.
 
 ## Using it
 
-`/bug-start <bug-id>` runs the whole investigation; `/browse` opens the viewer to
-search and re-read past ones. The **[Getting Started tutorial](https://alastor0325.github.io/fx-bug-toolkit/)**
+`/bug-start <bug-id>` runs the whole investigation; `/open-investigation` opens
+the viewer to search and re-read past ones. The **[Getting Started tutorial](https://alastor0325.github.io/fx-bug-toolkit/)**
 walks through it with examples and screenshots — start there.
 
 Tip: type `/` and start typing a name to see these in the picker, with the
@@ -80,11 +80,11 @@ source plugin shown next to each.
 | `/bug-start <bug-id>` | **The hub.** Investigate a Firefox bug end to end and write the investigation file |
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
-| `/browse` | Open a local web viewer to search & read all your past investigations |
+| `/open-investigation` | Open a local web viewer to search & read all your past investigations |
 | `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
-| `/triage-dashboard` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
+| `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — verifies purpose against the spec, checks architecture & code, writes a structured review doc |
-| `/review-dashboard [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
+| `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)
@@ -112,7 +112,7 @@ picker — `bug-start` and friends pull them in when needed.
 > **"CC me" / "NI me"** checkboxes (**default off**). If a key is already configured
 > when you run `/triage`, it picks reply mode automatically; otherwise it asks (and
 > defaults to read-only). The **dashboard** is a separate web app installed **lazily**
-> the first time you run `/triage` or `/triage-dashboard` (a one-time venv + pip
+> the first time you run `/triage` or `/open-triage` (a one-time venv + pip
 > bootstrap, asked for first) — `/init` and investigate-only use never pull it in.
 The dashboard installs from PyPI (`pip install triage-dashboard==…`) — a normal
 registry install, so it goes through without any extra setup.
@@ -193,7 +193,7 @@ multi-select to install them. Here's the lay of the land:
 | [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) | `/triage` Bugzilla I/O — reads need **no** API key; writes (reply mode) need one | **for `/triage`** | yes (on first `/triage`, pinned `v0.2.0`) |
 | [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
-| [`revue`](https://github.com/alastor0325/revue) | `/review-dashboard` (human patch review UI) | optional | yes (lazily, on first `/review-dashboard`) |
+| [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
@@ -201,7 +201,7 @@ they're installed. `profiler-cli` is part of the core set; installing it also
 pulls a headless **Playwright Firefox** browser (~tens of MB), which it drives to
 read Firefox Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
 server, `revue`, and the shared wiki are optional extras. `revue` powers
-`/review-dashboard` and is installed lazily (from GitHub) the first time you open
+`/open-review` and is installed lazily (from GitHub) the first time you open
 the dashboard — `/review` (the AI reviewer) needs nothing extra.
 
 ---

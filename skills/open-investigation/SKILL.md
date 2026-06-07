@@ -1,6 +1,6 @@
 ---
-name: browse
-description: Open the local Bug Investigations viewer — a fast, filterable web UI over all your investigation files (every folder, searchable, with one-line summaries). Rebuilds the index and serves it on localhost. Triggers on "browse investigations", "/browse", "open the investigation viewer", "view investigations", "investigation browser", "show my investigations".
+name: open-investigation
+description: Open the local Bug Investigations viewer — a fast, filterable web UI over all your investigation files (every folder, searchable, with one-line summaries). Rebuilds the index and serves it on localhost. Triggers on "browse investigations", "/open-investigation", "open the investigation viewer", "view investigations", "investigation browser", "show my investigations".
 allowed-tools: [Bash]
 ---
 

@@ -3,7 +3,7 @@ fetch every asset the page needs and validate the served index.
 
 Fully isolated — copies the viewer assets into a temp dir and serves on an
 ephemeral port, so it never touches the user's real ~/.fx-bug-toolkit data or a
-running /browse server.
+running /open-investigation server.
 
     python3 -m unittest discover -s viewer/tests
 """

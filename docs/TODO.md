@@ -48,7 +48,7 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
       `/triage` Apply section guard + the `bugzilla-cli apply` backstop remain.
       (`triage-apply-feedback` needs nothing — it makes no Bugzilla writes.)
       **Follow-up when bumping:** tag the dashboard `vX.Y.Z` and bump its `REQUIRED`
-      pin in `skills/triage-dashboard/SKILL.md` + `skills/update/SKILL.md`.
+      pin in `skills/open-triage/SKILL.md` + `skills/update/SKILL.md`.
 
 - [x] **Don't hardcode server ports — pick a free one and pass it.** Done across
       all three launchers: `/browse` (`serve.py` baaa586 — picks a free port,
@@ -182,8 +182,8 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       `python3` four times — the heredoc at line ~423 (merge triage-log tmp files)
       and three inline `python3 -c` calls at lines ~437–439 (deferred `watch-add`
       drain). Windows git-bash typically only has `python` on PATH, so these fail.
-      Every other shipped skill (`browse`, `bug-start`, `review-dashboard`,
-      `triage-dashboard`) already resolves `PY="$(command -v python3 || command -v
+      Every other shipped skill (`open-investigation`, `bug-start`, `open-review`,
+      `open-triage`) already resolves `PY="$(command -v python3 || command -v
       python)"` first — apply the same pattern to triage and call `"$PY"`.
       *Minor / lower priority (graceful today):* `download-guard` line ~45 (bare
       `python3` but guarded with `2>/dev/null || true`, so it degrades silently)

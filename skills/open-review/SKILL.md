@@ -1,15 +1,15 @@
 ---
-name: review-dashboard
+name: open-review
 description: >
   Open Revue — a local web dashboard for reviewing a git repo's patches/worktrees
   by hand and generating a review prompt to hand back to Claude. The human-review
-  companion to /review (which is the AI reviewer). Triggers on "/review-dashboard",
+  companion to /review (which is the AI reviewer). Triggers on "/open-review",
   "open the review dashboard", "open revue", "review board", "human review UI".
 argument-hint: "[repo-path] (defaults to the current git repo)"
 allowed-tools: [Bash, AskUserQuestion]
 ---
 
-# /review-dashboard — open the Revue review dashboard
+# /open-review — open the Revue review dashboard
 
 [Revue](https://github.com/alastor0325/revue) is a local web UI where **you**
 review a git repo's patch series worktree by worktree — browse diffs, leave
@@ -104,7 +104,7 @@ command -v revue >/dev/null 2>&1 && echo "INSTALLED ($(revue --help 2>/dev/null 
   > Install from GitHub, **not** `npm install -g revue` — the bare `revue` name
   > on the public npm registry is an unrelated package. Requires Node.js ≥ 18.
 
-  If the user declines, stop here and tell them `/review-dashboard` needs Revue;
+  If the user declines, stop here and tell them `/open-review` needs Revue;
   they can install it later with the command above.
 
 ## Step 3 — Launch the dashboard on the resolved repo
@@ -117,7 +117,7 @@ spawning a second daemon (`$PORT` forces a specific port):
 
 ```bash
 PY="$(command -v python3 || command -v python)"   # python3 on macOS/Linux, python on Windows git-bash
-PORTFILE="$HOME/.fx-bug-toolkit/review-dashboard.port"
+PORTFILE="$HOME/.fx-bug-toolkit/open-review.port"
 mkdir -p "$HOME/.fx-bug-toolkit"
 REMEMBERED="$(cat "$PORTFILE" 2>/dev/null)"
 if [ -z "${PORT:-}" ] && [ -n "$REMEMBERED" ] && curl -fsS -o /dev/null "http://localhost:$REMEMBERED/" 2>/dev/null; then

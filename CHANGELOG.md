@@ -7,7 +7,13 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Changed
+- **Renamed the three web-UI launchers to a consistent `/open-*` family**
+  (breaking): `/browse` → **`/open-investigation`**, `/triage-dashboard` →
+  **`/open-triage`**, `/review-dashboard` → **`/open-review`**. They now group
+  together in the slash menu and read in parallel ("open the investigation /
+  triage / review UI"). Update any muscle memory or notes; the old names no
+  longer resolve. Arguments, behavior, ports, and lazy-install are unchanged.
 
 ## [0.3.17] — 2026-06-06
 

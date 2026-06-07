@@ -91,7 +91,7 @@ class TestSkills(unittest.TestCase):
 
         # Triage dashboard: every `REQUIRED="x.y.z"` pin must equal the manifest.
         required_pins = []
-        for rel in ("skills/triage-dashboard/SKILL.md", "skills/update/SKILL.md"):
+        for rel in ("skills/open-triage/SKILL.md", "skills/update/SKILL.md"):
             text = (SKILLS.parent / rel).read_text(encoding="utf-8")
             found = re.findall(r'REQUIRED="([0-9][^"]*)"', text)
             self.assertTrue(found, f"{rel}: no REQUIRED= dashboard pin found")

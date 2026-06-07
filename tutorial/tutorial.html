@@ -196,11 +196,11 @@
         <tr><td><code>/bug-start &lt;id&gt;</code></td><td>Investigate a Firefox bug end to end</td></tr>
         <tr><td><code>/analyze-profile &lt;url&gt;</code></td><td>Analyze a Firefox Profiler capture</td></tr>
         <tr><td><code>/check-log &lt;path&gt;</code></td><td>Diagnose a Firefox log (media/EME/CDM-aware)</td></tr>
-        <tr><td><code>/browse</code></td><td>Open the investigation viewer</td></tr>
+        <tr><td><code>/open-investigation</code></td><td>Open the investigation viewer</td></tr>
         <tr><td><code>/triage [id|url]</code></td><td>Draft the Audio/Video bug triage</td></tr>
-        <tr><td><code>/triage-dashboard</code></td><td>Review &amp; apply the triage drafts in a web UI</td></tr>
+        <tr><td><code>/open-triage</code></td><td>Review &amp; apply the triage drafts in a web UI</td></tr>
         <tr><td><code>/review &lt;D-rev|local|diff&gt;</code></td><td>AI patch review → structured review doc</td></tr>
-        <tr><td><code>/review-dashboard [repo]</code></td><td>Open Revue, the human patch-review web UI</td></tr>
+        <tr><td><code>/open-review [repo]</code></td><td>Open Revue, the human patch-review web UI</td></tr>
         <tr><td><code>/update</code></td><td>Update the plugin + its CLI dependencies</td></tr>
       </table>
       <p class="lead" style="margin-top:14px">A few helpers (spec-check, download-guard, source-links, the gecko-navigator and firefox-review agents) run <em>behind the scenes</em> — Claude calls them from the commands above; you don't invoke them directly.</p>
@@ -238,7 +238,7 @@
 
     <section id="browse">
       <h2>Browse investigations</h2>
-      <pre><code><span class="cmd">/browse</span></code></pre>
+      <pre><code><span class="cmd">/open-investigation</span></code></pre>
       <p>Builds an index of every investigation (across all your folders) and serves a fast, searchable viewer on <code>127.0.0.1</code> — your data never leaves the machine.</p>
       <figure>
         <img src="./assets/viewer.png" alt="The FX Bug Toolkit investigation viewer">
@@ -268,24 +268,24 @@
         <tr><th>Step</th><th>Whose</th><th>What</th></tr>
         <tr><td>Implement the patch</td><td>your workflow</td><td>Write and land it however you normally do — that part isn't part of this toolkit.</td></tr>
         <tr><td><code>/review</code></td><td>this toolkit</td><td>AI review — purpose vs. spec, architecture, and code → the review document.</td></tr>
-        <tr><td><code>/review-dashboard</code></td><td>this toolkit</td><td>Your own human pass before the patch leaves your machine (below).</td></tr>
+        <tr><td><code>/open-review</code></td><td>this toolkit</td><td>Your own human pass before the patch leaves your machine (below).</td></tr>
       </table>
 
-      <h3>Human guard — <code>/review-dashboard</code></h3>
-      <pre><code><span class="cmd">/review-dashboard</span>                   <span class="cmt"># the current git repo</span>
-<span class="cmd">/review-dashboard</span> ~/firefox-12345   <span class="cmt"># a specific repo / worktree</span></code></pre>
-      <p>Once the AI review is clean, <b>you're the last gate</b>. <code>/review-dashboard</code> opens <a href="https://github.com/alastor0325/revue" target="_blank">Revue</a> — a local web UI — pointed at your repo. Browse the series worktree by worktree, leave inline comments, approve or deny each patch, then click <b>Generate Review Prompt</b>: Revue writes a single structured prompt and copies it, you paste it to Claude, Claude amends the commits, you reload and keep going. Approvals survive rebases.</p>
-      <div class="note"><b>Point it at the work, not a clean tree.</b> You choose the folder — pass <code>/review-dashboard &lt;path&gt;</code>, or run it with no argument to reuse your <b>remembered repo</b>. Revue stores a default in <code>~/.revue/config.json</code> (via <code>revue init &lt;path&gt;</code>): the first no-argument run asks which folder to open and remembers it, then later runs offer that default or a different folder. Revue shows the <b>patch series</b> — the commits that folder has on top of <code>origin/main</code> — so open a feature branch or worktree with unlanded commits; a clean checkout on an up-to-date <code>main</code> has no series and comes up empty. (The skill pre-flights this and asks which folder you meant if it finds nothing to review.)</div>
+      <h3>Human guard — <code>/open-review</code></h3>
+      <pre><code><span class="cmd">/open-review</span>                   <span class="cmt"># the current git repo</span>
+<span class="cmd">/open-review</span> ~/firefox-12345   <span class="cmt"># a specific repo / worktree</span></code></pre>
+      <p>Once the AI review is clean, <b>you're the last gate</b>. <code>/open-review</code> opens <a href="https://github.com/alastor0325/revue" target="_blank">Revue</a> — a local web UI — pointed at your repo. Browse the series worktree by worktree, leave inline comments, approve or deny each patch, then click <b>Generate Review Prompt</b>: Revue writes a single structured prompt and copies it, you paste it to Claude, Claude amends the commits, you reload and keep going. Approvals survive rebases.</p>
+      <div class="note"><b>Point it at the work, not a clean tree.</b> You choose the folder — pass <code>/open-review &lt;path&gt;</code>, or run it with no argument to reuse your <b>remembered repo</b>. Revue stores a default in <code>~/.revue/config.json</code> (via <code>revue init &lt;path&gt;</code>): the first no-argument run asks which folder to open and remembers it, then later runs offer that default or a different folder. Revue shows the <b>patch series</b> — the commits that folder has on top of <code>origin/main</code> — so open a feature branch or worktree with unlanded commits; a clean checkout on an up-to-date <code>main</code> has no series and comes up empty. (The skill pre-flights this and asks which folder you meant if it finds nothing to review.)</div>
       <figure>
         <img src="./assets/review-dashboard.png" alt="The Revue review dashboard reviewing a two-part patch series">
         <figcaption>Revue reviewing a two-part series — patch tabs across the top, the commit message and per-line diff, a feedback box and <b>Approve</b>/<b>Deny</b> per patch, and <b>Generate Review Prompt</b> once you've commented. Shown on a synthetic, public-only series for the same <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044320" target="_blank">Bug 2044320</a> the other chapters use.</figcaption>
       </figure>
-      <div class="note"><b>A middle layer between local and remote.</b> Revue sits between local AI review and the remote platform (Phabricator / GitHub PR). Doing the round trip <em>here</em> — instead of in Phabricator or PR comments — is a far better surface for iterating with Claude: your scattered comments become one prompt, fixes land as commit amendments, and only a polished series ever reaches the remote reviewer. Revue is an <b>optional</b> dependency, installed lazily from GitHub (and asked for first) the first time you run <code>/review-dashboard</code>; <code>/review</code> itself needs nothing extra.</div>
+      <div class="note"><b>A middle layer between local and remote.</b> Revue sits between local AI review and the remote platform (Phabricator / GitHub PR). Doing the round trip <em>here</em> — instead of in Phabricator or PR comments — is a far better surface for iterating with Claude: your scattered comments become one prompt, fixes land as commit amendments, and only a polished series ever reaches the remote reviewer. Revue is an <b>optional</b> dependency, installed lazily from GitHub (and asked for first) the first time you run <code>/open-review</code>; <code>/review</code> itself needs nothing extra.</div>
     </section>
 
     <section id="triage">
       <h2>Bug triage</h2>
-      <p class="lead">A second workflow, for bug-triage duty. <code>/triage</code> does the analysis and writes a draft action for every bug in the components you cover; <code>/triage-dashboard</code> is where you review, refine, and apply them. Nothing reaches Bugzilla until you approve it. It ships tuned for Audio/Video, but the component set is configurable — see <code>TRIAGE_COMPONENTS</code> below.</p>
+      <p class="lead">A second workflow, for bug-triage duty. <code>/triage</code> does the analysis and writes a draft action for every bug in the components you cover; <code>/open-triage</code> is where you review, refine, and apply them. Nothing reaches Bugzilla until you approve it. It ships tuned for Audio/Video, but the component set is configurable — see <code>TRIAGE_COMPONENTS</code> below.</p>
 
       <h3>Two modes — read-only by default</h3>
       <p>Triage runs in one of two modes, decided automatically by whether a Bugzilla <b>API key</b> is configured. With no key it's <b>read-only</b>; configure a key and it becomes <b>reply</b> mode:</p>
@@ -321,7 +321,7 @@
       <div class="note">Scoped to the <b>Audio/Video</b> components by default. A single-bug or URL run is strictly isolated — it touches only the bugs you name and never polls the watch list or fetches others.</div>
 
       <h3>Review on the dashboard</h3>
-      <pre><code><span class="cmd">/triage-dashboard</span></code></pre>
+      <pre><code><span class="cmd">/open-triage</span></code></pre>
       <p>Opens a local web UI over the drafts on <code>127.0.0.1:8765</code>. Each bug is a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when triage investigated it — the <code>/bug-start</code> findings inline.</p>
       <figure>
         <img src="./assets/triage-dashboard.png" alt="The FX Bug Toolkit triage dashboard">
@@ -345,7 +345,7 @@
       </ul>
       <p>Queued actions collect under <b>Process queue</b> (top-right). When you're ready, open it and hit <b>Copy prompt → paste into Claude</b>: paste that short prompt into a Claude session and it drains the queue — applying your refines and running <code>bugzilla-cli apply</code> for each queued write. <b>Each apply asks you to confirm before it posts</b>, so the production write to Bugzilla is always gated on an explicit yes.</p>
       <div class="note"><b>That's reply mode.</b> In <b>read-only</b> mode (no API key) the <em>Apply</em> and <em>CC me / NI me / Assign me</em> controls aren't shown at all, and the Process-queue drain skips the apply step — only <b>Revise draft</b> (which never writes back) remains, so the board is purely for reading and refining the AI's drafts. A <b>“read-only · drafts only”</b> badge marks the mode.</div>
-      <div class="note">The dashboard is optional and installs itself the first time you run <code>/triage-dashboard</code> (the <a href="https://github.com/alastor0325/firefox-triage-dashboard" target="_blank">firefox-triage-dashboard</a> app — FastAPI, in a managed virtualenv); override its port with <code>PORT</code>. <code>/triage</code> works without it — it just writes the drafts to <code>$TRIAGE_DIR</code>.</div>
+      <div class="note">The dashboard is optional and installs itself the first time you run <code>/open-triage</code> (the <a href="https://github.com/alastor0325/firefox-triage-dashboard" target="_blank">firefox-triage-dashboard</a> app — FastAPI, in a managed virtualenv); override its port with <code>PORT</code>. <code>/triage</code> works without it — it just writes the drafts to <code>$TRIAGE_DIR</code>.</div>
     </section>
 
     <section id="wiki">

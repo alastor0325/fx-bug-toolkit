@@ -125,7 +125,7 @@ runtime (`CLAUDE_PLUGIN_ROOT` is unreliable), so the actual install pins are
 **To bump a dependency:** edit the version in `versions.json` **and** every inline
 pin, then run the tests — `test_inline_pins_match_versions_manifest` fails if any
 inline pin drifts from the manifest, so a missed block can't ship. (When bumping
-the triage dashboard, its inline pins are 3× in `skills/triage-dashboard/SKILL.md`
+the triage dashboard, its inline pins are 3× in `skills/open-triage/SKILL.md`
 plus `skills/update/SKILL.md`.)
 
 ## Releasing

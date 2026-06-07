@@ -1,10 +1,10 @@
 ---
-name: triage-dashboard
-description: Open the local Firefox triage dashboard — a web UI over the pending triage drafts, watch list, and investigations that /triage produces. Lazily installs the dashboard (a pip app) into a managed venv on first use, then serves it on localhost. Triggers on "/triage-dashboard", "open the triage dashboard", "show the triage board", "triage dashboard".
+name: open-triage
+description: Open the local Firefox triage dashboard — a web UI over the pending triage drafts, watch list, and investigations that /triage produces. Lazily installs the dashboard (a pip app) into a managed venv on first use, then serves it on localhost. Triggers on "/open-triage", "open the triage dashboard", "show the triage board", "triage dashboard".
 allowed-tools: [Bash, AskUserQuestion]
 ---
 
-# /triage-dashboard — open the triage dashboard
+# /open-triage — open the triage dashboard
 
 The triage dashboard is a separate web app
 ([firefox-triage-dashboard](https://github.com/alastor0325/firefox-triage-dashboard))
@@ -16,7 +16,7 @@ at `~/.fx-bug-toolkit/venv`.
 ## Step 1 — Ensure the pinned version is installed (consent-gated on first use)
 
 This plugin **pins a specific dashboard release** (`REQUIRED` below) and keeps the
-managed venv on it, so `/triage-dashboard` always runs the version this plugin was
+managed venv on it, so `/open-triage` always runs the version this plugin was
 built against — never a stale copy left over from a first install. Check what's
 installed against the pin:
 
@@ -70,7 +70,7 @@ fi
 ## Step 2 — Start it (if not already running) and give the URL
 
 The dashboard serves on `127.0.0.1` on an **auto-picked free port** (set `PORT` to
-force one). The chosen port is remembered in `~/.fx-bug-toolkit/triage-dashboard.port`
+force one). The chosen port is remembered in `~/.fx-bug-toolkit/open-triage.port`
 so a re-run reuses the running instance instead of starting a second one. Start it
 detached so this skill returns; reuse it if it's already up.
 
@@ -79,7 +79,7 @@ VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
 PY="$BIN/python"; [ -x "$PY" ] || PY="$(command -v python3 || command -v python)"
 LOG="$HOME/.fx-bug-toolkit/dashboard.log"
-PORTFILE="$HOME/.fx-bug-toolkit/triage-dashboard.port"
+PORTFILE="$HOME/.fx-bug-toolkit/open-triage.port"
 mkdir -p "$HOME/.fx-bug-toolkit"
 
 # Reuse a still-running instance on its remembered port; otherwise pick a FRESH
@@ -140,7 +140,7 @@ these env vars), or the board will look empty.
 The dashboard version is **pinned** in Step 1 (`REQUIRED` + the `==$REQUIRED` pin
 on the PyPI install). To move to a newer dashboard release, publish it to PyPI
 then bump `REQUIRED` to the new version (in all three blocks above) — the next
-`/triage-dashboard` sees the mismatch (`STALE`), upgrades the venv, and restarts
+`/open-triage` sees the mismatch (`STALE`), upgrades the venv, and restarts
 the server automatically. `/update` also re-installs the pinned version. The
 dashboard installs from PyPI (`pip install triage-dashboard==…`), a normal
 registry install — no longer the `git+https://…` form that Claude Code's auto-mode

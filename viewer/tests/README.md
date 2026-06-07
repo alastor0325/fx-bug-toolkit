@@ -5,7 +5,7 @@ Tests for the investigation **viewer** component (`../`) — the indexer, the
 exercise the viewer in isolation and are co-located with it so they travel with
 the component.
 
-The skill↔viewer *seam* (how `browse`/`bug-start` locate `serve.py`) is tested
+The skill↔viewer *seam* (how `open-investigation`/`bug-start` locate `serve.py`) is tested
 in the plugin suite at [`tests/`](../../tests/README.md), not here.
 
 The Node package (`playwright`) lives at the **repo root**, so the `.cjs` E2E
