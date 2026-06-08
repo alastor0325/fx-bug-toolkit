@@ -186,6 +186,7 @@
         <h3>Run setup</h3>
         <pre><code><span class="cmd">/init</span></code></pre>
         <p>It checks your environment and offers to install anything missing (it can install the core CLIs for you). When it says <b>“Core investigation ready,”</b> you're good to go.</p>
+        <div class="note"><b>If <code>/init</code> stalls on <code>profiler-cli</code>:</b> it installs by cloning <a href="https://github.com/dpalmeiro/profiler-cli" target="_blank">profiler-cli</a> from GitHub and building it, and Claude Code's auto-mode may decline an agent-run <code>git clone</code> of an external repo. If that happens, run just that one step yourself — paste the command <code>/init</code> shows (or prefix it with <code>!</code> in the prompt) — then re-run <code>/init</code>; everything else installs normally.</div>
       </div></div>
     </section>
 
