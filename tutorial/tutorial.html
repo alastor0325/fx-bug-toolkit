@@ -377,8 +377,38 @@
     </section>
 
     <section id="wiki">
-      <h2>Optional: the shared wiki</h2>
-      <p>Install the separate <a href="https://github.com/alastor0325/firefox-wiki-plugin" target="_blank">firefox-wiki-plugin</a> and clone its content to <code>~/firefox-wiki</code> for faster starts and compounding team knowledge — Claude checks known component behavior before reading code, and contributes new findings back. The toolkit detects it automatically and works perfectly fine without it.</p>
+      <h2>The knowledge wiki (optional)</h2>
+      <p>The <a href="https://github.com/alastor0325/firefox-wiki-plugin" target="_blank">firefox-wiki</a> is a separate plugin that gives this toolkit a <b>persistent, cited knowledge base</b>. With it installed, an investigation stops starting from zero: the toolkit <b>checks the wiki before it reads code</b>, and <b>writes durable findings back</b> when it's done — so component quirks, spec deviations, and root causes <b>compound across runs</b> (and across a team, if you share the wiki). It's fully optional — everything works without it; the wiki just makes the knowledge stick.</p>
+
+      <h3>Set it up (one-time)</h3>
+      <p>Run these in your <b>terminal</b> (not the Claude prompt):</p>
+      <pre><code><span class="cmt"># 1 — install the wiki plugin</span>
+git clone https://github.com/alastor0325/firefox-wiki-plugin ~/firefox-wiki-plugin
+claude plugin marketplace add ~/firefox-wiki-plugin
+claude plugin install firefox-wiki@firefox-wiki-plugin
+
+<span class="cmt"># 2 — get the wiki content (a shared team repo, or your own)</span>
+git clone https://github.com/alastor0325/firefox-wiki ~/firefox-wiki</code></pre>
+      <p>Then, <b>inside Claude Code</b>, run the one-time setup and restart:</p>
+      <pre><code><span class="cmd">/firefox-wiki:init</span></code></pre>
+      <p>It creates the wiki config + the pre-lookup hook and offers to persist <code>WIKI_PATH</code>. <b>Shared vs. personal is just which repo <code>WIKI_PATH</code> points at</b> (default <code>~/firefox-wiki</code>): clone the team's content repo to share knowledge, or point it at your own repo to keep a private one — set it in the <code>env</code> block of <code>~/.claude/settings.json</code>.</p>
+
+      <h3>How the toolkit uses it</h3>
+      <p>Once <code>$WIKI_PATH/INDEX.md</code> exists, the toolkit <b>auto-detects it</b> — the steps below switch on; with no wiki they're skipped silently. Most of the loop is automatic:</p>
+      <ul class="feat">
+        <li><b>Before reading code</b> — <code>/bug-start</code> and <code>/triage</code> run <code>/firefox-wiki:lookup</code> on the component, symptom, and error code first. If the wiki already has a verified answer, they <b>cite the page</b> instead of re-deriving it.</li>
+        <li><b>After a finding</b> — durable, cited facts are written back: <code>/bug-start</code>, <code>/check-log</code>, and <code>/triage</code> propose a <code>/firefox-wiki:add</code> at the end (only for a real, verifiable fact that isn't already there — half-formed entries are skipped). <code>/firefox-wiki:ingest</code> extracts the knowledge from a finished investigation after you land the patch.</li>
+        <li><b>By hand, anytime</b> — <code>/firefox-wiki:lookup &lt;topic&gt;</code> to query, <code>/firefox-wiki:add &lt;fact&gt;</code> to contribute.</li>
+      </ul>
+      <div class="note"><b>Every entry is cited.</b> A Searchfox permalink, a spec section, or a Bugzilla bug number backs every fact — nothing is written from memory. That's what lets <code>/firefox-wiki:verify</code> re-check it later.</div>
+
+      <h3>Keep it healthy</h3>
+      <table>
+        <tr><th>Command</th><th>When</th></tr>
+        <tr><td><code>/firefox-wiki:lint</code></td><td>Integrity check — runs lightweight automatically after writes; <code>--full</code> on demand.</td></tr>
+        <tr><td><code>/firefox-wiki:verify</code></td><td>Periodically — re-reads the cited sources and flags facts that have gone stale or unverifiable.</td></tr>
+        <tr><td><code>/firefox-wiki:stats</code></td><td>Monthly — hit rate, most-consulted pages, false-confidence rate, and coverage gaps.</td></tr>
+      </table>
     </section>
 
     <footer>
