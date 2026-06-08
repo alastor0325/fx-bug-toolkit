@@ -19,6 +19,14 @@ function bz(id) {
   return `https://bugzilla.mozilla.org/show_bug.cgi?id=${id}`;
 }
 
+// Cache-busted URL for index.json. serve.py rebuilds index.json on every start,
+// but SimpleHTTPRequestHandler serves it as a cacheable static file, so a bare
+// fetch can return a stale copy and the viewer "won't catch up" after the
+// investigation dir changes. `nonce` is a per-load value (e.g. Date.now()).
+function indexUrl(nonce) {
+  return `./index.json?ts=${nonce}`;
+}
+
 // "depth" frontmatter is jargon; surface plain "quick"/"full" with a tooltip.
 const DEPTH = {
   triage: { label: "quick", tip: "Quick triage pass — a root-cause hypothesis only, no fix or test plan" },
@@ -48,5 +56,5 @@ function byDate(a, b, desc) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { escapeHtml, sfUrl, bz, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate };
+  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate };
 }
