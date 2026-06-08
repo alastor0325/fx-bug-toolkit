@@ -118,7 +118,12 @@ class _ViewerHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if is_index_request(self.path):
             with _reindex_lock:   # serialize concurrent rebuilds (ThreadingHTTPServer)
-                build_index()
+                # Rebuild IN-PROCESS — not via subprocess. Spawning python per
+                # request is slow (esp. on Windows) and can blow a client's read
+                # timeout; importing build_index and calling main() is fast and
+                # reads the current files each call.
+                import build_index
+                build_index.main()
         return super().do_GET()
 
 

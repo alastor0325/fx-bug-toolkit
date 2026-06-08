@@ -103,7 +103,10 @@ class TestServeLauncher(unittest.TestCase):
     """serve.py start/stop end-to-end, isolated in a temp copy on a free port."""
 
     def test_serve_py_start_and_stop(self):
-        with tempfile.TemporaryDirectory() as d:
+        # ignore_cleanup_errors: on Windows the detached server can still hold
+        # web/.run/viewer.log when the tempdir is torn down (the stop hasn't fully
+        # released the handle yet) — that scaffolding race must not fail the test.
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
             root = Path(d)
             inv = root / "inv"; inv.mkdir()
             web = root / "web"; web.mkdir()
