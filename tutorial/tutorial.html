@@ -139,7 +139,7 @@
     <a href="#review">Review a patch</a>
     <a href="#triage">Bug triage</a>
     <a href="#team">Team dashboards</a>
-    <a href="#wiki">Shared wiki</a>
+    <a href="#wiki">Knowledge database</a>
     <div class="sep"></div>
     <a class="ext" href="https://github.com/alastor0325/fx-bug-toolkit" target="_blank">GitHub repo</a>
   </nav>
@@ -377,38 +377,44 @@
     </section>
 
     <section id="wiki">
-      <h2>The knowledge wiki (optional)</h2>
-      <p>The <a href="https://github.com/alastor0325/firefox-wiki-plugin" target="_blank">firefox-wiki</a> is a separate plugin that gives this toolkit a <b>persistent, cited knowledge base</b>. With it installed, an investigation stops starting from zero: the toolkit <b>checks the wiki before it reads code</b>, and <b>writes durable findings back</b> when it's done — so component quirks, spec deviations, and root causes <b>compound across runs</b> (and across a team, if you share the wiki). It's fully optional — everything works without it; the wiki just makes the knowledge stick.</p>
+      <h2>Accumulated knowledge database (optional)</h2>
+      <p>The <a href="https://github.com/alastor0325/firefox-wiki-plugin" target="_blank">firefox-wiki</a> plugin gives the toolkit a <b>persistent, cited knowledge base</b>, so Claude stops redoing the same code archaeology every investigation. It's one idea: <b>read the wiki before searching code, write back what you learn after</b> — so each bug starts from everything earlier bugs taught it, instead of re-deriving the same facts. It's <b>hook-driven and automatic</b>: install it, work normally, and the loop runs in the background.</p>
+      <div class="note"><b>This entire chapter is optional.</b> Skip it and the toolkit works fully — every command runs the same. Set the wiki up only if you want findings to <b>persist and compound</b> across investigations (and, if you share a wiki repo, across a team).</div>
 
-      <h3>Set it up (one-time)</h3>
-      <p>Run these in your <b>terminal</b> (not the Claude prompt):</p>
-      <pre><code><span class="cmt"># 1 — install the wiki plugin</span>
-git clone https://github.com/alastor0325/firefox-wiki-plugin ~/firefox-wiki-plugin
-claude plugin marketplace add ~/firefox-wiki-plugin
-claude plugin install firefox-wiki@firefox-wiki-plugin
-
-<span class="cmt"># 2 — get the wiki content (a shared team repo, or your own)</span>
-git clone https://github.com/alastor0325/firefox-wiki ~/firefox-wiki</code></pre>
-      <p>Then, <b>inside Claude Code</b>, run the one-time setup and restart:</p>
-      <pre><code><span class="cmd">/firefox-wiki:init</span></code></pre>
-      <p>It creates the wiki config + the pre-lookup hook and offers to persist <code>WIKI_PATH</code>. <b>Shared vs. personal is just which repo <code>WIKI_PATH</code> points at</b> (default <code>~/firefox-wiki</code>): clone the team's content repo to share knowledge, or point it at your own repo to keep a private one — set it in the <code>env</code> block of <code>~/.claude/settings.json</code>.</p>
-
-      <h3>How the toolkit uses it</h3>
-      <p>Once <code>$WIKI_PATH/INDEX.md</code> exists, the toolkit <b>auto-detects it</b> — the steps below switch on; with no wiki they're skipped silently. Most of the loop is automatic:</p>
+      <h3>How the loop works — automatically</h3>
+      <p>You don't invoke any of this; hooks do both halves:</p>
       <ul class="feat">
-        <li><b>Before reading code</b> — <code>/bug-start</code> and <code>/triage</code> run <code>/firefox-wiki:lookup</code> on the component, symptom, and error code first. If the wiki already has a verified answer, they <b>cite the page</b> instead of re-deriving it.</li>
-        <li><b>After a finding</b> — durable, cited facts are written back: <code>/bug-start</code>, <code>/check-log</code>, and <code>/triage</code> propose a <code>/firefox-wiki:add</code> at the end (only for a real, verifiable fact that isn't already there — half-formed entries are skipped). <code>/firefox-wiki:ingest</code> extracts the knowledge from a finished investigation after you land the patch.</li>
-        <li><b>By hand, anytime</b> — <code>/firefox-wiki:lookup &lt;topic&gt;</code> to query, <code>/firefox-wiki:add &lt;fact&gt;</code> to contribute.</li>
+        <li><b>Before a code search</b> — a hook checks the wiki first (alias- and <code>Class::Method</code>-expanded, so <code>MDSM</code> still finds <code>MediaDecoderStateMachine</code>). If it already has the answer, Claude reads the cited facts and may skip the search.</li>
+        <li><b>After a commit</b> — a hook reads the diff/investigation, extracts the durable facts, and writes them back for next time.</li>
+        <li><b>After any wiki write</b> — a quick lint flags broken links and stale references; wiki use is tagged per skill so <code>stats</code> can show what actually consults it.</li>
       </ul>
-      <div class="note"><b>Every entry is cited.</b> A Searchfox permalink, a spec section, or a Bugzilla bug number backs every fact — nothing is written from memory. That's what lets <code>/firefox-wiki:verify</code> re-check it later.</div>
+      <p>The <code>lookup</code>, <code>ingest</code>, <code>lint</code>, and <code>verify</code> skills run via those hooks — they're <b>not</b> in the slash menu and you never type them.</p>
 
-      <h3>Keep it healthy</h3>
+      <h3>The commands you <em>do</em> type</h3>
       <table>
-        <tr><th>Command</th><th>When</th></tr>
-        <tr><td><code>/firefox-wiki:lint</code></td><td>Integrity check — runs lightweight automatically after writes; <code>--full</code> on demand.</td></tr>
-        <tr><td><code>/firefox-wiki:verify</code></td><td>Periodically — re-reads the cited sources and flags facts that have gone stale or unverifiable.</td></tr>
-        <tr><td><code>/firefox-wiki:stats</code></td><td>Monthly — hit rate, most-consulted pages, false-confidence rate, and coverage gaps.</td></tr>
+        <tr><th>Command</th><th>What it does</th></tr>
+        <tr><td><code>/firefox-wiki:add &lt;input&gt;</code></td><td>Add knowledge by hand — a spec <b>URL</b> or <b>PDF</b> (distilled into <code>specs/</code>), <code>bug NNNN</code> (extracted from the bug), or a plain-language fact (e.g. <em>"AudioSink runs on the MDSM task queue, not its own thread"</em>).</td></tr>
+        <tr><td><code>/firefox-wiki:stats</code></td><td>Usage metrics — lookup hit rate and which kinds of work consult the wiki.</td></tr>
+        <tr><td><code>/firefox-wiki:init</code></td><td>One-time setup (below).</td></tr>
       </table>
+
+      <h3>Set it up</h3>
+      <p><b>The plugin (the tooling) and the wiki content (the knowledge) are separate things.</b> Install the plugin once, then point it at <em>a</em> wiki — <b>your own</b>, or a shared team one.</p>
+      <p><b>1 — Install the plugin</b> (in your terminal). It needs <code>jq</code>, <code>pandoc</code>, and <code>bmo-to-md</code>:</p>
+      <pre><code>git clone https://github.com/alastor0325/firefox-wiki-plugin ~/firefox-wiki-plugin
+claude plugin marketplace add ~/firefox-wiki-plugin
+claude plugin install firefox-wiki@firefox-wiki-plugin</code></pre>
+      <p><b>2 — Point it at a wiki.</b> Shared vs. personal is <b>only</b> which git repo <code>WIKI_PATH</code> points at (default <code>~/firefox-wiki</code>):</p>
+      <ul class="feat">
+        <li><b>Your own wiki</b> — set <code>WIKI_PATH</code> to your own wiki repo (or a fresh directory) and <code>init</code> scaffolds the structure. Nothing team-specific required — you build knowledge as you go.</li>
+        <li><b>A shared team wiki</b> — clone the team's content repo to <code>WIKI_PATH</code> for its accumulated knowledge. The Firefox-media team's content lives in a <b>private</b> repo; request access from its maintainer. Without it you simply start from your own (empty) wiki.</li>
+      </ul>
+      <pre><code><span class="cmt"># ~/.claude/settings.json — point at your own wiki (init can persist this for you)</span>
+{ "env": { "WIKI_PATH": "/Users/you/my-wiki" } }</code></pre>
+      <p><b>3 — Initialize</b> in Claude Code, then restart. It verifies the dependencies, scaffolds the wiki, installs the pre-lookup hook, and offers to persist <code>WIKI_PATH</code>:</p>
+      <pre><code><span class="cmd">/firefox-wiki:init</span></code></pre>
+
+      <div class="note"><b>Browse it like notes.</b> The wiki is plain Markdown with <code>[[wiki-links]]</code> — open <code>$WIKI_PATH</code> as an <a href="https://obsidian.md" target="_blank">Obsidian</a> vault to explore the graph. <b>Every fact is cited</b> — a Searchfox permalink, a spec section, or a Bugzilla bug number — never written from memory, which is what lets the wiki re-verify itself over time.</div>
     </section>
 
     <footer>
