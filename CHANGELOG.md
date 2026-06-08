@@ -9,6 +9,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.6] — 2026-06-08
+
+### Fixed
+- **`/triage` no longer breaks on Windows git-bash.** Its "Merge results" step
+  called bare `python3` (×4) — but Windows git-bash typically only has `python`
+  on PATH, so the triage-log merge and the deferred `watch-add` drain failed
+  there. It now resolves `PY="$(command -v python3 || command -v python)"` first
+  and calls `"$PY"`, matching the other skills. Also hardened the same pattern in
+  `download-guard` for consistency. (macOS/Linux unaffected.)
+
 ## [0.4.5] — 2026-06-08
 
 ### Changed
@@ -577,7 +587,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...HEAD
+[0.4.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...fx-bug-toolkit--v0.4.6
 [0.4.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...fx-bug-toolkit--v0.4.5
 [0.4.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...fx-bug-toolkit--v0.4.4
 [0.4.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.2...fx-bug-toolkit--v0.4.3
