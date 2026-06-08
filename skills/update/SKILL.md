@@ -1,6 +1,6 @@
 ---
 name: update
-description: Update everything fx-bug-toolkit depends on — pull the plugin's own upstream changes (marketplace + plugin), and refresh the required CLIs (bmo-to-md, searchfox-cli, profiler-cli) to their latest versions, installing any that are missing. Triggers on "update fx-bug-toolkit", "update the toolkit", "fx-bug-toolkit update", "refresh dependencies".
+description: Update everything fx-bug-toolkit depends on — pull the plugin's own upstream changes (marketplace + plugin), refresh the firefox-wiki plugin if it's installed, and refresh the required CLIs (bmo-to-md, searchfox-cli, profiler-cli) to their latest versions, installing any that are missing. Triggers on "update fx-bug-toolkit", "update the toolkit", "fx-bug-toolkit update", "refresh dependencies".
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
@@ -45,6 +45,27 @@ The bare `claude plugin update fx-bug-toolkit` can fail to resolve, so don't rel
 on it. (The `marketplace update` line above correctly takes the bare marketplace
 name, `fx-bug-toolkit`.) Tell the user to **restart Claude Code** afterward so the
 updated skills load.
+
+### Also refresh the firefox-wiki plugin — only if it's installed
+
+The optional [firefox-wiki](https://github.com/alastor0325/firefox-wiki-plugin)
+plugin (the Accumulated Knowledge Database) is a **separate** Claude Code plugin.
+If the user has it installed, refresh it the same way; if not, skip silently —
+`/update` never installs it (that's a deliberate `/firefox-wiki:init` choice).
+
+```bash
+if claude plugin list 2>/dev/null | grep -q "firefox-wiki@firefox-wiki-plugin"; then
+  claude plugin marketplace update firefox-wiki-plugin       # refresh its marketplace from git
+  claude plugin update firefox-wiki@firefox-wiki-plugin      # update it (restart to apply)
+  echo "✅ firefox-wiki plugin refreshed"
+else
+  echo "skip firefox-wiki (not installed — set it up with /firefox-wiki:init)"
+fi
+```
+
+Like the toolkit, the wiki plugin pins its version, so this is a no-op until a new
+version ships. The wiki **content** (your `$WIKI_PATH` repo) is separate — pull it
+with normal `git` if you track a shared one; `/update` doesn't touch it.
 
 ## Step 2 — Update (and install-if-missing) the CLI dependencies
 
