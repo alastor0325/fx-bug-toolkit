@@ -9,6 +9,19 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.5] — 2026-06-08
+
+### Changed
+- **`/update` now also refreshes the firefox-wiki plugin when it's installed.**
+  If the optional Accumulated Knowledge Database plugin
+  (`firefox-wiki@firefox-wiki-plugin`) is present, `/update` runs
+  `claude plugin marketplace update` + `claude plugin update` on it too; if it's
+  not installed, it's skipped silently (never auto-installed). The wiki *content*
+  (`$WIKI_PATH`) is separate and untouched.
+- **Tutorial: the wiki plugin now installs directly** — `claude plugin
+  marketplace add alastor0325/firefox-wiki-plugin` (no `git clone` of the plugin
+  repo first), matching how fx-bug-toolkit itself installs.
+
 ## [0.4.4] — 2026-06-08
 
 ### Changed
@@ -564,7 +577,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...HEAD
+[0.4.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...fx-bug-toolkit--v0.4.5
 [0.4.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...fx-bug-toolkit--v0.4.4
 [0.4.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.2...fx-bug-toolkit--v0.4.3
 [0.4.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.1...fx-bug-toolkit--v0.4.2
