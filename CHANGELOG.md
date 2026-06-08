@@ -7,6 +7,10 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.4.1] — 2026-06-08
+
 ### Fixed
 - **The investigation viewer now reflects edited/added files on a plain reload.**
   `serve.py` previously built `index.json` only at launch, so editing a file and
@@ -527,7 +531,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.1...HEAD
+[0.4.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.0...fx-bug-toolkit--v0.4.1
 [0.4.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.19...fx-bug-toolkit--v0.4.0
 [0.3.19]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.18...fx-bug-toolkit--v0.3.19
 [0.3.18]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...fx-bug-toolkit--v0.3.18
