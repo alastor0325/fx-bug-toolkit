@@ -37,6 +37,22 @@ class TestPureHelpers(unittest.TestCase):
         self.assertEqual(fm, {})          # tolerated -> empty dict, not a crash
         self.assertEqual(body, "body")
 
+    def test_split_frontmatter_tolerates_unquoted_component_colon(self):
+        # The bug-15 case: an unquoted "Core :: Audio/Video" is invalid YAML.
+        # It must not crash the index build — body is still recovered.
+        fm, body = bi.split_frontmatter(
+            "---\nbug: 5\ncomponent: Core :: Audio/Video\n---\n# Bug 5\n")
+        self.assertEqual(fm, {})
+        self.assertTrue(body.startswith("# Bug 5"))
+
+    def test_has_frontmatter_block_distinguishes_present_from_absent(self):
+        # present + valid, present + invalid YAML -> True (a block exists);
+        # no opening fence, or an unterminated block -> False.
+        self.assertTrue(bi.has_frontmatter_block("---\nbug_id: 5\n---\nbody"))
+        self.assertTrue(bi.has_frontmatter_block("---\ncomponent: Core :: A/V\n---\nx"))
+        self.assertFalse(bi.has_frontmatter_block("# just a heading\n"))
+        self.assertFalse(bi.has_frontmatter_block("---\nno closing fence\n"))
+
     def test_clean_md_preserves_identifier_underscores(self):
         # the bug we fixed: '_' must NOT be stripped (blocking_policy stays intact)
         self.assertEqual(bi.clean_md("media.autoplay.blocking_policy"), "media.autoplay.blocking_policy")
