@@ -138,6 +138,7 @@
     <a href="#browse">Browse investigations</a>
     <a href="#review">Review a patch</a>
     <a href="#triage">Bug triage</a>
+    <a href="#team">Team dashboards</a>
     <a href="#wiki">Shared wiki</a>
     <div class="sep"></div>
     <a class="ext" href="https://github.com/alastor0325/fx-bug-toolkit" target="_blank">GitHub repo</a>
@@ -347,6 +348,32 @@
       <p>Queued actions collect under <b>Process queue</b> (top-right). When you're ready, open it and hit <b>Copy prompt → paste into Claude</b>: paste that short prompt into a Claude session and it drains the queue — applying your refines and running <code>bugzilla-cli apply</code> for each queued write. <b>Each apply asks you to confirm before it posts</b>, so the production write to Bugzilla is always gated on an explicit yes.</p>
       <div class="note"><b>That's reply mode.</b> In <b>read-only</b> mode (no API key) the <em>Apply</em> and <em>CC me / NI me / Assign me</em> controls aren't shown at all, and the Process-queue drain skips the apply step — only <b>Revise draft</b> (which never writes back) remains, so the board is purely for reading and refining the AI's drafts. A <b>“read-only · drafts only”</b> badge marks the mode.</div>
       <div class="note">The dashboard is optional and installs itself the first time you run <code>/open-triage</code> (the <a href="https://github.com/alastor0325/firefox-triage-dashboard" target="_blank">firefox-triage-dashboard</a> app — FastAPI, in a managed virtualenv); override its port with <code>PORT</code>. <code>/triage</code> works without it — it just writes the drafts to <code>$TRIAGE_DIR</code>.</div>
+    </section>
+
+    <section id="team">
+      <h2>Review-team dashboards</h2>
+      <pre><code><span class="cmd">/open-team</span>             <span class="cmt"># the landing page — pick a team</span>
+<span class="cmd">/open-team</span> playback    <span class="cmt"># straight to one team</span></code></pre>
+      <p><code>/open-team</code> opens <a href="https://alastor0325.github.io/firefox-review-stats/" target="_blank">firefox-review-stats</a> — per-team dashboards for Firefox review groups, published live and <b>refreshed weekly</b> by a GitHub Action. There's nothing to install and no local server: it's a hosted website, so the skill just opens it — the landing picker by default, or a named team (<code>playback</code>, <code>webrtc</code>, <code>gfx</code>) straight away.</p>
+      <figure>
+        <img src="./assets/open-team.png" alt="The firefox-review-stats Playback team dashboard, Team View">
+        <figcaption>The Playback team's <b>Team View</b> (6-month window): the headline summary, concentration metrics, and within-group review distribution. Real, public data from <a href="https://alastor0325.github.io/firefox-review-stats/playback/" target="_blank">the live dashboard</a>.</figcaption>
+      </figure>
+      <p>Each team page has four views — cycle them with <b>←/→</b>:</p>
+      <table>
+        <tr><th>View</th><th>What it answers</th></tr>
+        <tr><td><b>Team View</b></td><td>How review load is distributed and how concentrated it is (the metrics below). Toggle the window with <b>Shift+←/→</b>: 6-/3-/1-Month and Per-Week.</td></tr>
+        <tr><td><b>Member View</b></td><td>A per-member profile — weekly reviews + patches submitted, whose patches they reviewed, and wait times when they're the author.</td></tr>
+        <tr><td><b>Wait Queue</b></td><td>In-scope, member-authored revisions sorted by longest wait first, linked straight into Phabricator.</td></tr>
+        <tr><td><b>Recent Changes</b></td><td>A plain-language, LLM-summarized digest of what the component shipped (This Week / This Month), grouped into feature areas.</td></tr>
+      </table>
+      <p>The <b>Team View</b> is the load picture at a glance:</p>
+      <ul class="feat">
+        <li><b>Summary</b> — in-scope patch count, what % carried the group tag, how many listed members are actually reviewing, and <b>"landed without team review"</b> (with a foldable drill-down).</li>
+        <li><b>Concentration metrics</b> — <b>Top-1 / Top-3 / Top-5 share</b> of reviews, the <b>Gini coefficient</b> (0 = perfectly even, 1 = one person does everything), and the <b>bus factor</b> (how few members leaving would drop &gt;50% of reviews uncovered).</li>
+        <li><b>Within-group distribution</b> + <b>sole-reviewer patches</b> — who's carrying the reviews, and which patches only one person could have reviewed (the bus-factor risk surface).</li>
+      </ul>
+      <div class="note"><b>Deep links</b> live in the URL hash, so you can target a state directly — the Wait Queue is <code>…/playback/#queue</code>, this week's digest is <code>…/#recent/1w</code>, a 3-month rollup <code>…/#team/3m</code>. It's a read-only public site: no Bugzilla/Phabricator writes, no local data, no key.</div>
     </section>
 
     <section id="wiki">
