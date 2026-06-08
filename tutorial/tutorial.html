@@ -390,13 +390,29 @@
       </ul>
       <p>The <code>lookup</code>, <code>ingest</code>, <code>lint</code>, and <code>verify</code> skills run via those hooks — they're <b>not</b> in the slash menu and you never type them.</p>
 
+      <h3>What makes it useful to Claude</h3>
+      <ul class="feat">
+        <li><b>Every fact is cited.</b> A <a href="https://searchfox.org" target="_blank">Searchfox</a> permalink, a spec section, or a Bugzilla bug number backs each claim — never written from memory. So a lookup hands Claude a <em>verifiable</em> fact <b>with the exact source</b> to confirm against, and the <code>verify</code> hook can re-read those sources later and flag any that have drifted. Citations are what make the knowledge trustable instead of a pile of guesses.</li>
+        <li><b>It's a linked web, not flat notes.</b> Pages connect with <code>[[wiki-links]]</code> across <code>components/</code> (one class or subsystem each), <code>relations/</code> (how components interact), <code>patterns/</code> (reusable mechanisms), and <code>architecture/</code> (end-to-end pipelines). Pulling up one page brings its neighbours, so Claude gets <b>cross-component context</b> — a <code>MediaDecoderStateMachine</code> lookup also surfaces the AudioSink relation and the data-flow pattern it links to, not just one isolated page.</li>
+        <li><b>Jargon still resolves.</b> The pre-lookup hook expands abbreviations and <code>Class::Method</code> names from the wiki's alias map, so <code>MDSM</code>, <code>MediaDecoderStateMachine</code>, and <code>MDSM::DecodeLoop</code> all land on the same page — Claude doesn't have to know the exact title.</li>
+        <li><b>The check is cheap.</b> Lookups read a compact derived index (<code>index.json</code>) first and only fall back to the full index when needed, so checking the wiki before <em>every</em> code search stays fast.</li>
+      </ul>
+
       <h3>The commands you <em>do</em> type</h3>
       <table>
         <tr><th>Command</th><th>What it does</th></tr>
         <tr><td><code>/firefox-wiki:add &lt;input&gt;</code></td><td>Add knowledge by hand — a spec <b>URL</b> or <b>PDF</b> (distilled into <code>specs/</code>), <code>bug NNNN</code> (extracted from the bug), or a plain-language fact (e.g. <em>"AudioSink runs on the MDSM task queue, not its own thread"</em>).</td></tr>
-        <tr><td><code>/firefox-wiki:stats</code></td><td>Usage metrics — lookup hit rate and which kinds of work consult the wiki.</td></tr>
+        <tr><td><code>/firefox-wiki:stats</code></td><td>Usage metrics — lookup <b>hit rate</b>, most-consulted pages, false-confidence rate, and coverage gaps (run it ~monthly; see below).</td></tr>
         <tr><td><code>/firefox-wiki:init</code></td><td>One-time setup (below).</td></tr>
       </table>
+      <div class="note"><b>Run <code>/firefox-wiki:stats</code> about monthly</b> to see whether the wiki is paying off and where to invest:
+        <ul class="feat">
+          <li><b>Hit rate</b> — how often a lookup already had the answer. Rising = the wiki is doing its job; flat-and-low = it's too sparse to lean on yet.</li>
+          <li><b>Most-consulted pages</b> — your load-bearing knowledge; keep these accurate (let <code>verify</code> re-check them, fix promptly).</li>
+          <li><b>False-confidence rate</b> — lookups that returned a fact later found wrong. Anything here is a priority: re-verify and correct those pages.</li>
+          <li><b>Coverage gaps</b> — topics searched but not yet in the wiki: the best candidates to write up with <code>/firefox-wiki:add</code>.</li>
+        </ul>
+      </div>
 
       <h3>Set it up</h3>
       <p><b>The plugin (the tooling) and the wiki content (the knowledge) are separate things.</b> Install the plugin once, then point it at <em>a</em> wiki — <b>your own</b>, or a shared team one.</p>
@@ -413,7 +429,7 @@ claude plugin install firefox-wiki@firefox-wiki-plugin</code></pre>
       <p><b>3 — Initialize</b> in Claude Code, then restart. It verifies the dependencies, scaffolds the wiki, installs the pre-lookup hook, and offers to persist <code>WIKI_PATH</code>:</p>
       <pre><code><span class="cmd">/firefox-wiki:init</span></code></pre>
 
-      <div class="note"><b>Browse it like notes.</b> The wiki is plain Markdown with <code>[[wiki-links]]</code> — open <code>$WIKI_PATH</code> as an <a href="https://obsidian.md" target="_blank">Obsidian</a> vault to explore the graph. <b>Every fact is cited</b> — a Searchfox permalink, a spec section, or a Bugzilla bug number — never written from memory, which is what lets the wiki re-verify itself over time.</div>
+      <div class="note"><b>Browse it like notes.</b> The wiki is plain Markdown with <code>[[wiki-links]]</code> — open <code>$WIKI_PATH</code> as an <a href="https://obsidian.md" target="_blank">Obsidian</a> vault to explore the linked graph visually.</div>
     </section>
 
     <footer>
