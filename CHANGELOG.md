@@ -9,6 +9,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.4] — 2026-06-08
+
+### Changed
+- **The investigations viewer (`/open-investigation`) now defaults to port 9000**
+  instead of auto-picking a free port. `FX_VIEWER_PORT` still overrides, a running
+  instance is still reused, and if 9000 is already taken by another app the
+  launcher falls back to a free port (and prints it) so it never hard-fails. Gives
+  the viewer a stable, bookmarkable URL (`http://127.0.0.1:9000/viewer.html`),
+  matching `/open-review`'s fixed-port behavior.
+
 ## [0.4.3] — 2026-06-08
 
 ### Changed
@@ -554,7 +564,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...HEAD
+[0.4.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...fx-bug-toolkit--v0.4.4
 [0.4.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.2...fx-bug-toolkit--v0.4.3
 [0.4.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.1...fx-bug-toolkit--v0.4.2
 [0.4.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.0...fx-bug-toolkit--v0.4.1

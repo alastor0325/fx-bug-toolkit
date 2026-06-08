@@ -61,10 +61,11 @@ works the same in bash, zsh, and sh. Pick `python3`/`python` once — never
 
 Then:
 - **Relay the exact URL the launcher prints** (e.g. `serving (pid …) —
-  http://127.0.0.1:<port>/viewer.html`). The port is **picked automatically** —
-  a free one each fresh start, persisted so a re-run reuses the same instance —
-  so don't assume a fixed number; read it from the launcher's output. Offer to
-  open it — macOS `open <url>`, Linux `xdg-open <url>`, Windows `start <url>`.
+  http://127.0.0.1:<port>/viewer.html`). It defaults to **port 9000**; a running
+  instance is reused, and if 9000 is taken by another app the launcher falls back
+  to a free port — so still read the actual URL from the launcher's output rather
+  than assuming 9000. Offer to open it — macOS `open <url>`, Linux `xdg-open
+  <url>`, Windows `start <url>`.
 - The server binds to `127.0.0.1` only, so investigation content stays local.
 - It reads from `$FX_BUG_INVESTIGATION_DIR` (default
   `~/.fx-bug-toolkit/bug-investigation`), recursively across all subfolders.
