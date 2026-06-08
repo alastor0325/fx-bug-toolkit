@@ -419,8 +419,10 @@ context-window headroom. As each subagent finishes, start the next.
 4. **Merge results** after all agents finish:
 
    ```bash
+   # python3 on macOS/Linux, python on Windows git-bash — pick one that exists.
+   PY="$(command -v python3 || command -v python)"
    # Merge triage-log tmp files into triage-log.json (the dashboard reads this)
-   python3 - <<'EOF'
+   "$PY" - <<'EOF'
    import json, glob, os
    log_path = os.path.expanduser('~/firefox-triage/triage-log.json')
    entries = json.load(open(log_path)) if os.path.exists(log_path) else []
@@ -434,9 +436,9 @@ context-window headroom. As each subagent finishes, start the next.
    # Run deferred watch-add calls
    for f in ~/firefox-triage/watch-tmp-*.json 2>/dev/null; do
      [ -f "$f" ] || continue
-     bug_id=$(python3 -c "import json; d=json.load(open('$f')); print(d['bug_id'])")
-     title=$(python3 -c "import json; d=json.load(open('$f')); print(d['title'])")
-     ni_args=$(python3 -c "import json; d=json.load(open('$f')); print(' '.join(['--ni '+e for e in d['ni_targets']]))")
+     bug_id=$("$PY" -c "import json; d=json.load(open('$f')); print(d['bug_id'])")
+     title=$("$PY" -c "import json; d=json.load(open('$f')); print(d['title'])")
+     ni_args=$("$PY" -c "import json; d=json.load(open('$f')); print(' '.join(['--ni '+e for e in d['ni_targets']]))")
      bugzilla-cli watch-add "$bug_id" --title "$title" $ni_args
      rm "$f"
    done

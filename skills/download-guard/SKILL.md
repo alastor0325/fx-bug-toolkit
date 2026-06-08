@@ -41,14 +41,15 @@ DLDIR=~/.fx-bug-toolkit/download-cache
 mkdir -p "$DLDIR"
 # delete downloaded files older than 30 days (never the manifest)
 find "$DLDIR" -maxdepth 1 -type f ! -name manifest.jsonl -mtime +30 -delete 2>/dev/null
-# drop manifest rows whose file no longer exists
-python3 - "$DLDIR" <<'PY' 2>/dev/null || true
+# drop manifest rows whose file no longer exists (python3 on macOS/Linux, python on Windows git-bash)
+PY="$(command -v python3 || command -v python)"
+"$PY" - "$DLDIR" <<'PYEOF' 2>/dev/null || true
 import json, os, sys
 d = sys.argv[1]; m = os.path.join(d, "manifest.jsonl")
 if os.path.exists(m):
     keep = [l for l in open(m) if l.strip() and os.path.exists(os.path.join(d, json.loads(l).get("path","")))]
     open(m, "w").writelines(keep)
-PY
+PYEOF
 ```
 
 ## 2. Ask — a Yes/No `AskUserQuestion`, one per file

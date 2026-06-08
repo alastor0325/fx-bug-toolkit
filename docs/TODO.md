@@ -177,19 +177,12 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       Claude Code's bundled git-bash). Also hardened `review-dashboard` to resolve
       `python3 || python` (was bare `python3`, which Windows git-bash lacks),
       matching the other skills.
-- [ ] **`/triage` uses bare `python3` (breaks on Windows git-bash).** (raised
-      2026-06-06) `skills/triage/SKILL.md` "Merge results" step calls bare
-      `python3` four times — the heredoc at line ~423 (merge triage-log tmp files)
-      and three inline `python3 -c` calls at lines ~437–439 (deferred `watch-add`
-      drain). Windows git-bash typically only has `python` on PATH, so these fail.
-      Every other shipped skill (`open-investigation`, `bug-start`, `open-review`,
-      `open-triage`) already resolves `PY="$(command -v python3 || command -v
-      python)"` first — apply the same pattern to triage and call `"$PY"`.
-      *Minor / lower priority (graceful today):* `download-guard` line ~45 (bare
-      `python3` but guarded with `2>/dev/null || true`, so it degrades silently)
-      and `init` line ~273 (a `!`-prefixed one-liner the **user** pastes; `init`
-      already detects `python3||python`). Harden both for consistency when touching
-      triage.
+- [x] **`/triage` uses bare `python3` (breaks on Windows git-bash).** Fixed in
+      0.4.6: the "Merge results" step (triage-log merge heredoc + the three inline
+      `watch-add` drain calls) now resolves `PY="$(command -v python3 || command -v
+      python)"` and calls `"$PY"`, matching the other skills. Also hardened
+      `download-guard`'s manifest-prune call the same way. (`init` no longer had a
+      bare `python3` — the autoMode one-liner was removed in 0.3.15.)
 - [x] ~~Optional: `serve.py` auto-open the browser per-OS.~~ Decided **no** — the
       launch *skills* open the URL per-OS (`open`/`xdg-open`/`start`); a detached
       background server shouldn't spawn a browser itself (flaky, and it'd open in
