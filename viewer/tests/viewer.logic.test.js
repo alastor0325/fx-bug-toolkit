@@ -26,6 +26,12 @@ test("bz builds a bugzilla URL", () => {
   assert.strictEqual(VL.bz(123456), "https://bugzilla.mozilla.org/show_bug.cgi?id=123456");
 });
 
+test("indexUrl cache-busts index.json with the given nonce", () => {
+  assert.strictEqual(VL.indexUrl(1700000000000), "./index.json?ts=1700000000000");
+  // distinct nonces (e.g. per page load) yield distinct URLs, defeating the cache
+  assert.notStrictEqual(VL.indexUrl(1), VL.indexUrl(2));
+});
+
 test("depthMeta maps triage/deep to plain labels, passes others through", () => {
   assert.strictEqual(VL.depthMeta("triage").label, "quick");
   assert.strictEqual(VL.depthMeta("deep").label, "full");

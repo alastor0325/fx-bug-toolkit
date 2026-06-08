@@ -292,7 +292,9 @@ window.addEventListener('hashchange', ()=>{
 $('#q').addEventListener('input', ()=>{ sel=-1; applyFilters(); });
 $('#sort').addEventListener('click', ()=>{ sortDesc=!sortDesc; $('#sort').textContent = sortDesc?'↓ newest':'↑ oldest'; applyFilters(); });
 
-fetch('./index.json').then(r=>r.json()).then(data=>{
+// Cache-bust + no-store so a reload always pulls the freshly rebuilt index
+// (serve.py rebuilds it on every start), never a stale browser-cached copy.
+fetch(indexUrl(Date.now()), {cache:'no-store'}).then(r=>r.json()).then(data=>{
   DATA=data;
   applyFilters();
   const h = decodeURIComponent(location.hash.replace(/^#/, ''));
