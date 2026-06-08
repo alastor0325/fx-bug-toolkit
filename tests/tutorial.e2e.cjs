@@ -51,7 +51,7 @@ async function main() {
     await check("hero shows the display title", async () =>
       assert.match(await page.locator("h1").innerText(), /FX Bug Toolkit/));
     await check("TOC has all chapter links", async () =>
-      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 8));
+      assert.strictEqual(await page.locator('#toc a[href^="#"]').count(), 9));
     await check("repo link present and correct", async () =>
       assert.ok((await page.locator('#toc a.ext').getAttribute("href")).includes("alastor0325/fx-bug-toolkit")));
     await check("wiki link points at firefox-wiki-plugin", async () =>
@@ -60,6 +60,8 @@ async function main() {
       assert.strictEqual(await page.locator('#triage figure img[src*="triage-dashboard"]').count(), 1));
     await check("review section embeds the revue screenshot", async () =>
       assert.strictEqual(await page.locator('#review figure img[src*="review-dashboard"]').count(), 1));
+    await check("team section embeds the team-dashboard screenshot", async () =>
+      assert.strictEqual(await page.locator('#team figure img[src*="open-team"]').count(), 1));
 
     await check("clicking a TOC chapter sets the URL hash", async () => {
       await page.click('#toc a[href="#commands"]');

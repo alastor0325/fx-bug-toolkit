@@ -85,6 +85,7 @@ source plugin shown next to each.
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — verifies purpose against the spec, checks architecture & code, writes a structured review doc |
 | `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
+| `/open-team [team]` | Open the [firefox-review-stats](https://alastor0325.github.io/firefox-review-stats/) team dashboards (review-load distribution + a digest of what each component shipped). Opens the live site — landing page by default, or `playback`/`webrtc`/`gfx` when named. No install |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 
 ### Behind the scenes (Claude uses these automatically — you don't call them)

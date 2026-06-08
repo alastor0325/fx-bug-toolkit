@@ -9,6 +9,19 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.0] — 2026-06-08
+
+### Added
+- **`/open-team` — open the Firefox review-team dashboards.** A new command in the
+  `/open-*` family that opens [firefox-review-stats](https://alastor0325.github.io/firefox-review-stats/),
+  the live, weekly-refreshed per-team dashboards for Firefox review groups
+  (within-group review-load distribution, concentration metrics — Top-N share,
+  Gini, bus factor — sole-reviewer risk, a per-revision wait queue, and an
+  LLM-summarized digest of what each component shipped). It opens the hosted
+  GitHub Pages site — the landing picker by default, or a named team
+  (`playback`/`webrtc`/`gfx`) straight away. Nothing to install, no local server.
+  Added a tutorial chapter (with a screenshot) explaining the views and metrics.
+
 ## [0.3.19] — 2026-06-08
 
 ### Fixed
@@ -493,7 +506,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.19...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.0...HEAD
+[0.4.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.19...fx-bug-toolkit--v0.4.0
 [0.3.19]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.18...fx-bug-toolkit--v0.3.19
 [0.3.18]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...fx-bug-toolkit--v0.3.18
 [0.3.17]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...fx-bug-toolkit--v0.3.17
