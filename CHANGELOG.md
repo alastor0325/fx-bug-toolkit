@@ -9,6 +9,23 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.3] — 2026-06-08
+
+### Changed
+- **`/open-review` defaults to a stable port and stops prompting for a worktree**
+  ([#22](https://github.com/alastor0325/fx-bug-toolkit/issues/22)). It now serves
+  on **7779** (bookmarkable), falling back to a free port only if 7779 is taken,
+  and reuses an already-running board. It no longer pre-flights the series or asks
+  which worktree to open — it just launches on the resolved repo and lets you
+  switch worktrees in Revue's own UI.
+
+### Fixed
+- **`/open-review` requires Revue ≥ 0.1.1**
+  ([#24](https://github.com/alastor0325/fx-bug-toolkit/issues/24)). Older Revue
+  mislabelled sibling-worktree URL hashes (e.g. `#firefox-2045395` instead of
+  `#2045395`); the skill now checks `revue --version` and offers to upgrade a
+  stale install from GitHub.
+
 ## [0.4.2] — 2026-06-08
 
 ### Changed
@@ -537,7 +554,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.2...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...HEAD
+[0.4.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.2...fx-bug-toolkit--v0.4.3
 [0.4.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.1...fx-bug-toolkit--v0.4.2
 [0.4.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.0...fx-bug-toolkit--v0.4.1
 [0.4.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.19...fx-bug-toolkit--v0.4.0
