@@ -27,13 +27,23 @@ _FNAME = re.compile(r"bug-(.+)-investigation\.md$")   # id may be numeric or a s
 _H1 = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
 
 
+def has_frontmatter_block(text: str) -> bool:
+    """True if `text` opens a `---\\n … \\n---` frontmatter block — regardless of
+    whether its YAML actually parses. Lets the indexer tell "no frontmatter"
+    apart from "a block that's invalid YAML" so it can warn instead of silently
+    dropping the metadata."""
+    return text.startswith("---\n") and text.find("\n---", 4) != -1
+
+
 def split_frontmatter(text: str):
-    """Return (frontmatter_dict_or_None, body_markdown)."""
-    if not text.startswith("---\n"):
+    """Return (frontmatter_dict_or_None, body_markdown).
+
+    `None` = no frontmatter block at all; `{}` = a block that was empty or failed
+    to parse (invalid YAML). Callers distinguish the two via
+    has_frontmatter_block()."""
+    if not has_frontmatter_block(text):
         return None, text
     end = text.find("\n---", 4)
-    if end == -1:
-        return None, text
     fm_raw = text[4:end]
     body = text[end + 4:].lstrip("\n")
     if yaml is None:
@@ -135,6 +145,9 @@ def main() -> int:
         text = path.read_text(encoding="utf-8", errors="replace")
         fm, body = split_frontmatter(text)
         has_fm = fm is not None and len(fm) > 0
+        if not has_fm and has_frontmatter_block(text):
+            print(f"warning: {rel}: frontmatter present but did not parse "
+                  f"(invalid YAML?); indexing with empty metadata", file=sys.stderr)
         fm = fm or {}
         # Real bug number (for the Bugzilla link): frontmatter bug_id, else a
         # 6-8 digit run in the filename. Slug-only files have no number.

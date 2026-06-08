@@ -412,6 +412,20 @@ Field schema:
 | `complexity` | string | yes | One of: `low`, `medium`, `high`. Best estimate of fix difficulty |
 | `notes` | string | yes | Free-form 1–2 lines for nuance the other fields miss. Empty string when none |
 
+**YAML validity — mandatory (a malformed block breaks the dashboard + viewer):**
+
+- Emit **exactly** the fields above and nothing else. Do **not** improvise
+  Bugzilla-style keys such as `component`, `title`, `bug`, `assignee`, `public`,
+  `security`, or `keywords` — those belong in the `## Summary` **body**, not the
+  frontmatter.
+- **Double-quote any string value that contains a colon.** An unquoted `:` (or
+  `::`) makes YAML start a nested mapping and the whole block fails to parse
+  (*"mapping values are not allowed in this context"*). The Bugzilla component
+  `Core :: Audio/Video` is the classic trap — and it goes in the body, never
+  here. For any in-schema value that contains a colon (a `summary`, `root_cause`,
+  or `notes` mentioning `Foo::Bar`, a ratio, etc.), wrap it in double quotes:
+  `summary: "AudioContext::resume bypasses the autoplay gate"`.
+
 The frontmatter sits BEFORE the `# Bug {bug_id} Investigation` H1 — when the
 file is rendered to a human, most markdown viewers either skip the
 frontmatter or render it as a structured info block; either way the H1 still
@@ -423,15 +437,15 @@ appears at the top.
 bug_id: {bug_id}
 investigated_at: {ISO 8601 UTC timestamp at investigation time}
 status: investigated
-summary: {≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No "Bug NNNN" prefix, no trailing period. e.g. "Web Audio bypasses autoplay policy under non-default blocking modes"}
-root_cause: {one-sentence what's actually broken}
+summary: "{≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No 'Bug NNNN' prefix, no trailing period. e.g. Web Audio bypasses autoplay policy under non-default blocking modes}"
+root_cause: "{one-sentence what's actually broken}"
 affected_files:
   - {searchfox-relative path}#L{specific line you cited in the body}
   - {searchfox-relative path}                              # bare path = whole-file reference
 regression_range: null
 related_bugs: [{id}, {id}]
 complexity: medium
-notes: {1-2 lines of nuance, or empty string}
+notes: "{1-2 lines of nuance, or empty string}"
 ---
 
 # Bug {bug_id} Investigation
@@ -671,14 +685,14 @@ bug_id: {bug_id}
 investigated_at: {ISO 8601 UTC now}
 status: investigated
 depth: triage
-summary: {≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No "Bug NNNN" prefix, no trailing period.}
-root_cause: {one-sentence what's actually broken}
+summary: "{≤90-char plain-language headline of what the bug is — the one-line preview shown in list/browse tools. No 'Bug NNNN' prefix, no trailing period.}"
+root_cause: "{one-sentence what's actually broken}"
 affected_files:
   - {best-guess searchfox-relative path}#L{line, if a specific one is implicated}
 regression_range: null
 related_bugs: [{id}]
 complexity: medium
-notes: {1-2 lines of nuance, or ""}
+notes: "{1-2 lines of nuance, or empty string}"
 ---
 
 # Bug {bug_id} Investigation (triage mode)

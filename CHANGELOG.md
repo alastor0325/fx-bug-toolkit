@@ -9,6 +9,24 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.3.19] — 2026-06-08
+
+### Fixed
+- **The viewer now reflects updated investigations.** `viewer.html` fetched
+  `index.json` with no cache-busting, so the browser served a stale cached copy
+  even though `serve.py` rebuilds the index on every start — the viewer "wouldn't
+  catch up" after the investigation dir changed. It now fetches with a per-load
+  nonce + `{cache:'no-store'}`, so a reload always shows current data.
+- **`bug-start` no longer emits invalid-YAML frontmatter** ([#15](https://github.com/alastor0325/fx-bug-toolkit/issues/15)).
+  The agent sometimes improvised Bugzilla-style keys and wrote an unquoted
+  `component: Core :: Audio/Video`, whose ` :: ` is invalid YAML (*"mapping
+  values are not allowed in this context"*), breaking frontmatter parsers. The
+  frontmatter contract is now explicit: use **only** the documented schema fields
+  (no ad-hoc `component`/`title`/`assignee`/… keys — those live in the body), and
+  **double-quote any value containing a colon**; both templates quote their
+  free-text fields. The viewer indexer also now **warns** on a present-but-
+  unparseable block instead of silently dropping its metadata.
+
 ## [0.3.18] — 2026-06-06
 
 ### Changed
@@ -475,7 +493,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.18...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.19...HEAD
+[0.3.19]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.18...fx-bug-toolkit--v0.3.19
 [0.3.18]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.17...fx-bug-toolkit--v0.3.18
 [0.3.17]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.16...fx-bug-toolkit--v0.3.17
 [0.3.16]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.3.15...fx-bug-toolkit--v0.3.16
