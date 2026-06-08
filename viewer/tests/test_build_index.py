@@ -53,6 +53,14 @@ class TestPureHelpers(unittest.TestCase):
         self.assertFalse(bi.has_frontmatter_block("# just a heading\n"))
         self.assertFalse(bi.has_frontmatter_block("---\nno closing fence\n"))
 
+    def test_is_security(self):
+        # canonical signal: a `## Security Rating` section (bug-start requires it)
+        self.assertTrue(bi.is_security({}, "# Bug 5\n\n## Security Rating\n\nsec-high\n"))
+        self.assertTrue(bi.is_security({}, "## security rating\n"))         # case-insensitive
+        self.assertTrue(bi.is_security({"security": True}, "no section"))   # explicit frontmatter
+        self.assertFalse(bi.is_security({}, "# Bug 5\n\n## Summary\n"))
+        self.assertFalse(bi.is_security({}, ""))
+
     def test_clean_md_preserves_identifier_underscores(self):
         # the bug we fixed: '_' must NOT be stripped (blocking_policy stays intact)
         self.assertEqual(bi.clean_md("media.autoplay.blocking_policy"), "media.autoplay.blocking_policy")
@@ -101,6 +109,18 @@ class TestEndToEndBuild(unittest.TestCase):
                            env=env, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(out.read_text(encoding="utf-8"))
+
+    def test_security_flag_from_rating_section(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "bug-555555-investigation.md").write_text(
+                "---\nbug_id: 555555\nsummary: a sec bug\n---\n"
+                "# Bug 555555 Investigation\n\n## Security Rating\n\nsec-high — info leak\n")
+            (root / "bug-666666-investigation.md").write_text(
+                "---\nbug_id: 666666\nsummary: not a sec bug\n---\n# Bug 666666\n\n## Summary\n")
+            by_id = {str(i["bug_id"]): i for i in self._build(root)}
+            self.assertTrue(by_id["555555"]["security"])
+            self.assertFalse(by_id["666666"]["security"])
 
     def test_recursive_scan_numbers_slugs_folders_and_exclusions(self):
         with tempfile.TemporaryDirectory() as d:

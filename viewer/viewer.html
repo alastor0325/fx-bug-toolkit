@@ -118,6 +118,8 @@
   .chip.cx-high{color:var(--red); border-color:rgba(255,123,114,.35)}
   .chip.folder{color:var(--cyan); border-color:rgba(106,215,198,.28); text-transform:none; letter-spacing:0}
   .chip.folder::before{content:"❏ "; opacity:.7}
+  .chip.security{color:#ffb4ad; border-color:rgba(255,123,114,.55); background:rgba(255,123,114,.14); font-weight:600}
+  .chip.security::before{content:"🔒 "}
   .railempty{padding:40px 20px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px}
 
   /* ---------- detail ---------- */
@@ -225,9 +227,10 @@ function renderList(){
     li.className = 'row'+(d.has_frontmatter?'':' sparse');
     li.style.animationDelay = Math.min(i*14, 320)+'ms';
     let chips='';
+    if(d.security) chips+=chip('security','security');   // prominent first; sec bugs stand out
     if(d.folder) chips+=`<span class="chip folder">${escapeHtml(d.folder)}</span>`;
     if(d.depth) chips+=depthChip(d.depth);
-    if(d.complexity) chips+=chip(d.complexity,'cx-'+d.complexity);
+    // complexity is shown only in the detail pane, not on list rows
     li.innerHTML = `<div class="topline"><span class="id">#${escapeHtml(String(d.bug_id))}</span><span class="date">${d.date}</span></div>
       <div class="title">${escapeHtml(d.summary)}</div>${chips?`<div class="chips">${chips}</div>`:''}`;
     li.onclick = ()=>select(i);
@@ -253,6 +256,7 @@ function select(i){
   const d = view[i];
   let meta='';
   const m=[];
+  if(d.security) m.push(chip('security','security'));
   if(d.folder) m.push(`<span class="chip folder">${escapeHtml(d.folder)}</span>`);
   if(d.depth) m.push(depthChip(d.depth));
   if(d.complexity) m.push(chip('complexity · '+d.complexity,'cx-'+d.complexity));

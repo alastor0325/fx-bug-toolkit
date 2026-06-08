@@ -21,6 +21,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
   box used to filter only the (hidden) sidebar list, so a collapsed sidebar made
   search appear to do nothing. With the sidebar folded, matches now appear in a
   dropdown under the search box; click one to open it.
+- **`SECURITY` chip on security-bug rows.** Investigations flagged as security
+  bugs (a `## Security Rating` section — what `bug-start` writes for any sec-* /
+  security-group bug — or an explicit `security: true`) now show a red `SECURITY`
+  chip in the list and detail, so they stand out at a glance.
+
+### Changed
+- **Complexity moved off the list rows** into the detail pane only, keeping rows
+  focused on the high-signal tags (security, folder, depth).
 
 ## [0.4.0] — 2026-06-08
 
