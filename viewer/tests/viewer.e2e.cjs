@@ -20,7 +20,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "applica
 
 const INDEX = [
   { bug_id: 700001, bug_url: "https://bugzilla.mozilla.org/show_bug.cgi?id=700001",
-    folder: null, summary: "Numbered headline", status: null, depth: "deep", complexity: "high",
+    folder: null, summary: "Numbered headline", status: null, depth: "deep", complexity: "high", security: true,
     root_cause: "the numbered root cause", affected_files: ["dom/media/Foo.cpp#L10-L12"],
     related_bugs: [222], investigated_at: "2026-01-01T00:00:00Z", notes: null,
     has_frontmatter: true, date: "2026-01-01",
@@ -77,8 +77,14 @@ async function main() {
     // chips are uppercased via CSS, so innerText is FULL/HIGH — match case-insensitively
     await check("depth chip shows plain 'full' for deep", async () =>
       assert.match(await page.locator(".row").first().locator(".chip.depth-deep").innerText(), /full/i));
-    await check("complexity chip 'high'", async () =>
-      assert.match(await page.locator(".row").first().locator(".chip.cx-high").innerText(), /high/i));
+    await check("complexity is NOT shown on list rows", async () =>
+      assert.strictEqual(await page.locator(".row .chip[class*='cx-']").count(), 0));
+    await check("SECURITY chip shows on the security-bug row", async () => {
+      assert.strictEqual(await page.locator(".row").first().locator(".chip.security").count(), 1);
+      assert.match(await page.locator(".row").first().locator(".chip.security").innerText(), /security/i);
+    });
+    await check("no SECURITY chip on a non-security row", async () =>
+      assert.strictEqual(await page.locator(".row.sparse .chip.security").count(), 0));
     await check("folder chip on the slug row", async () =>
       assert.match(await page.locator(".row.sparse").innerText(), /mf-playback/));
     await check("sparse row class for no-frontmatter file", async () =>
@@ -117,6 +123,10 @@ async function main() {
     });
     await check("root cause block", async () =>
       assert.match(await page.locator(".rootcause").innerText(), /numbered root cause/));
+    await check("complexity IS shown in the detail meta (moved off the row)", async () =>
+      assert.match(await page.locator(".meta .chip.cx-high").innerText(), /high/i));
+    await check("SECURITY chip in the detail meta", async () =>
+      assert.strictEqual(await page.locator(".meta .chip.security").count(), 1));
     await check("bugzilla link in detail", async () =>
       assert.ok((await page.locator(".dochead .id a").getAttribute("href")).endsWith("=700001")));
     await check("affected-file searchfox link (L stripped from anchor)", async () => {
@@ -187,6 +197,34 @@ async function main() {
     await check("toggle button folds", async () => {
       await page.click("#toggle"); assert.ok(await collapsed());
       await page.click("#toggle"); assert.ok(!(await collapsed()));
+    });
+
+    // fix #2 — the open/closed state survives a browser reload
+    await check("sidebar collapsed state persists across reload", async () => {
+      await page.evaluate(() => localStorage.clear());
+      await reload();
+      assert.ok(!(await collapsed()), "fresh load is expanded by default");
+      await page.click("#toggle");                 // collapse
+      assert.ok(await collapsed());
+      await reload();                              // browser refresh
+      assert.ok(await collapsed(), "stays collapsed after reload");
+    });
+
+    // fix #3 — when collapsed, search surfaces a results dropdown you can click
+    await check("collapsed search shows a results dropdown; click navigates", async () => {
+      // (still collapsed from the previous check)
+      await page.fill("#q", "Numbered");
+      await page.waitForSelector("#results:not([hidden]) .res");
+      assert.ok((await page.locator("#results .res").count()) >= 1);
+      await page.locator("#results .res").first().click();
+      assert.match(await page.locator(".dochead h1").innerText(), /Numbered headline/);
+      assert.ok(await page.locator("#results").evaluate(el => el.hidden), "dropdown hides after a pick");
+    });
+    await check("dropdown stays hidden when the sidebar is expanded", async () => {
+      await page.evaluate(() => localStorage.clear());
+      await reload();                              // expanded (default)
+      await page.fill("#q", "Numbered");
+      assert.ok(await page.locator("#results").evaluate(el => el.hidden), "no dropdown while the list is visible");
     });
 
   } finally {

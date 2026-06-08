@@ -30,8 +30,8 @@ const featured = {
 
 const fakes = [
   { bug_id: 1898555, bug_url: "https://bugzilla.mozilla.org/show_bug.cgi?id=1898555", folder: "hdr-windows",
-    summary: "HEVC hardware decode silently falls back to software on some Intel GPUs", depth: "deep",
-    complexity: "high", root_cause: null, affected_files: [], related_bugs: [], has_frontmatter: true,
+    summary: "Heap buffer over-read parsing a malformed HEVC SPS on the Windows decode path", depth: "deep",
+    complexity: "high", security: true, root_cause: null, affected_files: [], related_bugs: [], has_frontmatter: true,
     date: "2026-05-30", body: "# Bug 1898555\n" },
   { bug_id: "mfcdm-terminated", bug_url: null, folder: "mf-playback",
     summary: "CDM process termination is not surfaced to active MediaKeySession objects", depth: "triage",

@@ -55,6 +55,14 @@ function byDate(a, b, desc) {
   return desc ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
 }
 
+// Whether to show the search-results dropdown. The filtered list lives only in
+// the sidebar, so when the sidebar is collapsed a search would otherwise have no
+// visible surface — show the dropdown only then, and only with a real query and
+// at least one match.
+function shouldShowDropdown(collapsed, query, count) {
+  return !!collapsed && String(query == null ? "" : query).trim().length > 0 && count > 0;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate };
+  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate, shouldShowDropdown };
 }

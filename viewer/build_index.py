@@ -25,6 +25,9 @@ except ImportError:
 
 _FNAME = re.compile(r"bug-(.+)-investigation\.md$")   # id may be numeric or a slug
 _H1 = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
+# bug-start REQUIRES a `## Security Rating` section for any sec-* / security-group
+# bug (and omits it otherwise) — the canonical "this is a security bug" signal.
+_SEC_HEADING = re.compile(r"(?im)^\s{0,3}#{1,6}\s+Security Rating\b")
 
 
 def has_frontmatter_block(text: str) -> bool:
@@ -124,6 +127,16 @@ def date_for(fm: dict | None, path: Path) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
 
 
+def is_security(fm: dict, body: str) -> bool:
+    """True for a security investigation. The canonical signal is a
+    `## Security Rating` section in the body (bug-start requires it for any
+    sec-* / security-group bug); an explicit truthy `security` frontmatter field
+    also counts."""
+    if fm.get("security"):
+        return True
+    return bool(_SEC_HEADING.search(body or ""))
+
+
 def main() -> int:
     if not INVDIR.is_dir():
         print(f"investigation dir not found: {INVDIR}", file=sys.stderr)
@@ -171,6 +184,7 @@ def main() -> int:
             "status": (fm.get("status") or "").strip() or None,
             "depth": (fm.get("depth") or "").strip() or None,
             "complexity": (fm.get("complexity") or "").strip() or None,
+            "security": is_security(fm, body),
             "root_cause": root_cause,
             "affected_files": [str(x) for x in as_list(fm.get("affected_files"))],
             "related_bugs": [int(x) for x in as_list(fm.get("related_bugs")) if str(x).isdigit()],

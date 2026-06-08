@@ -161,6 +161,13 @@ class TestPortHelpers(unittest.TestCase):
     def test_url_for(self):
         self.assertEqual(serve.url_for(8777), "http://127.0.0.1:8777/viewer.html")
 
+    def test_is_index_request(self):
+        # Matches index.json regardless of the cache-busting query string.
+        self.assertTrue(serve.is_index_request("/index.json"))
+        self.assertTrue(serve.is_index_request("/index.json?ts=1700000000000"))
+        self.assertFalse(serve.is_index_request("/viewer.html"))
+        self.assertFalse(serve.is_index_request("/"))
+
     def test_resolve_reuses_live_instance(self):
         # A live instance with a recorded port → reuse it, ignore env.
         self.assertEqual(serve.resolve_port(9999, True, 8800), (8800, True))

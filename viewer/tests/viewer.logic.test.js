@@ -32,6 +32,14 @@ test("indexUrl cache-busts index.json with the given nonce", () => {
   assert.notStrictEqual(VL.indexUrl(1), VL.indexUrl(2));
 });
 
+test("shouldShowDropdown: only when collapsed + non-blank query + matches", () => {
+  assert.strictEqual(VL.shouldShowDropdown(true, "foo", 3), true);
+  assert.strictEqual(VL.shouldShowDropdown(false, "foo", 3), false);  // expanded → the list is the surface
+  assert.strictEqual(VL.shouldShowDropdown(true, "   ", 3), false);   // blank query
+  assert.strictEqual(VL.shouldShowDropdown(true, "foo", 0), false);   // no matches
+  assert.strictEqual(VL.shouldShowDropdown(true, null, 3), false);    // null query is safe
+});
+
 test("depthMeta maps triage/deep to plain labels, passes others through", () => {
   assert.strictEqual(VL.depthMeta("triage").label, "quick");
   assert.strictEqual(VL.depthMeta("deep").label, "full");

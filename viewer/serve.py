@@ -16,13 +16,13 @@ running instance on its actual port.
 """
 from __future__ import annotations
 
-import functools
 import http.server
 import os
 import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -97,13 +97,37 @@ def build_index() -> None:
     subprocess.run([sys.executable, str(DIR / "build_index.py")])
 
 
+def is_index_request(path: str) -> bool:
+    """True if an HTTP request path targets index.json (ignoring any query string).
+    The page fetches `index.json?ts=<nonce>`, so the query must be stripped."""
+    return path.split("?", 1)[0].rstrip("/") == "/index.json"
+
+
+_reindex_lock = threading.Lock()
+
+
+class _ViewerHandler(http.server.SimpleHTTPRequestHandler):
+    """Serves viewer/ statically, but **rebuilds the index on demand**: every
+    request for index.json regenerates it from the current investigation files
+    first, so a plain browser reload reflects edits without re-running the
+    launcher. (Combined with the page's cache-busted, no-store fetch.)"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(DIR), **kwargs)
+
+    def do_GET(self):
+        if is_index_request(self.path):
+            with _reindex_lock:   # serialize concurrent rebuilds (ThreadingHTTPServer)
+                build_index()
+        return super().do_GET()
+
+
 def _serve() -> None:  # blocking; runs in the detached child
     os.chdir(DIR)
     # The parent always passes the chosen port via FX_VIEWER_PORT; fall back to a
     # free port if somehow unset so the child never crashes on a missing value.
     port = env_port() or pick_free_port()
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(DIR))
-    http.server.ThreadingHTTPServer((HOST, port), handler).serve_forever()
+    http.server.ThreadingHTTPServer((HOST, port), _ViewerHandler).serve_forever()
 
 
 def start() -> int:
