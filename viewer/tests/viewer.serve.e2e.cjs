@@ -138,6 +138,16 @@ async function main() {
       assert.match(await page.locator(".dochead h1").innerText(), /Served headline/);
       assert.match(await page.locator(".rootcause").innerText(), /served root cause/i);
     });
+
+    // Fix #1: the server rebuilds the index on every index.json request, so a
+    // file added after launch shows up on the next fetch — no relaunch needed.
+    await check("a file added after launch appears on the next index.json fetch (rebuild-on-request)", async () => {
+      fs.writeFileSync(path.join(inv, "bug-900003-investigation.md"),
+        "---\nbug_id: 900003\nsummary: Added after launch\n---\n# Added\n\nbody\n");
+      const data = JSON.parse((await get(base + "/index.json")).body);
+      assert.strictEqual(data.length, 3, "the new file is picked up without relaunching serve.py");
+      assert.ok(data.some(d => d.bug_id === 900003 && d.summary === "Added after launch"));
+    });
   } finally {
     if (browser) await browser.close();
     spawnSync(PY, [serve, "stop"], { env, stdio: "ignore" });

@@ -189,6 +189,34 @@ async function main() {
       await page.click("#toggle"); assert.ok(!(await collapsed()));
     });
 
+    // fix #2 — the open/closed state survives a browser reload
+    await check("sidebar collapsed state persists across reload", async () => {
+      await page.evaluate(() => localStorage.clear());
+      await reload();
+      assert.ok(!(await collapsed()), "fresh load is expanded by default");
+      await page.click("#toggle");                 // collapse
+      assert.ok(await collapsed());
+      await reload();                              // browser refresh
+      assert.ok(await collapsed(), "stays collapsed after reload");
+    });
+
+    // fix #3 — when collapsed, search surfaces a results dropdown you can click
+    await check("collapsed search shows a results dropdown; click navigates", async () => {
+      // (still collapsed from the previous check)
+      await page.fill("#q", "Numbered");
+      await page.waitForSelector("#results:not([hidden]) .res");
+      assert.ok((await page.locator("#results .res").count()) >= 1);
+      await page.locator("#results .res").first().click();
+      assert.match(await page.locator(".dochead h1").innerText(), /Numbered headline/);
+      assert.ok(await page.locator("#results").evaluate(el => el.hidden), "dropdown hides after a pick");
+    });
+    await check("dropdown stays hidden when the sidebar is expanded", async () => {
+      await page.evaluate(() => localStorage.clear());
+      await reload();                              // expanded (default)
+      await page.fill("#q", "Numbered");
+      assert.ok(await page.locator("#results").evaluate(el => el.hidden), "no dropdown while the list is visible");
+    });
+
   } finally {
     await browser.close();
     srv.close();

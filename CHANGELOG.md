@@ -7,7 +7,20 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Fixed
+- **The investigation viewer now reflects edited/added files on a plain reload.**
+  `serve.py` previously built `index.json` only at launch, so editing a file and
+  refreshing the browser showed stale data. The server now **rebuilds the index
+  on every `index.json` request**, so a reload reflects the current files without
+  re-running `/open-investigation`.
+- **The sidebar's open/closed state survives a browser reload.** It's persisted
+  per-browser (`localStorage`) and restored on load instead of always reopening.
+
+### Added
+- **Search results dropdown when the sidebar is collapsed.** Typing in the search
+  box used to filter only the (hidden) sidebar list, so a collapsed sidebar made
+  search appear to do nothing. With the sidebar folded, matches now appear in a
+  dropdown under the search box; click one to open it.
 
 ## [0.4.0] — 2026-06-08
 
