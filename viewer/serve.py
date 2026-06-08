@@ -8,11 +8,11 @@ process so the caller (a skill) returns immediately.
 
 Bound to 127.0.0.1 only — investigation content never leaves the machine.
 
-Port: set `FX_VIEWER_PORT` to force a specific port; otherwise a **free port is
-picked automatically** and persisted (so a fixed default can't collide with a
-stale instance or another app). The chosen port is recorded in `.run/viewer.port`
-so `status`/`stop` and the printed URL stay correct, and a re-`start` reuses the
-running instance on its actual port.
+Port: defaults to **9000**. Set `FX_VIEWER_PORT` to force a different port. If a
+running instance is detected it's reused on its actual port; if the default 9000
+is already taken by another app, the launcher **falls back to a free port** (so
+it never hard-fails) and prints the one it used. The chosen port is recorded in
+`.run/viewer.port` so `status`/`stop` and the printed URL stay correct.
 """
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ PIDFILE = RUN / "viewer.pid"
 PORTFILE = RUN / "viewer.port"
 LOGFILE = RUN / "viewer.log"
 HOST = "127.0.0.1"
+DEFAULT_PORT = 9000   # fixed default; FX_VIEWER_PORT overrides, busy → free-port fallback
 
 
 def env_port() -> int | None:
@@ -47,23 +48,41 @@ def pick_free_port() -> int:
         return s.getsockname()[1]
 
 
+def is_port_free(port: int) -> bool:
+    """True if `port` can be bound on HOST right now (i.e. nothing's using it).
+
+    Uses SO_REUSEADDR to match `http.server`'s `allow_reuse_address`, so a port
+    left in TIME_WAIT by our own just-stopped server reads as free (a restart can
+    rebind it) — only a genuinely active listener reads as busy.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind((HOST, port))
+            return True
+        except OSError:
+            return False
+
+
 def url_for(port: int) -> str:
     return f"http://{HOST}:{port}/viewer.html"
 
 
-def resolve_port(env: int | None, alive: bool, persisted: int | None):
-    """Pure decision of which port to serve on.
+def resolve_port(env: int | None, alive: bool, persisted: int | None,
+                 default: int = DEFAULT_PORT):
+    """Pure decision of which port to *prefer*.
 
     Returns `(port, reuse)`:
     - a live instance with a recorded port → reuse it (report that port);
     - else an explicit `FX_VIEWER_PORT` → use it;
-    - else `(None, False)` → the caller should pick a fresh free port.
+    - else the fixed `default` (9000). The caller still checks availability and
+      falls back to a free port if the default is taken (see `start`).
     """
     if alive and persisted is not None:
         return (persisted, True)
     if env is not None:
         return (env, False)
-    return (None, False)
+    return (default, False)
 
 
 def _alive(pid: int) -> bool:
@@ -143,8 +162,13 @@ def start() -> int:
     if reuse:
         print(f"already serving (pid {pid}) — {url_for(port)}")
         return 0
-    if port is None:
-        port = pick_free_port()
+    # Only the fixed *default* gets an availability check + free-port fallback so
+    # it never hard-fails; an explicit FX_VIEWER_PORT is honored as-is (the child
+    # binds it, same as before — if truly busy it surfaces as "failed to start").
+    if env_port() is None and not is_port_free(port):
+        fresh = pick_free_port()
+        print(f"default port {port} is in use — falling back to free port {fresh}.")
+        port = fresh
     kwargs = {}
     if os.name == "nt":
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP

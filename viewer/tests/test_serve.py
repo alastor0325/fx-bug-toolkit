@@ -178,13 +178,34 @@ class TestPortHelpers(unittest.TestCase):
     def test_resolve_env_override_when_not_running(self):
         self.assertEqual(serve.resolve_port(9999, False, None), (9999, False))
 
-    def test_resolve_picks_fresh_when_nothing_set(self):
-        # No env, no live instance → caller picks a fresh free port.
-        self.assertEqual(serve.resolve_port(None, False, None), (None, False))
+    def test_default_port_is_9000(self):
+        self.assertEqual(serve.DEFAULT_PORT, 9000)
 
-    def test_resolve_no_persisted_port_falls_through(self):
-        # Alive flag but no recorded port (shouldn't reuse a guessed port).
-        self.assertEqual(serve.resolve_port(None, True, None), (None, False))
+    def test_resolve_uses_default_when_nothing_set(self):
+        # No env, no live instance → the fixed default port (9000).
+        self.assertEqual(serve.resolve_port(None, False, None), (9000, False))
+
+    def test_resolve_no_persisted_port_uses_default(self):
+        # Alive flag but no recorded port (shouldn't reuse a guessed port) → default.
+        self.assertEqual(serve.resolve_port(None, True, None), (9000, False))
+
+    def test_resolve_default_param_is_honored(self):
+        # The default is injectable (keeps the function pure/testable).
+        self.assertEqual(serve.resolve_port(None, False, None, default=1234),
+                         (1234, False))
+
+    def test_is_port_free(self):
+        # A port the OS just handed us is free; once an active listener holds it,
+        # it isn't (even with SO_REUSEADDR, a live listening socket reads as busy).
+        port = serve.pick_free_port()
+        self.assertTrue(serve.is_port_free(port))
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind(("127.0.0.1", port))
+            s.listen(1)
+            self.assertFalse(serve.is_port_free(port))
+        finally:
+            s.close()
 
     def test_env_port_parsing(self):
         os.environ.pop("FX_VIEWER_PORT", None)
