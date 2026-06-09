@@ -7,7 +7,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Changed
+- **`/open-triage` now serves on a stable default port, 9001**, instead of an
+  auto-picked free port — so you can bookmark `http://127.0.0.1:9001/` and return
+  to the board. A re-run reuses a dashboard already answering on 9001 (or the
+  last-used port); if 9001 is taken by another app it falls back to a free port
+  and prints the one it used. `PORT` still forces a specific port (honored as-is —
+  no fallback, no reuse-shadowing), matching the viewer's `serve.py` rule. 6000 is
+  deliberately avoided — browsers block it as an unsafe port
+  ([WHATWG Fetch §port-blocking](https://fetch.spec.whatwg.org/#port-blocking)).
 
 ## [0.4.6] — 2026-06-08
 

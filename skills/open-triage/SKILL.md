@@ -69,10 +69,15 @@ fi
 
 ## Step 2 — Start it (if not already running) and give the URL
 
-The dashboard serves on `127.0.0.1` on an **auto-picked free port** (set `PORT` to
-force one). The chosen port is remembered in `~/.fx-bug-toolkit/open-triage.port`
-so a re-run reuses the running instance instead of starting a second one. Start it
-detached so this skill returns; reuse it if it's already up.
+The dashboard serves on `127.0.0.1` on a **stable default port, 9001**, so you can
+bookmark `http://127.0.0.1:9001/` and return to the board. Set `PORT` to force a
+different port. A re-run **reuses** a dashboard that's already answering (on 9001
+or the last-used port); if **9001 is free** it's taken; if **9001 is taken by
+another app** it falls back to a free port (so it never hard-fails) and prints the
+one it used. The chosen port is remembered in `~/.fx-bug-toolkit/open-triage.port`.
+(9001 sits next to the investigation viewer's 9000; 6000 is deliberately avoided —
+browsers block it as an unsafe port, [WHATWG Fetch §port-blocking](https://fetch.spec.whatwg.org/#port-blocking).)
+Start it detached so this skill returns; reuse it if it's already up.
 
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
@@ -81,15 +86,36 @@ PY="$BIN/python"; [ -x "$PY" ] || PY="$(command -v python3 || command -v python)
 LOG="$HOME/.fx-bug-toolkit/dashboard.log"
 PORTFILE="$HOME/.fx-bug-toolkit/open-triage.port"
 mkdir -p "$HOME/.fx-bug-toolkit"
-
-# Reuse a still-running instance on its remembered port; otherwise pick a FRESH
-# free port (never reuse a dead port — another app may now hold it). $PORT forces
-# a specific port and skips reuse-detection.
+DEFAULT_PORT="${PORT:-9001}"
 REMEMBERED="$(cat "$PORTFILE" 2>/dev/null)"
-if [ -z "${PORT:-}" ] && [ -n "$REMEMBERED" ] && curl -fsS -o /dev/null "http://127.0.0.1:$REMEMBERED/" 2>/dev/null; then
-  echo "already running — http://127.0.0.1:$REMEMBERED/"
+
+# Reuse a dashboard that's already up. An explicit $PORT is honored as-is, so it's
+# the only reuse candidate; otherwise prefer the default 9001, then the last-used
+# port (matches the viewer's serve.py rule).
+CANDIDATES="$DEFAULT_PORT"; [ -z "${PORT:-}" ] && CANDIDATES="$DEFAULT_PORT $REMEMBERED"
+REUSED=""
+for p in $CANDIDATES; do
+  [ -n "$p" ] && curl -fsS -o /dev/null "http://127.0.0.1:$p/" 2>/dev/null && { REUSED="$p"; break; }
+done
+
+if [ -n "$REUSED" ]; then
+  echo "already running — http://127.0.0.1:$REUSED/"
 else
-  PORT="${PORT:-$("$PY" -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')}"
+  # An explicit $PORT is honored as-is (fails to start if busy). The default 9001
+  # gets a free-port fallback so it never hard-fails when another app holds 9001.
+  if [ -n "${PORT:-}" ]; then
+    PORT="$DEFAULT_PORT"
+  else
+    PORT="$("$PY" - "$DEFAULT_PORT" <<'PYEOF'
+import socket, sys
+want = int(sys.argv[1])
+try:
+    s = socket.socket(); s.bind(("127.0.0.1", want)); s.close(); print(want)
+except OSError:
+    s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()
+PYEOF
+)"
+  fi
   URL="http://127.0.0.1:$PORT/"
   # Detach via a new session/process group so the server survives this
   # (non-interactive) shell exiting — a bare `nohup … &` is unreliable here,
@@ -120,8 +146,9 @@ fi
 ```
 
 Then tell the user the exact URL the block printed (`http://127.0.0.1:<port>/` —
-the port is auto-picked, so read it from the output, don't assume a number) and
-offer to open it (macOS `open`, Linux `xdg-open`, Windows `start`). The server
+it's `9001` unless that was taken and it fell back, so read the port from the
+output rather than assuming it) and offer to open it (macOS `open`, Linux
+`xdg-open`, Windows `start`). The server
 binds to `127.0.0.1` only — triage data stays local.
 
 ## Data it reads (shared with the rest of the toolkit)
