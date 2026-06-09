@@ -48,10 +48,10 @@
   .shell{margin-left:var(--toc);transition:margin-left .25s ease;position:relative;z-index:1}
   .wrap{max-width:780px;margin:0 auto;padding:0 28px 120px}
 
-  header.hero{padding:78px 0 26px}
+  header.hero{padding:clamp(40px,9vw,78px) 0 26px}
   .badge{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
     color:var(--amber);border:1px solid rgba(255,180,84,.3);border-radius:999px;padding:5px 14px;background:var(--amber-wash)}
-  h1{font-family:var(--display);font-size:64px;line-height:.98;letter-spacing:-.015em;margin:20px 0 14px;font-weight:800}
+  h1{font-family:var(--display);font-size:clamp(36px,8vw,64px);line-height:1.02;letter-spacing:-.015em;margin:20px 0 14px;font-weight:800}
   .tagline{font-size:19px;color:var(--dim);max-width:640px}
   .herolinks{margin-top:18px;display:flex;gap:18px;font-family:var(--mono);font-size:13px}
   .herolinks a{color:var(--cyan);text-decoration:none}
@@ -123,7 +123,27 @@
   footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);font-family:var(--mono);font-size:12.5px;text-align:center}
   footer a{color:var(--cyan)}
 
-  @media (max-width:720px){ .toc{transform:translateX(-100%)} .toc-toggle{left:12px} .shell{margin-left:0} body:not(.toc-collapsed) .toc{transform:translateX(0)} }
+  @media (max-width:720px){
+    /* TOC becomes an off-canvas drawer; content goes full-width. */
+    .toc{transform:translateX(-100%)}
+    .toc-toggle{left:12px}
+    .shell{margin-left:0}
+    body:not(.toc-collapsed) .toc{transform:translateX(0); box-shadow:0 0 0 100vmax rgba(0,0,0,.55)}
+    .wrap{padding:0 16px 90px}
+    .tagline{font-size:16px}
+    h2{font-size:22px}
+    h3{font-size:18px}
+    /* tables reflow instead of forcing a horizontal scroll */
+    th,td{padding:7px 9px; font-size:13.5px}
+    td code{white-space:normal; word-break:break-word}
+    code{overflow-wrap:anywhere}          /* long inline tokens wrap instead of overflowing */
+    .step{gap:11px}
+    /* lightbox: use the whole screen + finger-sized zoom controls */
+    .lightbox img{max-width:100vw; max-height:100vh; border:none; border-radius:0}
+    .lb-tools{bottom:14px; padding:6px}
+    .lb-tools button{padding:9px 15px; font-size:15px; min-width:44px}
+    .lb-tools .lb-zlabel{min-width:54px; font-size:13px}
+  }
 </style>
 </head>
 <body class="toc-collapsed">
@@ -453,9 +473,13 @@ claude plugin install firefox-wiki@firefox-wiki-plugin</code></pre>
   const tt = document.getElementById("tocToggle");
   const syncGlyph = () => tt.innerHTML = body.classList.contains("toc-collapsed") ? "&#9776;" : "&#8249;&#8249;";
   tt.onclick = () => { body.classList.toggle("toc-collapsed"); syncGlyph(); };
-  // open the TOC by default on wide screens
-  if (window.innerWidth > 980) body.classList.remove("toc-collapsed");
-  syncGlyph();
+  // Default TOC state follows the viewport — collapsed (drawer) on narrow
+  // screens, open on wide — and RE-APPLIES when crossing the breakpoint, so a
+  // resize adapts correctly instead of keeping the load-time state.
+  const tocMq = window.matchMedia("(max-width:720px)");
+  const applyTocDefault = () => { body.classList.toggle("toc-collapsed", tocMq.matches); syncGlyph(); };
+  applyTocDefault();
+  tocMq.addEventListener("change", applyTocDefault);
   // smooth-jump closes the drawer on narrow screens
   toc.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener("click", () => {
     if (window.innerWidth <= 720) body.classList.add("toc-collapsed");
