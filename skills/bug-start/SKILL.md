@@ -109,7 +109,7 @@ mcp__moz__get_bugzilla_bug(bug_id: {bug_id})
 - If the MCP tool returns any content (even partial) → **Public: Yes**
 - If the MCP tool returns "Bug not found" or an authorization error → **Public: No**
 
-**If that fails** (e.g. security bug — "Bug not found" or authorization error), use `bmo-to-md` instead, which reads `$BUGZILLA_API_KEY` from the environment and can access security groups:
+**If that fails** (e.g. security bug — "Bug not found" or authorization error), use `bmo-to-md` instead, which reads `$BMO_API_KEY` from the environment and can access security groups:
 ```bash
 bmo-to-md {bug_id}
 ```
