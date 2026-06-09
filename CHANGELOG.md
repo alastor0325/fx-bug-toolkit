@@ -9,6 +9,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.8] — 2026-06-09
+
+### Fixed
+- **`bmo-to-md` API-key env var corrected to `BMO_API_KEY`.** `/bug-start`'s
+  security-bug fallback documented it as reading `$BUGZILLA_API_KEY`, which is
+  wrong — `bmo-to-md` reads **`BMO_API_KEY`**. (Distinct from `bugzilla-cli`'s
+  reply-mode `BUGZILLA_BOT_API_KEY`, which is unchanged.) The tutorial now notes
+  the same var for reading private/security bugs.
+
 ## [0.4.7] — 2026-06-08
 
 ### Changed
@@ -599,7 +608,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.8...HEAD
+[0.4.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...fx-bug-toolkit--v0.4.8
 [0.4.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...fx-bug-toolkit--v0.4.7
 [0.4.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...fx-bug-toolkit--v0.4.6
 [0.4.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...fx-bug-toolkit--v0.4.5
