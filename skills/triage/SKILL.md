@@ -1085,12 +1085,23 @@ entirely rather than leaving a dangling, untracked one.
 | Playback broken for a codec/container, another format works | S3 | P2 |
 | Recording works but quality is degraded | S3 | P3 |
 | CI / test-infra crash (e.g. xpcshell), no user-facing playback impact | S3 | P2 |
+| Debug-only assertion (`MOZ_ASSERT`/fuzzing), benign/cosmetic in release | S4 | P3 |
 | Feature request / enhancement | S4 | P4 |
 
 Rate severity by **user-facing impact, not crash frequency**. A crash that
 only happens in CI / test infrastructure (e.g. an xpcshell `plugin-container`
 SIGABRT), however frequent, is **S3** — S2 is reserved for serious user-facing
 breakage. Do not let a high CI failure count inflate it to S2/P1.
+
+**Debug-only assertions:** a `MOZ_ASSERT` (or other debug-only assertion,
+typically fuzzing/site-scout filed with the `assertion`/`pernosco` keywords)
+does **not** exist in release builds, so rate it by its **release-mode
+consequence** — what happens when the assertion is compiled out — not by the
+fact that an assert fires. If the release behavior is benign or merely
+cosmetic (e.g. a transiently wrong `played` TimeRange), it is **S4**. Only
+rate it higher when the same code path produces a real release-build crash,
+UAF, or data corruption once the assert is gone. Do not default a debug-only
+assert to S3.
 
 ### Fixability assessment
 
