@@ -7,6 +7,10 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.4.7] — 2026-06-08
+
 ### Changed
 - **`/open-triage` now serves on a stable default port, 9001**, instead of an
   auto-picked free port — so you can bookmark `http://127.0.0.1:9001/` and return
@@ -595,7 +599,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...HEAD
+[0.4.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...fx-bug-toolkit--v0.4.7
 [0.4.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...fx-bug-toolkit--v0.4.6
 [0.4.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.4...fx-bug-toolkit--v0.4.5
 [0.4.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.3...fx-bug-toolkit--v0.4.4
