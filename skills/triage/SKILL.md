@@ -961,6 +961,18 @@ comment: avoid "I'd like to…", "I'll take a look", "I'll start…", "I want to
 "I'd suggest…", "Suggest…", "Recommend…", "The next step is…", "This looks
 like…", "We can…". This applies to **every** posted comment.
 
+**Never state severity or priority in the posted comment.** S/P are Bugzilla
+*fields*, set via the dropdowns (`set-fields`) — that is the single source of
+truth. Repeating an `S{n}`/`P{n}` label in the comment prose only goes out of
+sync the moment someone adjusts the dropdown, so leave it out entirely. Do not
+write "marking this S2/P2", "raising severity to S2", "this is a P1", or any
+`S{n}`/`P{n}` token in the comment. The **suggested** S/P is **not** dropped — it
+still lives in the internal ASSESSMENT block, the ACTIONS ON APPROVAL / dashboard
+"Will apply" diff, and the pending JSON's `priority`/`severity`, so apply still
+sets it as a field. You may still describe user-facing **impact** in prose
+("this is a complete playback failure with no workaround") — just never the S/P
+*label*.
+
 **Keep the findings in the comment; make only the Next Steps reporter-clear.**
 Do NOT strip the root-cause analysis/findings out of the posted comment to
 "simplify" it — the Analysis (including code-level root cause, citations, and
@@ -1025,8 +1037,8 @@ Apply the P/S standard. Check meta bug blocking.
 **If Fixable = Yes:**
 1. Invoke `/bug-start {id}` first — do NOT set any fields or post any comment before it completes.
 2. After `/bug-start` completes, read the investigation file and determine the outcome:
-   - **Root cause found** → draft a comment summarising findings + next steps, then include P/S and the meta bug blocker in the same `apply` (one atomic action). Do **not** auto-CC or auto-NI the triage owner — that's the owner's per-draft choice via the dashboard's "CC me" / "NI me" checkboxes (default off); a checked "NI me" is the "ready for implementation, owner's attention" signal. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
-   - **Investigation reveals missing info** → fall back to §1a; draft NI comment asking for the specific missing data, with P/S in the same `apply`.
+   - **Root cause found** → draft a comment summarising findings + next steps (do **not** state severity/priority in the comment — see the comment-voice rules), then apply the suggested P/S **as fields** and the meta bug blocker in the same `apply` (one atomic action). Do **not** auto-CC or auto-NI the triage owner — that's the owner's per-draft choice via the dashboard's "CC me" / "NI me" checkboxes (default off); a checked "NI me" is the "ready for implementation, owner's attention" signal. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
+   - **Investigation reveals missing info** → fall back to §1a; draft NI comment asking for the specific missing data, with the suggested P/S applied **as fields** in the same `apply` (not stated in the comment).
 3. **Never set P/S or meta bug blocker as standalone operations** — always bundle them with a comment so Bugzilla shows a coherent update.
 
 **Asking the reporter for anything = a reporter needinfo.** Even on a §1b draft
