@@ -201,6 +201,9 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       updates are "re-run + review diff", not manual copy). Plan Phase 1 item.
 - [ ] `firefox-manager` skill is unidentified (empty description) — decide if it
       is relevant to anything here. Currently out of scope.
+- [x] Stale dashboard URL — fixed in 0.4.9: `skills/triage/SKILL.md` Step 7 and
+      the tutorial now say the board serves at `http://127.0.0.1:9001/` (the
+      `/open-triage` default since v0.4.7), noting the free-port fallback.
 
 ---
 

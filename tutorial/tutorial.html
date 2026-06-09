@@ -345,7 +345,7 @@
 
       <h3>Review on the dashboard</h3>
       <pre><code><span class="cmd">/open-triage</span></code></pre>
-      <p>Opens a local web UI over the drafts on <code>127.0.0.1:8765</code>. Each bug is a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when triage investigated it — the <code>/bug-start</code> findings inline.</p>
+      <p>Opens a local web UI over the drafts on <code>127.0.0.1:9001</code> (falls back to a free port if 9001 is taken). Each bug is a card: the current Bugzilla state, the proposed comment, the priority/severity it'll set, and — when triage investigated it — the <code>/bug-start</code> findings inline.</p>
       <figure>
         <img src="./assets/triage-dashboard.png" alt="The FX Bug Toolkit triage dashboard">
         <figcaption>The triage dashboard — the left rail lists the bugs in the active tab (with <em>New</em> / <em>regression</em> / <em>Assigned</em> tags), the card on the right shows the proposed comment, the P/S it will set, and the linked investigation findings. <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044320" target="_blank">Bug 2044320</a> is a real, public bug; the rest of the board is sample data.</figcaption>

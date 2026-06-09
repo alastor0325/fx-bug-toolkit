@@ -9,6 +9,13 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.9] — 2026-06-09
+
+### Fixed
+- **Stale triage-dashboard port in docs.** `/triage` Step 7 and the tutorial said
+  the board serves at `127.0.0.1:8765`; `/open-triage`'s default has been **9001**
+  since v0.4.7. Both now say `9001` and note the free-port fallback.
+
 ## [0.4.8] — 2026-06-09
 
 ### Fixed
@@ -608,7 +615,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.8...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.9...HEAD
+[0.4.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.8...fx-bug-toolkit--v0.4.9
 [0.4.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...fx-bug-toolkit--v0.4.8
 [0.4.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...fx-bug-toolkit--v0.4.7
 [0.4.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.5...fx-bug-toolkit--v0.4.6
