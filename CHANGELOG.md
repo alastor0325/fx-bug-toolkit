@@ -9,6 +9,22 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.4.10] — 2026-06-09
+
+### Fixed
+- **`/bug-start` no longer emits broken searchfox links.** It was building
+  revision-pinned URLs with a **fabricated** commit hash, so every source link
+  404'd (e.g. bug 2045281). It now **resolves the revision searchfox has actually
+  indexed** (from `firefox-main`'s `/source/` page) and pins every link to that —
+  stable *and* valid — with an explicit rule to **never guess a hash** and a
+  fallback to the non-pinned `/source/` form when resolution fails. The
+  `source-links` Golden Rule was tightened to match.
+
+### Added
+- **`/bug-start` verifies its own links before finishing** — it `curl`s every URL
+  in the written investigation and flags any that don't return `200`, so a stale
+  path, wrong line, or bad pin is caught and fixed before the file is done.
+
 ## [0.4.9] — 2026-06-09
 
 ### Fixed
@@ -615,7 +631,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.9...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.10...HEAD
+[0.4.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.9...fx-bug-toolkit--v0.4.10
 [0.4.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.8...fx-bug-toolkit--v0.4.9
 [0.4.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...fx-bug-toolkit--v0.4.8
 [0.4.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.6...fx-bug-toolkit--v0.4.7

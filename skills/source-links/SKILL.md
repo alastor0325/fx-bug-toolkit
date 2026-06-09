@@ -18,10 +18,16 @@ exists.
 
 ## Golden Rule
 
-**Prefer revision-pinned URLs over trunk/tip/HEAD URLs.** Trunk links rot as
-code moves; a pinned link keeps pointing at the line you cited. Use trunk
-URLs only when the host does not support pinning (see
-[Chromium Code Search](#chromium-code-search)).
+**Prefer revision-pinned URLs over trunk/tip/HEAD URLs** — trunk links rot as code
+moves; a pinned link keeps pointing at the line you cited. Use a trunk / `/source/`
+URL when the host doesn't support pinning (see [Chromium Code Search](#chromium-code-search)).
+
+**But the pinned hash must be REAL — never guess, invent, or "remember" one.** A
+pinned link to a revision the host hasn't indexed returns **404**, which is worse
+than a trunk link. Only pin to a hash you actually obtained **and** validated this
+session (see [Revision Resolution Strategy](#revision-resolution-strategy)); if you
+can't, use the non-pinned `/source/` form instead. (Fabricating a hash 404'd every
+link in [Bug 2045281](https://bugzilla.mozilla.org/show_bug.cgi?id=2045281).)
 
 ## When to Link
 
