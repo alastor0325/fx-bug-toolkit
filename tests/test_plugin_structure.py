@@ -110,6 +110,19 @@ class TestSkills(unittest.TestCase):
         for v in bz_tags:
             self.assertEqual(v, bz, f"bugzilla-cli pin v{v} != versions.json v{bz}")
 
+    def test_open_triage_uses_stable_default_port(self):
+        # The triage dashboard binds a stable default port so it can be
+        # bookmarked (mirrors the viewer's 9000 / Revue's 7779). Guard against a
+        # silent regression to the old auto-pick, and never pick a port browsers
+        # block as unsafe — e.g. 6000/x11, WHATWG Fetch §port-blocking.
+        text = (SKILLS / "open-triage" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn('DEFAULT_PORT="${PORT:-9001}"', text,
+                      "open-triage must declare the stable default port 9001")
+        # browser-blocked ports from the Fetch bad-port list that we must not use.
+        for bad in ("6000", "6566", "6665", "6666", "6667", "6668", "6669", "6697"):
+            self.assertNotIn(f":-{bad}}}", text,
+                             f"{bad} is a browser-blocked port (Fetch §port-blocking)")
+
 
 if __name__ == "__main__":
     unittest.main()
