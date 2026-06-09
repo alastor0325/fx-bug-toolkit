@@ -146,6 +146,34 @@ async function main() {
       const clip = await page.evaluate(() => navigator.clipboard.readText());
       assert.strictEqual(clip, codeText);
     });
+
+    // --- responsive: a phone viewport must reflow, not overflow ---
+    await check("mobile 390px: TOC collapses, no horizontal overflow, lightbox fits", async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(`${base}/tutorial.html`);
+      await page.waitForSelector("h1");
+      // TOC defaults to the collapsed drawer on a phone
+      assert.ok(await page.evaluate(() => document.body.classList.contains("toc-collapsed")),
+        "TOC should be collapsed by default at 390px");
+      // content reflows — no horizontal scrollbar (hero/tables/code must not overflow)
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `horizontal overflow at 390px: ${overflow}px`);
+      // opened lightbox image fits within the viewport width
+      await page.locator("figure img").first().scrollIntoViewIfNeeded();
+      await page.locator("figure img").first().click();
+      await page.waitForTimeout(300);
+      const w = await page.locator("#lightboxImg").evaluate(el => el.getBoundingClientRect().width);
+      assert.ok(w <= 391, `lightbox image (${Math.round(w)}px) wider than the 390px viewport`);
+      await page.keyboard.press("Escape");
+    });
+    // re-evaluates the breakpoint on resize back to desktop (the "adapt on
+    // viewport change" fix): widening past 720px re-opens the TOC.
+    await check("resize back to desktop re-opens the TOC (adapts on viewport change)", async () => {
+      await page.setViewportSize({ width: 1180, height: 840 });
+      await page.waitForTimeout(150);
+      assert.ok(!(await page.evaluate(() => document.body.classList.contains("toc-collapsed"))),
+        "TOC should re-open when the viewport widens past the breakpoint");
+    });
   } finally {
     await browser.close();
     srv.close();
