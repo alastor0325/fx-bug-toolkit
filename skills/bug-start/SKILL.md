@@ -7,11 +7,32 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, TaskCreate, AskUserQuestion
 
 # Bug Start Workflow
 
-**🔗 MANDATORY: Every reference to a source file, function, or line number in the investigation file MUST be a clickable searchfox hyperlink:**
+**🔗 MANDATORY: every reference to a source file, function, or line number in the investigation MUST be a clickable, revision-pinned searchfox hyperlink:**
 ```
-[`path/to/file.cpp:NNN`](https://searchfox.org/mozilla-central/source/path/to/file.cpp#NNN)
+[`path/to/file.cpp:NNN`](https://searchfox.org/firefox-main/rev/<REV>/path/to/file.cpp#NNN)
 ```
-A file reference without a link is incomplete. Do not write any code reference without the link. This applies to every section: Root Cause, Code Analysis, Call Chain, Patch Details — everywhere.
+A code reference without a link is incomplete — apply this in every section (Root Cause, Code Analysis, Call Chain, Patch Details).
+
+**`<REV>` must be the revision searchfox has actually indexed — resolve it ONCE at the start and reuse it for every link. NEVER guess, invent, or "remember" a hash** (a pinned link to a non-indexed/invented revision 404s — that was the bug in [Bug 2045281](https://bugzilla.mozilla.org/show_bug.cgi?id=2045281)):
+```bash
+# The searchfox-indexed firefox-main revision — pin every source link to this.
+REV=$(curl -s "https://searchfox.org/firefox-main/source/moz.configure" \
+        | grep -oE "/firefox-main/rev/[0-9a-f]{40}" | head -1 | grep -oE "[0-9a-f]{40}")
+echo "pin source links to rev: ${REV:-<unresolved>}"
+```
+If `REV` doesn't resolve (offline), fall back to the non-pinned `https://searchfox.org/firefox-main/source/<path>#<line>` form — which always resolves — **never** a guessed `/rev/<hash>/`.
+
+**Before you finish, verify every link resolves** (catches a stale path, wrong line, or bad pin):
+```bash
+F="${FX_BUG_INVESTIGATION_DIR:-$HOME/.fx-bug-toolkit/bug-investigation}/bug-{bug_id}-investigation.md"
+bad=0
+for u in $(grep -oE 'https?://[^ )"]+' "$F" | sort -u); do
+  c=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 12 "$u")
+  [ "$c" = 200 ] || { echo "BROKEN ($c): $u"; bad=$((bad+1)); }
+done
+[ "$bad" -eq 0 ] && echo "✓ all links valid" || echo "⚠️  $bad broken link(s) — fix and re-run before concluding"
+```
+Fix every broken link (re-resolve `REV`, correct the path/line) and re-run until it reports all valid.
 
 You are helping start work on a Firefox bug. Follow these steps systematically:
 
@@ -386,7 +407,7 @@ Every statement in the investigation must be classified as one of:
 - All sections should be **human-friendly** with clear explanations
 - Link to bugzilla for bug references: `[Bug {id}](https://bugzilla.mozilla.org/show_bug.cgi?id={id})`
 - Link to specs when mentioning spec behavior: `[spec section](URL)`
-- Link to code using searchfox: `[filename:line](https://searchfox.org/mozilla-central/source/path/to/file#line)`
+- Link to code using searchfox: `[filename:line](https://searchfox.org/firefox-main/rev/<REV>/path/to/file#line)`
 - Add a separate "Implementation Guide" section at the end for Claude-specific instructions
 - **DO NOT skip any sections** - fill them all out based on your investigation
 
@@ -541,8 +562,8 @@ I'd suggest to have **sec-{level}** because:
 
 {For EVERY reference, provide a searchfox link with line numbers.}
 
-1. **[`path/to/file.cpp:123`](https://searchfox.org/mozilla-central/source/path/to/file.cpp#123)** — {what it does, why relevant}
-2. **[`path/to/file.h:45`](https://searchfox.org/mozilla-central/source/path/to/file.h#45)** — {what it does, why relevant}
+1. **[`path/to/file.cpp:123`](https://searchfox.org/firefox-main/rev/<REV>/path/to/file.cpp#123)** — {what it does, why relevant}
+2. **[`path/to/file.h:45`](https://searchfox.org/firefox-main/rev/<REV>/path/to/file.h#45)** — {what it does, why relevant}
 
 #### Current Behavior
 
@@ -720,7 +741,7 @@ verify).}
 wiki lookup, see-also bugs. Do NOT open files to confirm. List 1–3 most
 likely paths as searchfox links.}
 
-- [`path/file.cpp`](https://searchfox.org/firefox-main/source/path/file.cpp)
+- [`path/file.cpp`](https://searchfox.org/firefox-main/rev/<REV>/path/file.cpp)
 
 ### Regression range
 {If found from bug history or profiler, e.g. `abc12345-def67890`. Else
