@@ -464,9 +464,11 @@ context-window headroom. As each subagent finishes, start the next.
 
 7. **Open the triage dashboard** to review the drafts: invoke
    **`/open-triage`**. On the *first* run it asks to install the dashboard
-   (a one-time venv + pip bootstrap); afterwards it just serves the board at
-   `http://127.0.0.1:8765/`. End your report with that URL so the user can review
-   and apply the pending drafts. (Skip silently if the user declines the install
+   (a one-time venv + pip bootstrap); afterwards it serves the board at
+   `http://127.0.0.1:9001/` (the default; it falls back to a free port if 9001 is
+   taken — read the actual URL `/open-triage` prints). End your report with that
+   URL so the user can review and apply the pending drafts. (Skip silently if the
+   user declines the install
    — the drafts are already written to `$TRIAGE_DIR`.)
 
 ---
