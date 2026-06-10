@@ -9,6 +9,23 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.5.0] — 2026-06-09
+
+### Added
+- **`/triage` surfaces already-pending needinfos.** Each draft now captures the
+  bug's *outstanding* needinfo flags (set by anyone — the reporter, another dev,
+  an earlier triage) into `bug_context.pending_needinfos` `{requestee, setter,
+  since}`, read from the same `bugzilla-cli get` flags the dedup check already
+  uses. The triage dashboard renders these as a **Pending NI** row and turns a
+  chip red when a draft's `ni_targets` re-request an already-pending requestee —
+  a no-op on BMO (it collapses a duplicate needinfo into the existing flag) — so
+  a redundant NI is visible before apply. Motivated by a queue drain where
+  applies re-set needinfos the reporter had already filed.
+
+### Changed
+- **Triage dashboard pinned to v0.5.0** (`/open-triage`, `/update`), which adds
+  the Pending NI row.
+
 ## [0.4.10] — 2026-06-09
 
 ### Fixed

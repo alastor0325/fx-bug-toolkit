@@ -146,7 +146,7 @@ Install the version this plugin pins — keep `REQUIRED` in sync with
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
-REQUIRED="0.3.0"
+REQUIRED="0.5.0"
 if [ -x "$BIN/pip" ]; then
   "$BIN/pip" install --quiet --upgrade "triage-dashboard==$REQUIRED" \
     && echo "✅ triage dashboard updated to v$REQUIRED" || echo "⚠️  triage dashboard update FAILED"
