@@ -1276,7 +1276,10 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
        "content_type": "application/json"}
     ],
     "ai_reasoning": "§1b only: 1–3 sentences on root cause, source files cited, decision logic",
-    "change_note": ""
+    "change_note": "",
+    "pending_needinfos": [
+      {"requestee": "dev@example.com", "setter": "user@example.com", "since": "2026-05-20"}
+    ]
   }
 }
 ```
@@ -1305,6 +1308,7 @@ Steps 2 / 2b / 2c:
 - `attachments`: profiler captures, log files, screenshots, etc. Each: `{name, url, size?, content_type?}`. Populate `content_type` from the attachment's Bugzilla MIME type (e.g. `image/png`, `video/mp4`, `application/json`) — the dashboard uses it to detect images/videos *exactly*, so a screenshot or recording attached with a descriptive, extension-less name still previews in the in-page lightbox. Falls back to the filename extension when `content_type` is absent.
 - `ai_reasoning` (§1b only): the source files cited, the S/P justification, the proposed fix area. 1–3 sentences.
 - `change_note`: a one-line brief of what changed when the bug **moved out of Awaiting** into this tab on a re-triage (e.g. "Reporter attached a media log → re-triaged §1b"). The dashboard renders it as a "Changed since Awaiting" row. Leave `""` for a bug that was not previously awaiting. Do NOT set it for a non-substantive reply that kept the bug in Awaiting (per the watch-poll handling above, such a bug stays watched and gets no draft).
+- `pending_needinfos`: the needinfo flags **already outstanding** on the bug at draft time — set by *anyone* (the reporter, another dev, an earlier triage), NOT the NIs this draft will request (those are `ni_targets`). Read them from the bug's `flags` (the same `bugzilla-cli get` data the dedup check uses — a `needinfo` flag with `status == "?"`). Each entry: `{requestee, setter, since}` — `requestee`/`setter` are the flag's emails and `since` is its `creation_date` date (`YYYY-MM-DD`). Leave `[]` when none are pending. The dashboard renders these as a **Pending NI** row and turns a chip red when `ni_targets` re-requests an already-pending requestee (a no-op on BMO — it collapses a duplicate needinfo into the existing flag), so a redundant NI is visible before apply. This is also a signal when drafting: if the party you'd needinfo already has a pending request, don't re-add them to `ni_targets`.
 
 ---
 
