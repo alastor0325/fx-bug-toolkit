@@ -204,19 +204,14 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 - [x] Stale dashboard URL — fixed in 0.4.9: `skills/triage/SKILL.md` Step 7 and
       the tutorial now say the board serves at `http://127.0.0.1:9001/` (the
       `/open-triage` default since v0.4.7), noting the free-port fallback.
-- [ ] **Surface already-pending needinfo on the bug card** (raised 2026-06-09).
-      During a queue drain, applies on bug 2045194/2045200 re-set needinfo on
-      karlt/kinetik who the *reporter* had already NI'd at filing time → BMO
-      collapsed it to a no-op, so the apply looked like it "set" an NI that was
-      already there. The card shows `ni_targets` (NIs the draft *will* set) but
-      not the bug's *current* pending needinfo flags. Plan: persist them into
-      `bug_context.pending_needinfos` (data already read in /triage's dedup
-      check, SKILL.md:876) and render a "Pending NI" badge on the card. Spans
-      **fx-bug-toolkit** (`skills/triage/SKILL.md` data capture + Pending JSON
-      Format docs) and **firefox-triage-dashboard** (`data.py` + `_bug_report.html`,
-      its own release). Optional higher-value add: flag when a draft's
-      `ni_targets` overlaps an already-pending NI so a redundant NI is visible
-      before apply.
+- [x] **Surface already-pending needinfo on the bug card** (raised 2026-06-09,
+      shipped 2026-06-09 in fx-bug-toolkit **v0.5.0** + triage-dashboard
+      **v0.5.0**). `/triage` now persists the bug's outstanding needinfo flags
+      into `bug_context.pending_needinfos` {requestee, setter, since}; the
+      dashboard renders a **Pending NI** row and turns a chip red (with the
+      `redundant_needinfos()` helper) when a draft's `ni_targets` re-request an
+      already-pending requestee — the redundant-NI warning. Both halves landed:
+      fx-bug-toolkit PR #42, dashboard PR #3 (published to PyPI).
 
 ---
 
