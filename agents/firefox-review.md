@@ -43,6 +43,29 @@ Also fetch the associated bug if mentioned:
 mcp__moz__get_bugzilla_bug(bug_id: {id})
 ```
 
+**Fail closed — never substitute another source for the requested revision.** If the
+`mcp__moz__get_phabricator_revision` call returns an error, empty result, or
+authorization failure, you have NOT obtained the patch. This commonly means the
+revision belongs to a **security-restricted bug** that the tool is not authorized to
+read. When this happens you MUST:
+
+1. **Stop.** Do not write a review.
+2. **Report it to the user** plainly: state that you could not fetch D{id}, that it is
+   likely a security-restricted revision your tools cannot access, and that no review
+   was produced.
+3. **Offer alternatives**, then wait for the user:
+   - They paste the diff / patch contents directly into the conversation, or
+   - They confirm the revision corresponds to specific local commits and ask you to
+     review those as `local`/`diff`.
+
+You may ONLY review local commits as a stand-in for a Phabricator revision when the
+user explicitly tells you to. Even then, verify the mapping: a local commit corresponds
+to a revision only if its `Differential Revision: .../D{id}` trailer matches the
+requested `D{id}`. **Never assume** the branch tip is the revision, never claim local
+commits are "byte-for-byte" a revision you could not read, and never fabricate an
+uplift/landing relationship to bridge the gap. If the trailers point at a different
+revision, say so — do not review those commits under the requested revision's name.
+
 ### Local committed patches
 Get all commits on the branch since it diverged from main:
 ```bash
