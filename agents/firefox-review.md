@@ -43,28 +43,44 @@ Also fetch the associated bug if mentioned:
 mcp__moz__get_bugzilla_bug(bug_id: {id})
 ```
 
-**Fail closed — never substitute another source for the requested revision.** If the
-`mcp__moz__get_phabricator_revision` call returns an error, empty result, or
-authorization failure, you have NOT obtained the patch. This commonly means the
-revision belongs to a **security-restricted bug** that the tool is not authorized to
-read. When this happens you MUST:
+**If the MCP fetch fails, fall back to a local `moz-phab` pull — never substitute
+another source.** A failed, empty, or authorization-error result from
+`mcp__moz__get_phabricator_revision` means you have NOT obtained the patch. This most
+commonly means the revision belongs to a **security-restricted bug**: the hosted `moz`
+MCP runs as a shared service account that cannot read `sec-*` revisions, but the user's
+local `~/.arcrc` Conduit token often can. So before giving up, try the local pull:
 
+```bash
+# --raw prints the diff to stdout and mutates NO git state (no branch/commit to undo).
+# --skip-dependencies fetches only this revision, not its ancestors.
+moz-phab patch D{id} --raw --skip-dependencies > "$REVIEW_DIR/.D{id}.rawdiff" 2>&1
+```
+
+- If that produces a non-empty unified diff, **treat the file as the authoritative
+  content of D{id}** and review it normally. Note in the review document that D{id} is a
+  **security-restricted revision pulled locally via `moz-phab`** (the MCP could not read
+  it). `--raw` gives you only the diff, not the commit message or bug — so state that
+  the commit-message-body check and bug context could not be verified rather than
+  guessing them. Do NOT WebFetch the bug (it is restricted too).
+- Because the content is security-sensitive: keep it local. Do not push to try, do not
+  post it anywhere, and do not echo large portions into chat beyond what the review
+  needs. The review document stays in the local review directory.
+- Delete the temporary `.D{id}.rawdiff` file once the review document is written.
+
+**Only if `moz-phab patch --raw` also fails** (no `moz-phab`, no `~/.arcrc` token, or the
+user's own account lacks access — exit nonzero or empty output) do you fail closed:
 1. **Stop.** Do not write a review.
-2. **Report it to the user** plainly: state that you could not fetch D{id}, that it is
-   likely a security-restricted revision your tools cannot access, and that no review
-   was produced.
-3. **Offer alternatives**, then wait for the user:
-   - They paste the diff / patch contents directly into the conversation, or
-   - They confirm the revision corresponds to specific local commits and ask you to
-     review those as `local`/`diff`.
+2. **Report it** plainly: you could not fetch D{id} via the MCP or locally; it is likely
+   a security-restricted revision neither has access to; no review was produced.
+3. **Offer alternatives**, then wait: the user pastes the diff directly, or confirms the
+   revision maps to specific local commits and asks you to review those as `local`.
 
-You may ONLY review local commits as a stand-in for a Phabricator revision when the
-user explicitly tells you to. Even then, verify the mapping: a local commit corresponds
-to a revision only if its `Differential Revision: .../D{id}` trailer matches the
-requested `D{id}`. **Never assume** the branch tip is the revision, never claim local
-commits are "byte-for-byte" a revision you could not read, and never fabricate an
-uplift/landing relationship to bridge the gap. If the trailers point at a different
-revision, say so — do not review those commits under the requested revision's name.
+You may ONLY review local commits as a stand-in for a Phabricator revision when the user
+explicitly tells you to. Even then, verify the mapping: a local commit corresponds to a
+revision only if its `Differential Revision: .../D{id}` trailer matches the requested
+`D{id}`. **Never assume** the branch tip is the revision, never claim local commits are
+"byte-for-byte" a revision you could not read, and never fabricate an uplift/landing
+relationship to bridge the gap. If the trailers point at a different revision, say so.
 
 ### Local committed patches
 Get all commits on the branch since it diverged from main:
