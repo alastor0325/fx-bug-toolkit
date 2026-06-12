@@ -9,6 +9,37 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.0] — 2026-06-12
+
+### Changed
+- **`/review` is now a multi-aspect reviewer.** Instead of one pass over the
+  whole patch, `/review` understands the series, **routes** it to the review
+  dimensions that apply, fans each out to a `firefox-review-aspect` worker in its
+  own context, **adversarially verifies** every BLOCKER/IMPORTANT finding (a
+  skeptic re-checks it against the real code; refuted findings are dropped before
+  they reach you), then writes one structured document. The doc now records which
+  dimensions ran vs. were skipped and the verification counts, and `/review`
+  prints the document's absolute path as its final line so callers locate it
+  directly. The orchestration runs in the `/review` skill (the main session), so
+  it can fan the work out to subagents.
+- **`security` and `threading` always run, at the highest standard, on every code
+  change.** `security` is a dedicated memory-corruption pass — use-after-free,
+  use-after-move, double-free, dangling pointers, out-of-bounds, integer overflow
+  feeding an allocation or index, uninitialized memory, type confusion, ownership
+  / refcount, and untrusted-input validation — with an adversarial, default-to-flag
+  posture (UAF/OOB/corruption is always a BLOCKER). `threading` covers data races,
+  lock ordering / deadlock, re-entrancy, and TOCTOU. `spec`, `code-quality`, and
+  `tests` also always run; `ipc`, `error-handling`, and `api-usage` are added when
+  the diff touches them.
+
+### Added
+- **`firefox-review-aspect` agent** — the single-dimension reviewer/verifier
+  `/review` fans out to.
+
+### Removed
+- The single-pass `firefox-review` orchestrator agent (its role moved into the
+  `/review` skill).
+
 ## [0.5.1] — 2026-06-11
 
 ### Fixed
@@ -661,7 +692,10 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.10...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...HEAD
+[0.6.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.5.1...fx-bug-toolkit--v0.6.0
+[0.5.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.5.0...fx-bug-toolkit--v0.5.1
+[0.5.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.10...fx-bug-toolkit--v0.5.0
 [0.4.10]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.9...fx-bug-toolkit--v0.4.10
 [0.4.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.8...fx-bug-toolkit--v0.4.9
 [0.4.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.7...fx-bug-toolkit--v0.4.8
