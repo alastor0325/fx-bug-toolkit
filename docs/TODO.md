@@ -201,6 +201,23 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       updates are "re-run + review diff", not manual copy). Plan Phase 1 item.
 - [ ] `firefox-manager` skill is unidentified (empty description) — decide if it
       is relevant to anything here. Currently out of scope.
+- [x] **Multi-aspect `/review`** (raised + built 2026-06-12). `firefox-review` is
+      now a thin orchestrator: it understands the series, *routes* to the relevant
+      review dimensions (spec/threading/lifetime/IPC/error-handling/api-usage/
+      code-quality/tests), fans each out to a new `firefox-review-aspect` worker in
+      its own context, **adversarially verifies** every BLOCKER/IMPORTANT (refuted
+      findings are dropped), then writes the same doc format. The doc now records
+      which dimensions ran/were skipped + verification counts, and the agent prints
+      the doc's absolute path as its final line so callers stop reconstructing it.
+      Follow-ups: (a) needs a **release bump** to ship (waiting on user's "bump");
+      (b) verify CI green after push; (c) consider per-dimension model tiers
+      (opus everywhere now → cost) once we see real-world token use.
+- [x] **Consolidated on the plugin reviewer** (2026-06-12). Repointed the global
+      `firefox-implementation` §8 loop at `fx-bug-toolkit:firefox-review` and made
+      it read the path the agent prints (was hardcoded `~/firefox-patches-review/…`,
+      which had already drifted from the plugin's `$FX_REVIEW_DIR` default). Removed
+      the legacy standalone `~/.claude/agents/firefox-review.md` + `review-patch`
+      skill; repointed `taskboard`/`project-plan`/`review-feedback`/`auto-update-my-md`.
 - [x] Stale dashboard URL — fixed in 0.4.9: `skills/triage/SKILL.md` Step 7 and
       the tutorial now say the board serves at `http://127.0.0.1:9001/` (the
       `/open-triage` default since v0.4.7), noting the free-port fallback.
