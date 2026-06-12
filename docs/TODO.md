@@ -201,17 +201,22 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       updates are "re-run + review diff", not manual copy). Plan Phase 1 item.
 - [ ] `firefox-manager` skill is unidentified (empty description) — decide if it
       is relevant to anything here. Currently out of scope.
-- [x] **Multi-aspect `/review`** (raised + built 2026-06-12). `firefox-review` is
-      now a thin orchestrator: it understands the series, *routes* to the relevant
-      review dimensions (spec/threading/lifetime/IPC/error-handling/api-usage/
-      code-quality/tests), fans each out to a new `firefox-review-aspect` worker in
-      its own context, **adversarially verifies** every BLOCKER/IMPORTANT (refuted
-      findings are dropped), then writes the same doc format. The doc now records
-      which dimensions ran/were skipped + verification counts, and the agent prints
-      the doc's absolute path as its final line so callers stop reconstructing it.
-      Follow-ups: (a) needs a **release bump** to ship (waiting on user's "bump");
-      (b) verify CI green after push; (c) consider per-dimension model tiers
-      (opus everywhere now → cost) once we see real-world token use.
+- [x] **Multi-aspect `/review`** (raised + built 2026-06-12). The orchestration
+      lives in the **`/review` skill** (it runs in the main session, so it can fan
+      out to subagents — a subagent can't reliably spawn further subagents, so an
+      orchestrator *agent* couldn't). It understands the series, *routes* to the
+      review dimensions, fans each out to a `firefox-review-aspect` worker in its
+      own context, **adversarially verifies** every BLOCKER/IMPORTANT (refuted
+      findings dropped), then writes the doc (records which dimensions ran/were
+      skipped + verification counts; prints the doc's absolute path as the final
+      line). **`security` (UAF/OOB/overflow/lifetime, highest standard) and
+      `threading` (races/re-entrancy/TOCTOU) always run on any code change** — the
+      old `lifetime` dimension was folded into `security`. `ipc`/`error-handling`/
+      `api-usage` are routed. (First cut, PR #44, put orchestration in a
+      `firefox-review` *agent*; reworked to the skill once we confirmed subagents
+      are leaf workers.) Follow-ups: (a) **release bump** to ship (waiting on
+      "bump"); (b) per-dimension model tiers (opus everywhere now → cost) once we
+      see real token use.
 - [x] **Consolidated on the plugin reviewer** (2026-06-12). Repointed the global
       `firefox-implementation` §8 loop at `fx-bug-toolkit:firefox-review` and made
       it read the path the agent prints (was hardcoded `~/firefox-patches-review/…`,
