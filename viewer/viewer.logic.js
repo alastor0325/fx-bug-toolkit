@@ -55,6 +55,25 @@ function byDate(a, b, desc) {
   return desc ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
 }
 
+// Index of the entry whose bug_id matches `id` (string-compared so a numeric
+// id and its #hash-string form match), or -1 when absent / not-yet-loaded.
+// Used to re-select the open investigation after the list is rebuilt: the
+// deep-link path, and the on-visible refresh that swaps in a freshly fetched
+// index — object identity can't survive that swap, so we re-find by bug_id.
+function findIndexByBugId(list, id) {
+  if (!Array.isArray(list)) return -1;
+  return list.findIndex(d => String(d.bug_id) === String(id));
+}
+
+// Whether a "user returned to the viewer" event (tab visible again, or the
+// window regained focus) should kick off a re-fetch. Both visibilitychange and
+// focus can fire for a single return, and a return mid-fetch shouldn't stack a
+// second one — so refresh only when the tab is actually visible and no fetch is
+// already in flight.
+function shouldRefresh(visibilityState, refreshing) {
+  return visibilityState === "visible" && !refreshing;
+}
+
 // Whether to show the search-results dropdown. The filtered list lives only in
 // the sidebar, so when the sidebar is collapsed a search would otherwise have no
 // visible surface — show the dropdown only then, and only with a real query and
@@ -64,5 +83,5 @@ function shouldShowDropdown(collapsed, query, count) {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate, shouldShowDropdown };
+  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate, findIndexByBugId, shouldRefresh, shouldShowDropdown };
 }

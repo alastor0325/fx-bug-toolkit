@@ -243,7 +243,7 @@ function highlight(){
 }
 
 function selectByBugId(id){
-  const i = view.findIndex(d => String(d.bug_id) === String(id));
+  const i = findIndexByBugId(view, id);
   if(i>=0) select(i);
 }
 
@@ -327,25 +327,51 @@ document.addEventListener('keydown', e=>{
   if(e.key==='w'||e.key==='k'){ e.preventDefault(); select(Math.max(sel-1, 0)); }                // up
   if(e.key==='b'||e.key==='\\'){ e.preventDefault(); toggleRail(); }                              // fold / expand list
 });
-// deep-link: re-select when the #hash changes on an already-open page
-// (select() uses replaceState, which does NOT fire hashchange — so no loop)
-window.addEventListener('hashchange', ()=>{
+// select the investigation named by the current #hash, if any
+function selectFromHash(){
   const h = decodeURIComponent(location.hash.replace(/^#/, ''));
   if(h) selectByBugId(h);
-});
+}
+// deep-link: re-select when the #hash changes on an already-open page
+// (select() uses replaceState, which does NOT fire hashchange — so no loop)
+window.addEventListener('hashchange', selectFromHash);
 $('#q').addEventListener('input', ()=>{ sel=-1; applyFilters(); });
 $('#sort').addEventListener('click', ()=>{ sortDesc=!sortDesc; $('#sort').textContent = sortDesc?'↓ newest':'↑ oldest'; applyFilters(); });
 
-// Cache-bust + no-store so a reload always pulls the freshly rebuilt index
-// (serve.py rebuilds it on every start), never a stale browser-cached copy.
-fetch(indexUrl(Date.now()), {cache:'no-store'}).then(r=>r.json()).then(data=>{
-  DATA=data;
-  applyFilters();
-  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
-  if(h) selectByBugId(h);
-}).catch(err=>{
+// Cache-bust + no-store so each fetch pulls the freshly rebuilt index (serve.py
+// rebuilds index.json on every request), never a stale browser-cached copy.
+// Preserve the open doc across the swap by bug_id: a refresh replaces DATA with
+// brand-new objects, so applyFilters' object-identity reselect can't survive it.
+function loadIndex(){
+  const keepId = (sel >= 0 && view[sel]) ? view[sel].bug_id : null;
+  return fetch(indexUrl(Date.now()), {cache:'no-store'}).then(r=>r.json()).then(data=>{
+    DATA = data;
+    applyFilters();
+    if(keepId != null) selectByBugId(keepId);
+  });
+}
+
+// Initial load + deep-link to the #hash investigation if present.
+loadIndex().then(selectFromHash).catch(err=>{
   $('#detail').innerHTML=`<div class="empty"><div class="big">!</div><div>could not load index.json — run build_index.py first</div></div>`;
 });
+
+// An open viewer otherwise holds the page-load snapshot forever (there's no
+// other re-fetch), so investigations added/edited by /triage, /bug-start, etc.
+// while the viewer is in the background never show up — search and the list
+// look "cached". Re-fetch when the user returns to it: `visibilitychange`
+// covers tab switches / minimize; `focus` covers switching back from another
+// app while the tab stayed visible (the common terminal-beside-browser case).
+// Both can fire for one return, so maybeRefresh skips when a fetch is already
+// in flight (refreshing) — see shouldRefresh.
+let refreshing = false;
+function maybeRefresh(){
+  if(!shouldRefresh(document.visibilityState, refreshing)) return;
+  refreshing = true;
+  loadIndex().finally(()=>{ refreshing = false; });
+}
+document.addEventListener('visibilitychange', maybeRefresh);
+window.addEventListener('focus', maybeRefresh);
 </script>
 </body>
 </html>
