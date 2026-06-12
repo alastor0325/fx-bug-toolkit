@@ -83,7 +83,7 @@ source plugin shown next to each.
 | `/open-investigation` | Open a local web viewer to search & read all your past investigations |
 | `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
-| `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (spec, threading, lifetime, IPC, error-handling, API usage, code quality, tests), adversarially verifies the serious findings, and writes a structured review doc |
+| `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (**always** spec, security/memory-safety, threading, code quality, tests; **plus** IPC, error-handling, API usage when relevant), adversarially verifies the serious findings, and writes a structured review doc |
 | `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
 | `/open-team [team]` | Open the [firefox-review-stats](https://alastor0325.github.io/firefox-review-stats/) team dashboards (review-load distribution + a digest of what each component shipped). Opens the live site — landing page by default, or `playback`/`webrtc`/`gfx` when named. No install |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
@@ -98,8 +98,7 @@ source plugin shown next to each.
 | `download-guard` | Asks before downloading any external file, into one safe folder |
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
 | `gecko-navigator` (agent) | Orients in the Gecko codebase and traces execution flows |
-| `firefox-review` (agent) | The Opus reviewer `/review` delegates to — orchestrates per-aspect review, verification, and the final doc |
-| `firefox-review-aspect` (agent) | A single-dimension reviewer (spec/threading/lifetime/IPC/…) the `firefox-review` orchestrator fans out to; also runs the adversarial verify pass |
+| `firefox-review-aspect` (agent) | A single-dimension reviewer (spec/security/threading/IPC/…) that `/review` fans out to, one per dimension; also runs the adversarial verify pass. `/review` itself orchestrates from the main session |
 
 These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
