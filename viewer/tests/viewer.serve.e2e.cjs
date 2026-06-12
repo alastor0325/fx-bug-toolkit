@@ -148,6 +148,20 @@ async function main() {
       assert.strictEqual(data.length, 3, "the new file is picked up without relaunching serve.py");
       assert.ok(data.some(d => d.bug_id === 900003 && d.summary === "Added after launch"));
     });
+
+    // Fix #2: an already-open page re-fetches when the tab becomes visible, so
+    // the file added above (900003) appears without a manual reload. The page
+    // was loaded when the index had 2 entries and currently shows 2 rows.
+    await check("an open page picks up the new file on visibilitychange (no reload)", async () => {
+      assert.strictEqual(await page.locator(".row").count(), 2, "page is still on the page-load snapshot");
+      await page.locator(".row", { hasText: "Served headline" }).first().click();  // select 700001
+      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      await page.waitForFunction(() => document.querySelectorAll(".row").length === 3, null, { timeout: 5000 });
+      assert.strictEqual(await page.locator(".row", { hasText: "Added after launch" }).count(), 1,
+        "the new investigation appears in the list after the refresh");
+      assert.match(await page.locator(".row.sel").innerText(), /Served headline/,
+        "the open doc stays selected across the refresh (reselect by bug_id)");
+    });
   } finally {
     if (browser) await browser.close();
     spawnSync(PY, [serve, "stop"], { env, stdio: "ignore" });

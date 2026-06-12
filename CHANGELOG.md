@@ -9,6 +9,19 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.5.1] — 2026-06-11
+
+### Fixed
+- **Investigation viewer (`/open-investigation`) no longer shows stale results
+  while left open.** It fetched `index.json` once at page load and never again,
+  so an open tab kept showing the page-load snapshot — search and the list (and
+  the collapsed-sidebar search dropdown) didn't reflect investigations added or
+  edited afterward by `/triage`, `/bug-start`, etc. The viewer now re-fetches
+  when you return to it — on `visibilitychange` (tab switch / un-minimize) **and**
+  `window` focus (switching back from a terminal beside a still-visible tab) —
+  preserving the open document across the refresh. (The server already rebuilt
+  `index.json` on every request; only the client re-fetch was missing.)
+
 ## [0.5.0] — 2026-06-09
 
 ### Added

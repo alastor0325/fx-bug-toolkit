@@ -70,3 +70,19 @@ test("byDate sorts newest-first when desc, oldest-first otherwise", () => {
   assert.ok(VL.byDate(a, b, true) < 0);   // a (newer) before b
   assert.ok(VL.byDate(a, b, false) > 0);  // a (newer) after b
 });
+
+test("findIndexByBugId matches by string-compared bug_id, -1 when absent", () => {
+  const list = [{ bug_id: 111 }, { bug_id: 222 }, { bug_id: 333 }];
+  assert.strictEqual(VL.findIndexByBugId(list, 222), 1);      // numeric id
+  assert.strictEqual(VL.findIndexByBugId(list, "333"), 2);    // hash-string id matches numeric
+  assert.strictEqual(VL.findIndexByBugId(list, 999), -1);     // absent (e.g. doc removed)
+  assert.strictEqual(VL.findIndexByBugId([], 111), -1);       // empty list
+  assert.strictEqual(VL.findIndexByBugId(null, 111), -1);     // not-yet-loaded data
+});
+
+test("shouldRefresh: only when the tab is visible and no refresh is in flight", () => {
+  assert.strictEqual(VL.shouldRefresh("visible", false), true);
+  assert.strictEqual(VL.shouldRefresh("visible", true), false);   // already refreshing — don't stack
+  assert.strictEqual(VL.shouldRefresh("hidden", false), false);   // tab not visible
+  assert.strictEqual(VL.shouldRefresh("prerender", false), false);
+});
