@@ -85,6 +85,14 @@ current**. **Do not pass `--force`** — that rebuilds from source on every run
 even when nothing changed (slow compiles for nothing); without it cargo still
 picks up a newer crates.io release or git commit.
 
+A `cargo install` compile can run for minutes (Rust builds from source) with no
+hint of *why* — which makes a routine upgrade look broken ("I already have
+these, so why is it compiling?"). So **report each CLI as a `before → after`
+version delta**: a no-op, a real upgrade, and a fresh install then read
+differently, and an unexpected version change is visible instead of hidden
+behind a generic "installed/updated". Let cargo's own build output stream
+through (so a long compile doesn't look hung); print the delta line after.
+
 They need `cargo`. If `cargo` itself is missing, that's a toolchain gap `/update`
 won't paper over — stop and point the user to `/init` (it installs Rust via
 rustup, asking first):
@@ -93,22 +101,40 @@ rustup, asking first):
 if ! command -v cargo >/dev/null; then
   echo "⚠️  cargo not found — required to install bmo-to-md/searchfox-cli/bugzilla-cli. Run /init (installs Rust)."
 else
-  cargo install bmo-to-md \
-    && echo "✅ bmo-to-md installed/updated" || echo "⚠️  bmo-to-md FAILED"
-  cargo install searchfox-cli \
-    && echo "✅ searchfox-cli installed/updated" || echo "⚠️  searchfox-cli FAILED"
+  cli_ver() { "$1" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1; }
+  # cargo_report <cli> <cargo-install-args…>: install (output streams through),
+  # then print a before→after version delta so the outcome is never opaque.
+  cargo_report() {
+    cli="$1"; shift
+    before="$(cli_ver "$cli")"
+    if cargo install "$@"; then
+      after="$(cli_ver "$cli")"
+      if   [ -z "$before" ];         then echo "✅ $cli: installed ($after)"
+      elif [ "$before" = "$after" ]; then echo "✅ $cli: already current ($after) — no change"
+      else                                echo "✅ $cli: $before → $after (updated)"
+      fi
+    else
+      echo "⚠️  $cli FAILED — still ${before:-not installed}"
+    fi
+  }
+
+  cargo_report bmo-to-md     bmo-to-md
+  cargo_report searchfox-cli searchfox-cli
   # bugzilla-cli (triage Bugzilla I/O) — refresh to the **pinned version** from
   # crates.io, but only if it's installed (it's a /triage tool, installed lazily on
   # first use, not part of the core set). Keep the version in sync with
   # `.claude-plugin/versions.json` (enforced by tests/test_plugin_structure.py).
   if command -v bugzilla-cli >/dev/null; then
-    cargo install bugzilla-cli --version 0.2.0 \
-      && echo "✅ bugzilla-cli installed/updated (v0.2.0)" || echo "⚠️  bugzilla-cli FAILED"
+    cargo_report bugzilla-cli bugzilla-cli --version 0.2.0
   else
     echo "skip bugzilla-cli (not installed — /triage installs it on first use)"
   fi
 fi
 ```
+
+The `✅ <cli>: already current (X) — no change` / `<old> → <new> (updated)` /
+`installed (X)` lines are the visible payoff: when a CLI compiles, the delta
+tells you whether it was a genuine upgrade or just a no-op rebuild.
 
 **`profiler-cli`** (git pull; **rebuild only when the pull brought new commits**).
 `profiler-cli` drives a headless Playwright **Firefox** to load the profiler SPA,

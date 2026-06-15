@@ -172,6 +172,11 @@ Then install **only the selected** items, in this dependency order:
    ```bash
    cargo install bmo-to-md       # bmo-to-md (crates.io)
    cargo install searchfox-cli   # searchfox-cli (crates.io)
+   # Confirm the installed version (not just "done") so the setup log records
+   # which build landed — mirrors /update's version reporting:
+   for c in bmo-to-md searchfox-cli; do
+     echo "✅ $c $("$c" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+   done
    ```
 4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build,
    `npm link`, then install its headless browser. profiler-cli drives a headless
