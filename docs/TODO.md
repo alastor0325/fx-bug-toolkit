@@ -94,6 +94,14 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
         so `/init` + `/update` now use `cargo install bmo-to-md` (registry) instead
         of `--git`. Caveat: crates.io 0.1.0 may lag HEAD if padenot ships unpublished
         commits — acceptable for an agent-installable path.
+        - 🟡 **(2026-06-15) revisit bmo-to-md source.** crates.io `bmo-to-md` is
+          still 0.1.0, last published **2025-07-29** (~11mo stale). A user on
+          Windows with the old `--git` build saw `/update` recompile + migrate
+          git→crates.io (one-time), which can be a silent downgrade if padenot's
+          HEAD is ahead of the crates.io 0.1.0. Decide whether crates.io 0.1.0 or
+          padenot's repo HEAD is canonical; if HEAD, move `bmo-to-md` back to
+          `cargo install --git …` (rebuilds only on a new commit). (This is the
+          "(b)" the version-visibility reporting work deferred.)
       - 🟢 **profiler-cli** (dpalmeiro's) → `git clone + npm build + link`
         (`skills/init/SKILL.md:183`, `skills/update/SKILL.md:113`). Ask dpalmeiro to
         publish to **npm** → `npm i -g profiler-cli`; until then keep the git clone
