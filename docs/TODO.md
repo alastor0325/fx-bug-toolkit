@@ -209,6 +209,16 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       updates are "re-run + review diff", not manual copy). Plan Phase 1 item.
 - [ ] `firefox-manager` skill is unidentified (empty description) — decide if it
       is relevant to anything here. Currently out of scope.
+- [ ] **Wire `webspec-index` into `/init` as an OPTIONAL dependency** (raised
+      2026-06-18). `spec-check` now prefers [`webspec-index`](https://github.com/jnjaeschke/webspec-index)
+      (crates.io; `cargo install webspec-index`) for WHATWG/W3C/TC39 sections
+      when it's on PATH, falling back to `WebFetch` otherwise — and the README
+      Dependencies table lists it (optional, guide-only). `/init` doesn't offer
+      to install it yet; add it to the OPTIONAL checklist (default skip →
+      WebFetch fallback). Registry install, so no auto-mode git-install block.
+      Web specs only — codec/format/protocol specs stay on WebFetch. (The
+      spec-comment convention that makes patches webspec-lens-validatable went
+      into the global `code-comment-rules` skill, not this repo.)
 - [x] **Multi-aspect `/review`** (raised + built 2026-06-12). The orchestration
       lives in the **`/review` skill** (it runs in the main session, so it can fan
       out to subagents — a subagent can't reliably spawn further subagents, so an

@@ -196,14 +196,18 @@ multi-select to install them. Here's the lay of the land:
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
+| [`webspec-index`](https://github.com/jnjaeschke/webspec-index) | `spec-check` reading WHATWG/W3C/TC39 sections — exact section, no truncation, plus anchor validation / cross-refs / WHATWG-PR previews; falls back to `WebFetch` if absent | optional | guide-only (`cargo install webspec-index`) |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
 they're installed. `profiler-cli` is part of the core set; installing it also
 pulls a headless **Playwright Firefox** browser (~tens of MB), which it drives to
 read Firefox Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
-server, `revue`, and the shared wiki are optional extras. `revue` powers
-`/open-review` and is installed lazily (from GitHub) the first time you open
-the dashboard — `/review` (the AI reviewer) needs nothing extra.
+server, `revue`, `webspec-index`, and the shared wiki are optional extras. `revue`
+powers `/open-review` and is installed lazily (from GitHub) the first time you open
+the dashboard — `/review` (the AI reviewer) needs nothing extra. `webspec-index`
+(`cargo install webspec-index`) makes `spec-check` read web specs from a local
+index instead of `WebFetch`; install it manually if you want that — `spec-check`
+falls back to `WebFetch` when it's absent.
 
 ---
 
