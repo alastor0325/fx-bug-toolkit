@@ -9,6 +9,32 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.1] — 2026-06-18
+
+### Added
+- **`spec-check` prefers [`webspec-index`](https://github.com/jnjaeschke/webspec-index)
+  for web specs.** When the `webspec-index` CLI is on `PATH`, `spec-check` now
+  reads WHATWG/W3C/TC39 sections through it instead of `WebFetch` — it returns
+  the **exact section** (no truncation of the multi-MB single-page HTML),
+  validates anchors (`exists`), and can surface cross-references and unlanded
+  WHATWG-PR previews (`--pr N`). It **falls back to `WebFetch`** when not
+  installed, and **codec / container / protocol** specs (H.26x, ITU-T, ISO/IEC,
+  RFCs) stay on `WebFetch`. Listed as an optional dependency (`cargo install
+  webspec-index`); wiring it into `/init` is a tracked follow-up.
+
+### Changed
+- **`/open-review` now requires Revue ≥ 0.2.0.** Below 0.2.0, opening an
+  esr/non-main worktree failed with `spawnSync /bin/sh ENOBUFS` because Revue
+  diffed against `origin/main` (mozilla-central), spanning tens of thousands of
+  commits. 0.2.0 resolves the diff base from the branch's upstream, so
+  esr/beta-uplift worktrees show only their own patches. (Fixes #47.)
+- **`/update` and `/init` report CLI installs as version deltas.** A `cargo
+  install` can compile for minutes with no hint why, so a routine refresh looked
+  broken. `/update` now prints a per-CLI delta (`already current (X)`,
+  `<old> → <new> (updated)`, or `installed (X)`) and `/init` echoes the installed
+  version. Pure visibility — no change to what compiles or to the pinned
+  versions.
+
 ## [0.6.0] — 2026-06-12
 
 ### Changed
