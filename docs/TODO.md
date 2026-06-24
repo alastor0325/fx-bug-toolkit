@@ -235,6 +235,39 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       are leaf workers.) Follow-ups: (a) **release bump** to ship (waiting on
       "bump"); (b) per-dimension model tiers (opus everywhere now → cost) once we
       see real token use.
+- [ ] **Make `/review` beat `/ultrareview`** (raised 2026-06-24; **deferred — not
+      now**). Compared our `/review` to Claude Code's built-in `/ultrareview`
+      (cloud, async, parallel multi-agent + critique pass; targets a git branch or
+      a **GitHub PR#**; first-class headless `claude ultrareview --json` + exit
+      0/1; generic/no domain knowledge; Anthropic-maintained). **Ours wins on
+      Firefox domain depth + workflow fit** (Phabricator D#/jj/searchfox/spec-check/
+      Gecko idioms, per-finding adversarial verify, scope discipline) — ultrareview
+      literally can't review a Phabricator revision. **Ultrareview wins on infra**
+      (cloud/async, CI, GitHub PRs, zero maintenance). Strategy: keep the domain
+      moat, steal the engineering wins. Prioritized:
+      1. **Headless/CI mode** (biggest gap) — emit findings as JSON to stdout, exit
+         `1` if any BLOCKER survives verification else `0`, so `/review` can gate a
+         try push / pre-land check. Mirror ultrareview's `--json` + exit-code contract.
+      2. **Post findings back to Phabricator** — opt-in inline comments + summary on
+         the D# (Conduit `differential.createinline`) so the review lands in the
+         reviewer's workflow instead of a local doc nobody reads.
+      3. **Stop blocking the session** — run the dimension fan-out as background
+         agents / a Workflow so the main session stays free (approximates
+         ultrareview's async feel without the cloud).
+      4. **Beat the critique pass** — upgrade verify from a single skeptic to a
+         perspective-diverse 2-of-3 adversarial vote on BLOCKERs, plus a
+         **completeness-critic** pass ("what dimension/edge did we miss?") that can
+         trigger a second round (attacks false negatives, not just false positives).
+      5. **Add a `gh pr <N>` source** so ours covers the GitHub-PR cases people reach
+         for ultrareview on, with Gecko depth added.
+      6. **Wire confirmed findings into the firefox-wiki** (like `/triage`) — a
+         persistent Firefox review memory a stateless cloud tool can't have.
+      7. **Benchmark harness** — once #1 lands, build a corpus of past Firefox patches
+         with known issues, run both, score precision/recall; turns "better" into a
+         number + a regression harness for the skill. Honest caveat: ultrareview's
+         true cloud compute + auto-improvement we can't match — only approximate (#3)
+         and offset with depth + the feedback loop (#6). Start with #1 + #2 (highest
+         leverage, don't touch domain logic).
 - [x] **Consolidated on the plugin reviewer** (2026-06-12). Repointed the global
       `firefox-implementation` §8 loop at `fx-bug-toolkit:firefox-review` and made
       it read the path the agent prints (was hardcoded `~/firefox-patches-review/…`,
