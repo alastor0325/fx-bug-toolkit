@@ -51,18 +51,27 @@ echo "default: ${REPO:-<none>}"
   revue init "$REPO"
   ```
 
-## Step 2 — Ensure Revue ≥ 0.2.0 is installed (consent-gated)
+## Step 2 — Ensure Revue ≥ 0.2.1 is installed (consent-gated)
 
-Revue **0.2.0 or newer** is required: earlier builds diffed every worktree against
-`origin/main` (mozilla-central), so opening an **esr/non-main worktree** (a branch
-tracking e.g. `origin/esr115`) spanned tens of thousands of commits and failed with
-`Error loading diff: spawnSync /bin/sh ENOBUFS` — those worktrees would not open at
-all. 0.2.0 resolves the diff base from the branch's upstream (`@{u}`, nearest
-non-empty merge-base), so an esr/beta uplift worktree shows only its own patches.
+Revue **0.2.1 or newer** is required. Two fixes matter for `/open-review`:
+- **0.2.0** made the diff base upstream-aware: earlier builds diffed every worktree
+  against `origin/main` (mozilla-central), so opening an **esr/non-main worktree** (a
+  branch tracking e.g. `origin/esr115`) spanned tens of thousands of commits and
+  failed with `Error loading diff: spawnSync /bin/sh ENOBUFS` — those worktrees would
+  not open at all. It now resolves the base from the branch's upstream (`@{u}`,
+  nearest non-empty merge-base), so an esr/beta uplift worktree shows only its own
+  patches.
+- **0.2.1** resolves HEAD by reading git's on-disk ref files instead of spawning
+  `git rev-parse` (which runs via blocking `execSync`). The `/api/headhash` endpoint
+  every open client polls could otherwise stall for seconds when concurrent git/jj
+  activity repacked objects or rewrote `packed-refs` in the same checkout — freezing
+  the dashboard. Reading refs directly keeps it responsive under exactly the
+  multi-worktree workload `/open-review` runs in.
+
 Check the installed version against that floor:
 
 ```bash
-REQUIRED_REVUE="0.2.0"
+REQUIRED_REVUE="0.2.1"
 have="$(revue --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 if [ -z "$have" ]; then
   echo "NOT_INSTALLED"
@@ -84,9 +93,9 @@ fi
 
   > Install from GitHub, **not** `npm install -g revue` — the bare `revue` name on
   > the public npm registry is an unrelated package. The GitHub install pulls the
-  > latest (≥ 0.2.0). Requires Node.js ≥ 18.
+  > latest (≥ 0.2.1). Requires Node.js ≥ 18.
 
-  If the user declines, stop here and tell them `/open-review` needs Revue ≥ 0.2.0;
+  If the user declines, stop here and tell them `/open-review` needs Revue ≥ 0.2.1;
   they can run the command above later.
 
 ## Step 3 — Launch the board (port 7779, fall back if taken)

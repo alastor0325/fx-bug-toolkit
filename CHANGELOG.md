@@ -9,6 +9,28 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.2] — 2026-06-24
+
+### Changed
+- **`/review` security dimension catches lifetime-contract UAFs.** The `security`
+  reviewer now has explicit checks for a class of use-after-free its generic
+  "lifetime & ownership" bullet didn't reliably prompt for: (1) **self-registration
+  / observer-listener lifetime** — when an object registers itself into a
+  longer-lived manager that holds it by strong `RefPtr` while keeping a raw
+  back-reference to a shorter-lived owner, prove it is unregistered on **every**
+  teardown path (destructor, error/cancel/shutdown, **and** cycle-collection
+  `Unlink`), not just on a happy-path event a peer may never deliver; (2)
+  **cycle-collection completeness** — every member that joins a ref cycle or holds
+  an external registration must appear in both Traverse and Unlink (a member omitted
+  from `Unlink`, or a subclass member while the CC macro is on the base class, is a
+  classic UAF/leak); (3) **unproven lifetime contracts** — a "Shutdown runs before
+  release" / "A outlives B" comment is a claim to verify on all paths, not to trust.
+- **`/open-review` requires Revue ≥ 0.2.1** (was ≥ 0.2.0). 0.2.1 resolves HEAD by
+  reading git's on-disk ref files instead of spawning `git rev-parse` via blocking
+  `execSync`, so the dashboard stays responsive when concurrent git/jj activity
+  repacks objects / rewrites `packed-refs` in the same checkout. Still carries the
+  0.2.0 esr/non-main-worktree ENOBUFS fix (without which those worktrees won't open).
+
 ## [0.6.1] — 2026-06-18
 
 ### Added
@@ -718,7 +740,9 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...HEAD
+[0.6.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.1...fx-bug-toolkit--v0.6.2
+[0.6.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...fx-bug-toolkit--v0.6.1
 [0.6.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.5.1...fx-bug-toolkit--v0.6.0
 [0.5.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.5.0...fx-bug-toolkit--v0.5.1
 [0.5.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.4.10...fx-bug-toolkit--v0.5.0
