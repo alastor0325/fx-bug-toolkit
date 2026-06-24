@@ -126,6 +126,34 @@ verify pass rather than dismissing it). Check for:
   `already_AddRefed` consumed correctly; reference cycles (RefPtr↔RefPtr that
   should be WeakPtr); leaks on early-return/error paths; `new`/`delete` that
   should be RAII.
+- **Self-registration & observer/listener lifetime**: when an object registers
+  *itself* into a longer-lived manager / controller / service / observer list —
+  **especially one that holds it by strong `RefPtr`, so the registered object can
+  outlive its owner** — *and* it keeps a raw/reference back-pointer to a
+  shorter-lived owner, prove it is **unregistered on EVERY teardown path of the
+  owner**: the destructor, every error/cancel/shutdown path, **and the
+  cycle-collection `Unlink`** — not only on a happy-path event
+  (`OnEnd`/`OnError`/`OnStop`/`OnSuccess`) that an engine, IPC peer, or async
+  callback **may never deliver**. Cleanup wired solely to such an event leaves a
+  dangling back-reference the instant a no-event teardown runs → UAF on the next
+  manager callback. If a sibling class implements the same
+  register-with-back-reference pattern safely, diff against it to find the
+  teardown step the patch is missing. A "Shutdown runs before release" assumption
+  here is a **BLOCKER** unless proven on all paths.
+- **Cycle-collection (CC) completeness**: for any class using
+  `NS_IMPL_CYCLE_COLLECTION*` / `NS_DECL_CYCLE_COLLECTION*`, every member that can
+  join a ref cycle **or** holds an external registration / back-reference must
+  appear in **both Traverse and Unlink**. A member present on the class but
+  **omitted from the `Unlink`** — so the collector never drops the strong ref or
+  runs the member's `Shutdown()`/cleanup — is a classic Gecko UAF/leak; flag it.
+  Also flag a member declared on a **subclass** while the CC macro sits on the
+  **base class** (that member is then never traversed or unlinked).
+- **Unproven lifetime contracts**: a comment asserting "A outlives B",
+  "`Shutdown()` runs before release", or "always valid until X" is a claim to
+  **verify against every destruction path**, never to trust. If any path (dtor,
+  CC unlink, early-return/error, async cancel, a peer/engine that never signals)
+  can reach teardown without satisfying it, emit a finding — at minimum
+  `uncertain`. A documented invariant is not proof of safety.
 - **Untrusted-input handling** at any trust boundary (content process, parsed
   bytes, web-facing input): every length/offset/tag validated before use.
 A UAF, OOB, or corruption path is a **BLOCKER**, never lower.

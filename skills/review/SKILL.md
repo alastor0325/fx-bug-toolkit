@@ -148,7 +148,7 @@ conditional dimensions when the diff matches:
 | Dimension | Run when… | Default |
 |---|---|---|
 | `spec` | always (every patch makes a correctness/spec claim) | **always** |
-| `security` | always — UAF, OOB, overflow, lifetime, untrusted input | **always** |
+| `security` | always — UAF, OOB, overflow, lifetime/ownership (incl. self-registration/observer back-refs & cycle-collection `Unlink` completeness), untrusted input | **always** |
 | `threading` | always — data races, lock ordering, re-entrancy, TOCTOU | **always** |
 | `code-quality` | always (any code change) | **always** |
 | `tests` | always (assess coverage even if no test file changed) | **always** |
