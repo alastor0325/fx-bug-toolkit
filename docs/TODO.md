@@ -303,6 +303,18 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## ✅ Done
 
+- [x] **Threading review-aspect: catch lock-held-across-sync-cross-thread-handoff
+      deadlocks** (2026-06-27). Bug 2050110 (regressor bug 2034990): a prior
+      `/review` missed a deadlock where `PDMFactorySupport::Instance()` held a
+      `StaticMutex` while `SyncRunnable`-dispatching main-thread-only listener
+      registration — an off-main first caller holding the lock + a main-thread
+      caller waiting for it hang intermittently (whoever loses the race). Worse
+      because the entry point (`MediaCapabilities.decodingInfo`,
+      `Exposed=(Window,Worker)`) is reachable from both threads. Added two sharp
+      bullets to the `threading` checklist in `agents/firefox-review-aspect.md`:
+      (1) lock held across a synchronous cross-thread handoff = deadlock-by-
+      inversion (BLOCKER); (2) lazy-init singleton/global accessor reachable from
+      >1 thread doing main-thread-only setup under the lock.
 - Created the private repo + plugin scaffold (manifests, 9 skills, gecko-navigator agent).
 - Sanitized personal references: removed the `auto-update-my-md` GitHub push,
   parametrized `profiler-cli` via `$PROFILER_CLI`, softened `/firefox-implementation`

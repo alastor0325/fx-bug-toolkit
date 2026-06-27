@@ -100,9 +100,32 @@ two of your instructions. Check for:
   state or self-deadlock?
 - Lock ordering consistent (no inverted acquisition → deadlock)? Lock held across
   a re-entrant call, a dispatch, or a blocking wait?
+- **Lock held across a synchronous cross-thread handoff (deadlock-by-inversion)**:
+  flag any path that holds a mutex/monitor while *synchronously waiting on another
+  specific thread* — `SyncRunnable::DispatchToThread`,
+  `NS_DispatchAndSpinEventLoopUntilComplete`, `SpinEventLoopUntil`, a monitor
+  `Wait()` for a runnable on another thread, `Future`/`MozPromise` `.get()`/block,
+  or any "dispatch-and-block". The lock and "the awaited thread makes progress"
+  become two resources the two threads acquire in opposite order: if the awaited
+  thread (very often **the main thread**) can itself try to take that same lock,
+  it is a guaranteed deadlock. The release-the-lock-before-the-blocking-call (or
+  do the cross-thread work outside the critical section) is the fix. A comment
+  saying the wait "only runs once" or "registration is cheap" does **not** make it
+  safe — the first concurrent pair is enough.
+- **Lazy-init singleton / global accessor reachable from >1 thread**: for any
+  `Instance()`/`GetSingleton()`/`Ensure*()` that takes a lock and is callable
+  from **both main and off-main** threads (most acute when the entry point is a
+  `Exposed=(Window,Worker)` WebIDL method, a codec/`IsTypeSupported`/capability
+  query, or a PDM/decoder factory), walk the *first-call* path: does it do any
+  main-thread-only setup (pref/observer/gfxVar registration, `ClearOnShutdown`,
+  service init) under the lock via a **blocking** dispatch? If so, an off-main
+  first caller holding the lock + a main-thread caller waiting for the lock
+  deadlocks intermittently (whoever loses the race hangs). Main-thread-only setup
+  must happen *without* holding the shared lock, or be made lock-free.
 - Dispatch correctness: right target queue/thread; runnables capturing state
   safely; no use-after-shutdown of a thread/taskqueue.
-A confirmed data race or cross-thread UAF is a **BLOCKER**.
+A confirmed data race or cross-thread UAF is a **BLOCKER**. A lock held across a
+synchronous wait on a thread that can re-enter the same lock is a **BLOCKER**.
 
 **`security`** — memory safety & memory corruption. **Highest standard: always
 runs, and your posture is adversarial.** Assume hostile input and worst-case
