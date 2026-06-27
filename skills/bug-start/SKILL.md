@@ -556,6 +556,18 @@ I'd suggest to have **sec-{level}** because:
 - What should happen instead — [`spec section`](URL) if applicable
 - Unconfirmed hypotheses MUST be labeled `[Assumption: needs X to confirm]`}
 
+### Hypotheses Ruled Out
+
+{The theories you considered and disproved on the way to the root cause, each with
+what killed it. This is the most-skipped, most-valuable part — it stops you (and a
+future session) from re-walking dead ends after a break.
+
+For a contained bug where the cause was found directly, write
+"None — cause located directly." For anything that took real investigation, list them:}
+
+- **{hypothesis}** — RULED OUT: {the observation/evidence that disproved it}
+- **{hypothesis}** — RULED OUT: {…}
+
 ### Code Analysis
 
 #### Key Files
