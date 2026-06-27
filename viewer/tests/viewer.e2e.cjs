@@ -24,7 +24,12 @@ const INDEX = [
     root_cause: "the numbered root cause", affected_files: ["dom/media/Foo.cpp#L10-L12"],
     related_bugs: [222], investigated_at: "2026-01-01T00:00:00Z", notes: null,
     has_frontmatter: true, date: "2026-01-01",
-    body: "# Heading\n\nsome **body** with `code` and a [spec link](https://example.com/spec)\n" },
+    // body is deliberately tall (many paragraphs) so the detail pane actually
+    // scrolls — the scroll-restoration checks below need a real scroll offset.
+    body: "# Heading\n\nsome **body** with `code` and a [spec link](https://example.com/spec)\n\n"
+      + Array.from({ length: 60 }, (_, i) =>
+          `Filler paragraph ${i} — lorem ipsum dolor sit amet, long enough that the detail pane scrolls well past one screen so a restored scroll offset is observable.`
+        ).join("\n\n") + "\n" },
   { bug_id: "mfcdm-thing", bug_url: null, folder: "mf-playback", summary: "MFCDM Thing slug",
     status: null, depth: null, complexity: null, root_cause: null, affected_files: [],
     related_bugs: [], investigated_at: null, notes: null, has_frontmatter: false,
@@ -225,6 +230,26 @@ async function main() {
       await reload();                              // expanded (default)
       await page.fill("#q", "Numbered");
       assert.ok(await page.locator("#results").evaluate(el => el.hidden), "no dropdown while the list is visible");
+    });
+
+    // the reported bug: returning to the tab (visibilitychange/focus → background
+    // refresh) re-selects the OPEN doc; that re-render must keep the reader's
+    // scroll position, not snap back to the top.
+    await check("scroll position is kept on a same-doc re-render (background refresh)", async () => {
+      await page.evaluate(() => localStorage.clear());
+      await reload();
+      await page.locator(".row").first().click();                       // open the tall doc
+      await page.locator("#detail").evaluate(el => { el.scrollTop = 400; });
+      const before = await page.locator("#detail").evaluate(el => el.scrollTop);
+      assert.ok(before > 0, "precondition: the detail pane is scrolled down");
+      await page.evaluate(() => loadIndex());                           // the refresh path: re-fetch + re-select the same doc
+      const after = await page.locator("#detail").evaluate(el => el.scrollTop);
+      assert.strictEqual(after, before, "same-doc re-render kept the scroll position");
+    });
+    await check("scroll resets to top when switching to a different doc", async () => {
+      await page.locator("#detail").evaluate(el => { el.scrollTop = 400; });
+      await page.locator(".row").nth(1).click();                        // a different doc
+      assert.strictEqual(await page.locator("#detail").evaluate(el => el.scrollTop), 0, "switching docs scrolls to top");
     });
 
   } finally {

@@ -247,8 +247,13 @@ function selectByBugId(id){
   if(i>=0) select(i);
 }
 
+// the bug_id currently rendered in #detail, so a same-doc re-render (a background
+// refresh, or returning from a link opened in a new tab) keeps the reader's place
+// instead of snapping back to the top.
+let renderedId = null;
 function select(i){
   if(i<0||i>=view.length) return;
+  const prevScroll = $('#detail').scrollTop;
   sel=i; highlight();
   history.replaceState(null, '', '#'+encodeURIComponent(view[i].bug_id));
   const r = document.querySelectorAll('.row')[i]; if(r) r.scrollIntoView({block:'nearest'});
@@ -277,7 +282,8 @@ function select(i){
     </div>${rc}${files}
     <div class="body">${mdParse(d.body||'')}</div>
   </article>`;
-  $('#detail').scrollTop=0;
+  $('#detail').scrollTop = scrollTopAfterRender(renderedId, d.bug_id, prevScroll);
+  renderedId = d.bug_id;
   // make rendered links open in a new tab
   $('#detail').querySelectorAll('.body a[href^="http"]').forEach(a=>a.target='_blank');
 }

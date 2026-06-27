@@ -82,6 +82,20 @@ function shouldShowDropdown(collapsed, query, count) {
   return !!collapsed && String(query == null ? "" : query).trim().length > 0 && count > 0;
 }
 
+// The detail pane's scrollTop after a (re-)render. Rendering re-selects a doc on
+// every background refresh (visibilitychange/focus → loadIndex → reselect) and on
+// any same-doc reselect, so unconditionally zeroing scrollTop throws away the
+// reader's position on every tab-switch / link-out-and-back. Preserve the prior
+// scroll only when the SAME doc is being re-rendered (same content ⇒ same height,
+// so the offset is still valid); reset to the top when switching to a different
+// doc. `prevId == null` (nothing rendered yet) counts as a switch.
+function scrollTopAfterRender(prevId, nextId, prevScrollTop) {
+  if (prevId != null && String(prevId) === String(nextId)) {
+    return prevScrollTop > 0 ? prevScrollTop : 0;
+  }
+  return 0;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate, findIndexByBugId, shouldRefresh, shouldShowDropdown };
+  module.exports = { escapeHtml, sfUrl, bz, indexUrl, DEPTH, depthMeta, chipHtml, depthChipHtml, matchesQuery, byDate, findIndexByBugId, shouldRefresh, shouldShowDropdown, scrollTopAfterRender };
 }
