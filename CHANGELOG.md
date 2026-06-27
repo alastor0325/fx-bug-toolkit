@@ -9,6 +9,28 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.3] — 2026-06-27
+
+### Changed
+- **`/review` threading dimension catches lock-held-across-sync-cross-thread-handoff
+  deadlocks.** The `threading` reviewer now has two explicit BLOCKER-level checks for
+  a deadlock class its generic "lock held across a dispatch / blocking wait" bullet
+  didn't reliably prompt for: (1) **deadlock-by-inversion** — a mutex/monitor held
+  while *synchronously waiting on another specific thread* (`SyncRunnable`,
+  `NS_DispatchAndSpinEventLoopUntilComplete`, `SpinEventLoopUntil`, a monitor `Wait()`,
+  a promise/future block); if the awaited thread (often the main thread) can take the
+  same lock, it is a guaranteed deadlock, and a "only runs once / registration is
+  cheap" comment does not make it safe; (2) **lazy-init singleton / global accessor
+  reachable from >1 thread** — an `Instance()`/`Ensure*()` that locks and does
+  main-thread-only setup under the lock via a blocking dispatch deadlocks intermittently
+  when an off-main first caller and a main-thread caller race (most acute for
+  `Exposed=(Window,Worker)` / capability-query / PDM-factory entry points). Distilled
+  from bug 2050110 (regressor bug 2034990), which a prior `/review` missed.
+
+### Fixed
+- **Investigation viewer keeps scroll position on same-document re-render** — re-rendering
+  the currently-open document no longer jumps the reader back to the top (#56).
+
 ## [0.6.2] — 2026-06-24
 
 ### Changed
