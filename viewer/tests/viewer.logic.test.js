@@ -86,3 +86,17 @@ test("shouldRefresh: only when the tab is visible and no refresh is in flight", 
   assert.strictEqual(VL.shouldRefresh("hidden", false), false);   // tab not visible
   assert.strictEqual(VL.shouldRefresh("prerender", false), false);
 });
+
+test("scrollTopAfterRender preserves scroll on same-doc re-render, resets on switch", () => {
+  // same doc (background refresh / link-out-and-back) → keep the reader's place
+  assert.strictEqual(VL.scrollTopAfterRender(111, 111, 840), 840);
+  assert.strictEqual(VL.scrollTopAfterRender("slug", "slug", 500), 500);  // string id
+  assert.strictEqual(VL.scrollTopAfterRender(111, "111", 300), 300);      // string-compared id
+  // different doc → top
+  assert.strictEqual(VL.scrollTopAfterRender(111, 222, 840), 0);
+  // nothing rendered yet (first select) → top
+  assert.strictEqual(VL.scrollTopAfterRender(null, 111, 840), 0);
+  // same doc but never scrolled / negative → top (no spurious offset)
+  assert.strictEqual(VL.scrollTopAfterRender(111, 111, 0), 0);
+  assert.strictEqual(VL.scrollTopAfterRender(111, 111, -5), 0);
+});
