@@ -233,18 +233,25 @@ async function main() {
     });
 
     // the reported bug: returning to the tab (visibilitychange/focus → background
-    // refresh) re-selects the OPEN doc; that re-render must keep the reader's
-    // scroll position, not snap back to the top.
-    await check("scroll position is kept on a same-doc re-render (background refresh)", async () => {
+    // refresh) re-selects the OPEN doc. On an UNCHANGED doc the detail pane must
+    // be left completely untouched — not re-rendered then scroll-restored, which
+    // lost the position in real-browser timing. So: scroll preserved AND the
+    // rendered <article> node is the SAME node (no innerHTML rewrite at all).
+    await check("background refresh leaves the open doc untouched (scroll kept, no re-render)", async () => {
       await page.evaluate(() => localStorage.clear());
       await reload();
       await page.locator(".row").first().click();                       // open the tall doc
       await page.locator("#detail").evaluate(el => { el.scrollTop = 400; });
-      const before = await page.locator("#detail").evaluate(el => el.scrollTop);
+      const before = await page.locator("#detail").evaluate(el => {
+        el.querySelector(".doc").dataset.tag = "before";               // tag the node to detect a rewrite
+        return el.scrollTop;
+      });
       assert.ok(before > 0, "precondition: the detail pane is scrolled down");
-      await page.evaluate(() => loadIndex());                           // the refresh path: re-fetch + re-select the same doc
+      await page.evaluate(() => loadIndex());                           // the refresh path: re-fetch + re-select the same (unchanged) doc
       const after = await page.locator("#detail").evaluate(el => el.scrollTop);
-      assert.strictEqual(after, before, "same-doc re-render kept the scroll position");
+      const sameNode = await page.locator("#detail").evaluate(el => el.querySelector(".doc")?.dataset.tag === "before");
+      assert.strictEqual(after, before, "scroll position kept across the refresh");
+      assert.ok(sameNode, "unchanged open doc was NOT re-rendered (same <article> node survived)");
     });
     await check("scroll resets to top when switching to a different doc", async () => {
       await page.locator("#detail").evaluate(el => { el.scrollTop = 400; });
