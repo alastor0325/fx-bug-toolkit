@@ -251,9 +251,9 @@ function selectByBugId(id){
 // refresh, or returning from a link opened in a new tab) keeps the reader's place
 // instead of snapping back to the top.
 let renderedId = null;
+let renderedHTML = null;   // the exact innerHTML currently in #detail
 function select(i){
   if(i<0||i>=view.length) return;
-  const prevScroll = $('#detail').scrollTop;
   sel=i; highlight();
   history.replaceState(null, '', '#'+encodeURIComponent(view[i].bug_id));
   const r = document.querySelectorAll('.row')[i]; if(r) r.scrollIntoView({block:'nearest'});
@@ -273,7 +273,7 @@ function select(i){
   const files = (d.affected_files&&d.affected_files.length)
     ? `<div class="files"><div class="lbl">affected files</div>${d.affected_files.map(f=>`<a href="${sfUrl(f)}" target="_blank">${escapeHtml(f)}</a>`).join('')}</div>` : '';
 
-  $('#detail').innerHTML = `<article class="doc">
+  const html = `<article class="doc">
     <div class="dochead">
       <div class="id">${d.bug_url
         ? `<a href="${d.bug_url}" target="_blank">↗ bug ${d.bug_id} on bugzilla</a>`
@@ -282,8 +282,19 @@ function select(i){
     </div>${rc}${files}
     <div class="body">${mdParse(d.body||'')}</div>
   </article>`;
+
+  // Same doc, identical content — the common case on a background refresh
+  // (visibilitychange/focus → loadIndex re-selects the open doc). Leave #detail
+  // *completely untouched*: don't rewrite innerHTML at all, so the reader's
+  // scroll position can't be perturbed by any trigger. Rewriting-then-restoring
+  // worked in tests but lost the position in real-browser timing/scroll-anchoring.
+  if(String(renderedId) === String(d.bug_id) && html === renderedHTML) return;
+
+  const prevScroll = $('#detail').scrollTop;
+  $('#detail').innerHTML = html;
   $('#detail').scrollTop = scrollTopAfterRender(renderedId, d.bug_id, prevScroll);
   renderedId = d.bug_id;
+  renderedHTML = html;
   // make rendered links open in a new tab
   $('#detail').querySelectorAll('.body a[href^="http"]').forEach(a=>a.target='_blank');
 }
