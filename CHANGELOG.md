@@ -9,6 +9,26 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.3] — 2026-06-30
+
+### Fixed
+- **Investigation viewer no longer jumps to the top.** Returning to the tab,
+  switching back from another app/terminal, or coming back from a link opened in
+  a new tab no longer snaps the detail pane to the top. The background refresh
+  (visibilitychange/focus) now **leaves the open doc untouched** when its content
+  is unchanged — it no longer re-renders `#detail` and tries to restore scroll
+  (which lost the position under real-browser scroll-anchoring); a genuinely
+  changed doc still re-renders and preserves scroll, and switching to a different
+  doc still starts at the top.
+- **Viewer assets are served `Cache-Control: no-store`.** `serve.py` previously
+  no-stored only `index.json`, so browsers heuristically cached `viewer.html` /
+  `viewer.logic.js` and an open tab could keep running stale code after an update.
+  Every response is now `no-store`, so a reload always loads current code.
+
+### Added
+- **`/bug-start` deep-mode write-up gains a "Hypotheses Ruled Out" section** —
+  records the dead ends an investigation eliminated, not just the final root cause.
+
 ## [0.6.2] — 2026-06-24
 
 ### Changed
@@ -740,7 +760,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...HEAD
+[0.6.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...fx-bug-toolkit--v0.6.3
 [0.6.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.1...fx-bug-toolkit--v0.6.2
 [0.6.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...fx-bug-toolkit--v0.6.1
 [0.6.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.5.1...fx-bug-toolkit--v0.6.0
