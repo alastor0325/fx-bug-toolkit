@@ -134,6 +134,16 @@ class _ViewerHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIR), **kwargs)
 
+    def end_headers(self):
+        # No-store EVERYTHING, not just index.json. SimpleHTTPRequestHandler
+        # otherwise sends only Last-Modified for static assets, so browsers
+        # heuristically cache viewer.html / viewer.logic.js and an open tab can
+        # keep running stale JS after the files change on disk — which made a
+        # shipped scroll-position fix look like it "didn't take". Forcing
+        # no-store means every reload re-fetches the current code.
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
     def do_GET(self):
         if is_index_request(self.path):
             with _reindex_lock:   # serialize concurrent rebuilds (ThreadingHTTPServer)
