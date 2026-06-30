@@ -51,7 +51,7 @@ function get(url) {
     const req = http.get(url, res => {
       let buf = "";
       res.on("data", d => (buf += d));
-      res.on("end", () => resolve({ status: res.statusCode, body: buf }));
+      res.on("end", () => resolve({ status: res.statusCode, body: buf, headers: res.headers }));
     });
     req.on("error", reject);
     req.setTimeout(3000, () => req.destroy(new Error("timeout")));
@@ -114,6 +114,16 @@ async function main() {
     await check("serve.py serves the viewer assets", async () => {
       for (const a of ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg"]) {
         assert.strictEqual((await get(`${base}/${a}`)).status, 200, a);
+      }
+    });
+    // Assets must be no-store: otherwise the browser heuristically caches
+    // viewer.html / viewer.logic.js and an open tab keeps running stale JS after
+    // the files change (made a shipped scroll fix appear not to take). Every
+    // response — assets AND index.json — must carry Cache-Control: no-store.
+    await check("serve.py sends Cache-Control: no-store on assets + index.json", async () => {
+      for (const a of ["viewer.html", "viewer.logic.js", "index.json"]) {
+        const cc = (await get(`${base}/${a}`)).headers["cache-control"] || "";
+        assert.match(cc, /no-store/, `${a} must be no-store (got "${cc}")`);
       }
     });
 
