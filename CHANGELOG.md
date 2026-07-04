@@ -7,7 +7,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Added
+- **Shared visual theme (`assets/theme.css`).** The investigation viewer's
+  design tokens and base components (palette, IBM Plex type, page backdrop, form
+  controls, the `.chip` primitive, scrollbars, `<kbd>`, brand mark) are now a
+  single stylesheet served at `/theme.css`, so every local web UI in the toolkit
+  shares one look. `viewer.html` links it instead of carrying its own copy.
+- **`/fx-style` skill** — the toolkit's design-system reference: the rule that
+  every page links `/theme.css` and extends it, the token vocabulary, recurring
+  patterns, and do/don'ts. Apply before building or restyling any UI here.
 
 ## [0.6.4] — 2026-10-01
 

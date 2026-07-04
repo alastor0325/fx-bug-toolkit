@@ -27,6 +27,10 @@ import time
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
+# Shared theme lives one level up in the repo/plugin root (assets/), so both the
+# viewer and the dashboard can serve one canonical /theme.css. Same relative
+# layout in-repo and in the installed plugin cache.
+ASSETS_DIR = DIR.parent / "assets"
 RUN = DIR / ".run"
 PIDFILE = RUN / "viewer.pid"
 PORTFILE = RUN / "viewer.port"
@@ -122,6 +126,20 @@ def is_index_request(path: str) -> bool:
     return path.split("?", 1)[0].rstrip("/") == "/index.json"
 
 
+# URLs served from the shared assets/ dir rather than the viewer's own directory.
+SHARED_ASSETS = frozenset({"/theme.css"})
+
+
+def shared_asset_target(path: str, assets_dir: Path) -> str | None:
+    """Filesystem path for a shared-asset request (e.g. `/theme.css`), or None if
+    `path` isn't a shared asset. Lets the launcher serve one canonical theme that
+    lives outside the served directory, so the viewer and dashboard can't drift."""
+    clean = path.split("?", 1)[0]
+    if clean in SHARED_ASSETS:
+        return str(assets_dir / clean.lstrip("/"))
+    return None
+
+
 _reindex_lock = threading.Lock()
 
 
@@ -133,6 +151,12 @@ class _ViewerHandler(http.server.SimpleHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIR), **kwargs)
+
+    def translate_path(self, path):
+        # Route /theme.css to the shared assets/ dir; everything else is served
+        # from the viewer directory as usual.
+        target = shared_asset_target(path, ASSETS_DIR)
+        return target if target is not None else super().translate_path(path)
 
     def end_headers(self):
         # No-store EVERYTHING, not just index.json. SimpleHTTPRequestHandler

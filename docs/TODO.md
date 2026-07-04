@@ -5,6 +5,29 @@ top of each section. Check items off as they land.
 
 ---
 
+## 🟡 Active plan: Personal Dashboard (`/open-dashboard`)
+
+Multi-stage. Full checkpoints + open questions in
+[`docs/plans/personal-dashboard.md`](plans/personal-dashboard.md).
+
+- [ ] **Stage 1** — collect (NI-of-me / assigned / reviews-of-me / my-revisions)
+      + standalone viewer + shared `assets/theme.css` + `/fx-style` skill.
+- [ ] **Stage 2** — act on *selected* items: analyze + draft NI replies (exclude
+      NIs from self), auto-triage `/review` on chosen review requests; via an
+      internal feedback-processing skill (back-and-forth). Selection model still
+      open.
+- [x] **Dep** — `bugzilla-cli` personal-list queries (`assigned`, `needinfos`,
+      `--json`, personal auth via `BUGZILLA_API_KEY`) — landed in
+      `~/projects/bugzilla-cli` (`81ec709`).
+- [ ] **Follow-up (🟢 minor)** — viewer domain chips (`.chip.depth-deep/.cx-low/…`)
+      re-declare colors that now also live in `assets/theme.css`
+      (`.chip.amber/.green/…`). Dedup by having `viewer.logic.js` emit the shared
+      semantic class (`chip amber`) and keeping only genuinely-unique bits
+      (`.folder` glyph, `.cx-medium` alpha). Deferred — touches shipped JS + node
+      tests; low value. (2026-07-03)
+
+---
+
 ## ✅ Decided: one plugin — no `fx-triage` spinoff
 
 fx-bug-toolkit stays a single, unified plugin (investigate + triage + review);

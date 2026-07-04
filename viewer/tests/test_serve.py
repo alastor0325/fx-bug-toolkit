@@ -114,6 +114,10 @@ class TestServeLauncher(unittest.TestCase):
                 "---\nbug_id: 800001\nsummary: Launcher headline\n---\n# Bug 800001\nbody\n")
             for f in LAUNCHER_FILES:
                 shutil.copy(VIEWER / f, web / f)
+            # serve.py routes /theme.css to ../assets relative to the served dir;
+            # stage it as a sibling of web/ to match the shipped layout.
+            assets = root / "assets"; assets.mkdir()
+            shutil.copy(VIEWER.parent / "assets" / "theme.css", assets / "theme.css")
 
             port = free_port()
             env = dict(os.environ, FX_BUG_INVESTIGATION_DIR=str(inv), FX_VIEWER_PORT=str(port))
@@ -135,6 +139,10 @@ class TestServeLauncher(unittest.TestCase):
                     self.fail("serve.py did not come up")
 
                 self.assertEqual(get(base + "/viewer.html")[0], 200)
+                # shared theme is served from the sibling assets/ dir
+                st_css, css = get(base + "/theme.css")
+                self.assertEqual(st_css, 200)
+                self.assertIn(b"--amber", css)
                 _, raw = get(base + "/index.json")
                 self.assertEqual(json.loads(raw)[0]["bug_id"], 800001)
 
@@ -170,6 +178,19 @@ class TestPortHelpers(unittest.TestCase):
         self.assertTrue(serve.is_index_request("/index.json?ts=1700000000000"))
         self.assertFalse(serve.is_index_request("/viewer.html"))
         self.assertFalse(serve.is_index_request("/"))
+
+    def test_shared_asset_target(self):
+        # /theme.css maps into the shared assets dir; anything else is not shared.
+        assets = Path("/plugin/assets")
+        self.assertEqual(serve.shared_asset_target("/theme.css", assets),
+                         str(assets / "theme.css"))
+        # query string is ignored (page may cache-bust the stylesheet)
+        self.assertEqual(serve.shared_asset_target("/theme.css?v=2", assets),
+                         str(assets / "theme.css"))
+        # non-shared paths fall through to normal directory serving
+        self.assertIsNone(serve.shared_asset_target("/viewer.html", assets))
+        self.assertIsNone(serve.shared_asset_target("/index.json", assets))
+        self.assertIsNone(serve.shared_asset_target("/", assets))
 
     def test_resolve_reuses_live_instance(self):
         # A live instance with a recorded port → reuse it, ignore env.
