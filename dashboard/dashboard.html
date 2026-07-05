@@ -41,6 +41,9 @@
   .tab .n{font-size:11px; color:var(--faint); background:#101015; border:1px solid var(--line); border-radius:20px; padding:1px 8px}
   .tab.active .n{color:var(--accent)}
   .tab[data-k="needinfos"]{--accent:var(--amber)} .tab[data-k="reviews"]{--accent:var(--cyan)} .tab[data-k="my_bugs"]{--accent:var(--blue)}
+  /* order toggle — only meaningful for (and shown on) the needinfos tab */
+  .order-btn{margin-left:auto; display:none}
+  body[data-tab="needinfos"] .order-btn{display:inline-flex}
 
   .wrap{max-width:1720px; margin:0 auto; padding:18px clamp(16px,2.5vw,36px) 80px}
 
@@ -140,6 +143,8 @@ let lastGen = null;
 const openCards = new Set();
 const TAB_KEY = 'fxdash.tab';
 let activeTab = (()=>{ try { return localStorage.getItem(TAB_KEY) || 'needinfos'; } catch(e){ return 'needinfos'; } })();
+const ORDER_KEY = 'fxdash.order';
+let sortOrder = (()=>{ try { return localStorage.getItem(ORDER_KEY) || 'newer'; } catch(e){ return 'newer'; } })();
 
 function tagsHtml(tags){
   return (tags||[]).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
@@ -204,7 +209,7 @@ function cardHtml(it){
   </article>`;
 }
 function panelHtml(sec){
-  const items = sortForSection(sec.key, (DATA.sections && DATA.sections[sec.key]) || []);
+  const items = sortForSection(sec.key, (DATA.sections && DATA.sections[sec.key]) || [], sortOrder);
   const body = items.length
     ? `<div class="cards">${items.map(cardHtml).join("")}</div>`
     : `<div class="emptysec">${escapeHtml(sec.empty)}</div>`;
@@ -215,9 +220,13 @@ function tabHtml(sec){
   return `<button class="tab${sec.key===activeTab?' active':''}" data-k="${sec.key}">
     <span class="dot"></span>${escapeHtml(sec.label)}<span class="n">${n}</span></button>`;
 }
+function orderBtnHtml(){
+  return `<button class="sortbtn order-btn" id="order" title="Sort needinfos by date">${sortOrder==='older'?'↑ oldest first':'↓ newest first'}</button>`;
+}
 function setActiveTab(k){
   activeTab = k;
   try { localStorage.setItem(TAB_KEY, k); } catch(e){}
+  document.body.dataset.tab = k;                 // drives .order-btn visibility (CSS)
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
   document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.dataset.k === k));
 }
@@ -231,12 +240,19 @@ function render(){
   $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
   $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
   if(!SECTIONS.some(s => s.key === activeTab)) activeTab = SECTIONS[0].key;
-  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("");
+  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("") + orderBtnHtml();
   $('#panels').innerHTML = SECTIONS.map(panelHtml).join("");
+  document.body.dataset.tab = activeTab;
 }
 
-// tab switch — class toggle only, no DOM rebuild
+// tab switch — class toggle only, no DOM rebuild. The order toggle re-sorts NI.
 $('#tabs').addEventListener('click', e=>{
+  if(e.target.closest('.order-btn')){
+    sortOrder = sortOrder === 'newer' ? 'older' : 'newer';
+    try { localStorage.setItem(ORDER_KEY, sortOrder); } catch(e){}
+    render();
+    return;
+  }
   const t = e.target.closest('.tab'); if(!t) return;
   setActiveTab(t.dataset.k);
 });

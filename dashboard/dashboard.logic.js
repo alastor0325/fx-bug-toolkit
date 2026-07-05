@@ -88,13 +88,14 @@ function viewMode(data, status) {
   return { mode: "ready", analyzing: running };
 }
 
-// Per-section ordering. Needinfos are sorted oldest-waiting first (the earliest
-// dated needinfo — the one that's been on you longest — comes first); other
-// sections keep collector order. Pure (returns a new array).
-function sortForSection(key, items) {
+// Per-section ordering. Needinfos are sorted by date, controlled by `order`:
+// "newer" (default) = most recent first (fewest days waited on top); "older" =
+// oldest first. Other sections keep collector order. Pure (returns a new array).
+function sortForSection(key, items, order) {
   const arr = (items || []).slice();
   if (key === "needinfos") {
-    arr.sort((a, b) => (Number(b.waiting_days) || 0) - (Number(a.waiting_days) || 0));
+    const dir = order === "older" ? -1 : 1;   // default "newer" = ascending waiting_days
+    arr.sort((a, b) => dir * ((Number(a.waiting_days) || 0) - (Number(b.waiting_days) || 0)));
   }
   return arr;
 }

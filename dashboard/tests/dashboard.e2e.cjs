@@ -24,6 +24,8 @@ const DATA = {
         tags: [{ text: "Audio/Video", kind: "component" }, { text: "S2", kind: "severity" }],
         brief: { bug: "what the bug is", ask: "what the ask is" },
         solvable: true, solvable_reason: "clear STR" },
+      { type: "ni", id: "112", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=112",
+        title: "Older NI", waiting_days: 20, from: "asker2@example.com", tags: [], brief: null },
     ],
     reviews: [
       { type: "review", id: "D9", url: "https://phabricator.services.mozilla.com/D9",
@@ -37,7 +39,7 @@ const DATA = {
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 1, reviews: 1, my_bugs: 1 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 2, reviews: 1, my_bugs: 1 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -89,7 +91,17 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["1", "1", "1"]);
+    assert.deepStrictEqual(counts, ["2", "1", "1"]);
+  });
+
+  await check("needinfos default newest-first; order toggle flips to oldest-first", async () => {
+    const firstId = () => page.$eval('.tabpanel[data-k="needinfos"] .card', c => c.dataset.id);
+    assert.strictEqual(await firstId(), "111", "newest (3d) on top by default");
+    assert.ok(await page.isVisible('.order-btn'), "order toggle shown on needinfos tab");
+    await page.click('.order-btn');
+    assert.strictEqual(await firstId(), "112", "oldest (20d) on top after toggle");
+    await page.click('.order-btn');   // back to default
+    assert.strictEqual(await firstId(), "111");
   });
 
   await check("needinfos tab is active by default; its card is visible", async () => {

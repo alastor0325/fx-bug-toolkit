@@ -64,11 +64,15 @@ test("viewMode: processing on first run, ready with data, empty when done+0", ()
   assert.strictEqual(L.viewMode(empty, { state: "ready" }).mode, "empty");
 });
 
-test("sortForSection: needinfos oldest-waiting first; others unchanged", () => {
+test("sortForSection: needinfos newest by default, oldest when asked; others unchanged", () => {
   const nis = [{ id: "a", waiting_days: 2 }, { id: "b", waiting_days: 30 }, { id: "c", waiting_days: 9 }];
-  assert.deepStrictEqual(L.sortForSection("needinfos", nis).map(i => i.id), ["b", "c", "a"]);
+  // default (newer) = fewest days waited first
+  assert.deepStrictEqual(L.sortForSection("needinfos", nis).map(i => i.id), ["a", "c", "b"]);
+  assert.deepStrictEqual(L.sortForSection("needinfos", nis, "newer").map(i => i.id), ["a", "c", "b"]);
+  // older = most days waited first
+  assert.deepStrictEqual(L.sortForSection("needinfos", nis, "older").map(i => i.id), ["b", "c", "a"]);
   const mine = [{ id: "x" }, { id: "y" }];
-  assert.deepStrictEqual(L.sortForSection("my_bugs", mine).map(i => i.id), ["x", "y"]);  // order preserved
+  assert.deepStrictEqual(L.sortForSection("my_bugs", mine, "older").map(i => i.id), ["x", "y"]);  // order preserved
 });
 
 test("totalItems sums across sections", () => {
