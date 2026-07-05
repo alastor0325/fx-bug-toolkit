@@ -16,3 +16,6 @@ dashboard/.run/
 # test deps (one node package at the repo root serves tests/ and viewer/tests/)
 /node_modules/
 /package-lock.json
+
+# personal, per-machine Claude Code permission overrides — never commit
+.claude/settings.local.json

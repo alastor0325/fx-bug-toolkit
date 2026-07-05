@@ -7,6 +7,13 @@ let Claude *act* on selected items (analyze + draft NI replies, run `/review`).
 
 Status legend: 🔴 not started · 🟡 in progress · 🟢 done. Update as checkpoints land.
 
+> ⚠️ **BETA — do NOT publish.** This feature is a work in progress and is **not
+> approved for release**. Do **not** bump the plugin `version`, tag a release, or
+> wire it into `/init` — those would expose it to users. It stays unreleased
+> (version pinned) so no `claude plugin update` delivers it, and the PR is kept a
+> **draft** (not merged to `main`). Credentials are read from env at runtime only;
+> the dev drives the skills locally. Lift this only on explicit approval.
+
 ---
 
 ## Decisions locked (from planning Q&A)
@@ -84,8 +91,10 @@ fixture.
       component patterns + do/don'ts + the rule "any new UI imports
       `assets/theme.css` and follows this system." Invoked when building/reviewing
       UI in this project.
-- [ ] **1c. Credentials wiring.** Add the personal BMO key var + Phab Conduit
-      token var to `~/.config/secrets/api-keys.env`; document + check in `/init`.
+- [ ] **1c. Credentials.** Read from env at runtime only (`FX_DASHBOARD_USER`,
+      `BUGZILLA_API_KEY`, `FX_PHABRICATOR_TOKEN`). **Do NOT wire into `/init`**
+      while this is beta (that would surface it to users). The dev sets them in
+      `~/.config/secrets/api-keys.env` themselves.
 - [ ] **1d. Collector** `dashboard/collect.py` (pure logic extracted &
       unit-tested) → writes git-ignored `dashboard/data.json`. Four buckets,
       normalized to `{id, title, url, updated, age_days, status}`.
@@ -103,8 +112,8 @@ fixture.
 - [ ] **1f. Launcher** `dashboard/serve.py` (127.0.0.1, `.run/` pidfile, port
       fallback, default 9010). Always re-collects on open.
 - [ ] **1g. Dev-loop close-out.** Python unit tests (collector) + viewer
-      logic/e2e; README; `/sync-tutorial`; version bump + `claude plugin
-      tag --push`; CI green.
+      logic/e2e; CI green. **No release while beta** — no README/tutorial/version
+      bump/tag (those ship it to users). Revisit only on approval.
 
 ---
 
@@ -259,8 +268,8 @@ Pure display of Phase A's data; no Claude calls from the page.
 - [ ] **B4. Tests** — `dashboard.logic.js` units for section grouping, tag/brief
       rendering, status-driven processing/loaded/empty states; e2e for expand +
       the processing/loaded transition.
-- [ ] **B5. `/open-dashboard` skill** — serve-only launcher (Task 5); wire creds
-      into `/init`, README, `/sync-tutorial`.
+- [ ] **B5. `/open-dashboard` skill** — serve-only launcher. **Beta: no `/init`
+      wiring, no README/tutorial, no release** until approved.
 
 ### Phase C — Drain skill (execute queued card actions)  🟢 (MVP done, local-green; CI pending push)
 - [ ] **C1. Queue + results + status schema** — buttons (Draft reply · Run

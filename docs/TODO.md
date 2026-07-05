@@ -5,10 +5,15 @@ top of each section. Check items off as they land.
 
 ---
 
-## 🟡 Active plan: Personal Dashboard (`/open-dashboard`)
+## 🟡 Active plan: Personal Dashboard (`/open-dashboard`)  — ⚠️ BETA, do NOT publish
 
 Multi-stage. Full checkpoints + open questions in
 [`docs/plans/personal-dashboard.md`](plans/personal-dashboard.md).
+
+**Beta hold:** not approved for release. No version bump, no release tag, no
+`/init` wiring, no README/tutorial — all would expose it to users. Stays
+unreleased (version pinned) + PR #61 kept a **draft** (not merged to `main`).
+Skills exist only in the dev repo/branch; released users never receive them.
 
 - [ ] **Stage 1** — collect (NI-of-me / assigned / reviews-of-me / my-revisions)
       + standalone viewer + shared `assets/theme.css` + `/fx-style` skill.
