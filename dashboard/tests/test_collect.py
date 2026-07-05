@@ -169,6 +169,15 @@ class TestBuildBaseAndEnrichment(unittest.TestCase):
         self.assertEqual(len(s["reviews"]), 1)
         self.assertEqual(s["my_bugs"][0]["patch_status"], "accepted")
 
+    def test_build_base_drops_self_authored_reviews(self):
+        base = collect.build_base(
+            "you@example.com", [],
+            reviews=[rev(1, author="PHID-ME", reviewers=["PHID-GRP"]),      # my own patch → excluded
+                     rev(2, author="PHID-OTHER", reviewers=["PHID-GRP"])],  # someone else's → kept
+            review_names={}, assigned=[], my_revisions=[], now=NOW,
+            review_mine_phids={"PHID-GRP"}, review_my_phid="PHID-ME")
+        self.assertEqual([r["id"] for r in base["sections"]["reviews"]], ["D2"])
+
     def test_apply_enrichment_merges_and_readies(self):
         base = collect.build_base("you@example.com", [bug(id=1, flags=[ni_flag()])],
                                   [], {}, [], [], NOW)

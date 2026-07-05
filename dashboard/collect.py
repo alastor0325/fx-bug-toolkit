@@ -270,8 +270,11 @@ def build_base(user_email: str, needinfos: list, reviews: list, review_names: di
         "status": "running",
         "sections": {
             "needinfos": [ni_base_item(b, user_email, now) for b in (needinfos or [])],
+            # exclude my own revisions — a patch I authored isn't a review request
+            # OF me (it only matched because I'm in a reviewer group on it)
             "reviews": [review_base_item(r, review_names or {}, now, review_mine_phids, review_my_phid)
-                        for r in (reviews or [])],
+                        for r in (reviews or [])
+                        if not (review_my_phid and (r.get("fields") or {}).get("authorPHID") == review_my_phid)],
             "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now),
         },
     }
