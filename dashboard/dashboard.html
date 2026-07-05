@@ -29,7 +29,7 @@
   @keyframes pulse{0%,100%{opacity:.25} 50%{opacity:1}}
 
   /* ---------- tabs (section switcher): switching only toggles a class, no re-render ---------- */
-  .tabs{position:sticky; top:56px; z-index:6; display:flex; gap:6px; flex-wrap:wrap;
+  .tabs{position:sticky; top:56px; z-index:6; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
     padding:10px clamp(16px,2.5vw,36px); background:var(--bg); border-bottom:1px solid var(--line)}
   .tab{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px;
     padding:6px 13px; border-radius:8px; background:var(--panel); border:1px solid var(--line);
@@ -41,8 +41,11 @@
   .tab .n{font-size:11px; color:var(--faint); background:#101015; border:1px solid var(--line); border-radius:20px; padding:1px 8px}
   .tab.active .n{color:var(--accent)}
   .tab[data-k="needinfos"]{--accent:var(--amber)} .tab[data-k="reviews"]{--accent:var(--cyan)} .tab[data-k="my_bugs"]{--accent:var(--blue)}
-  /* order toggle — only meaningful for (and shown on) the needinfos tab */
-  .order-btn{margin-left:auto; display:none}
+  /* order toggle — only meaningful for (and shown on) the needinfos tab.
+     Match the tabs' padding-based height + center the label (theme .sortbtn is a
+     fixed 34px non-flex button, which misaligned it in this flex row). */
+  .order-btn{margin-left:auto; display:none; align-items:center; gap:6px;
+    height:auto; padding:6px 12px; line-height:1}
   body[data-tab="needinfos"] .order-btn{display:inline-flex}
 
   .wrap{max-width:1720px; margin:0 auto; padding:18px clamp(16px,2.5vw,36px) 80px}
