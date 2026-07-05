@@ -91,13 +91,18 @@ Read the base `data.json`. **Scope the enrichment — do NOT analyze everything*
     via the `direct` flag — you don't set that; just brief + tag the recent ones.
 - **My-bugs:** leave un-enriched for now.
 
-For each item **in scope**, read its source and produce an enrichment entry.
-Read sources with the tools you have:
-`mcp__moz__get_bugzilla_bug(bug_id)` for bugs (fall back to `bmo-to-md` for
-security bugs), `mcp__moz__get_phabricator_revision` for reviews. For many items,
-**fan out**: spawn a subagent per item (or per small batch) via the Agent tool so
-enrichment runs in parallel and the main context stays small — each returns its
-enrichment JSON; you merge them.
+For each item **in scope**, produce an enrichment entry by **fanning out to the
+`dashboard-enrich` sub-agent** — one per item, via the Agent tool with
+`subagent_type: "dashboard-enrich"`. That agent is **pinned to Sonnet** in its
+frontmatter, so the analysis runs on a cheap model regardless of your session
+model (this is read-and-summarize work — do **not** run it on Opus). Pass each
+agent the item's `type`, `id`, and `title`; it reads the source
+(`mcp__moz__get_bugzilla_bug` / `bmo-to-md` for bugs,
+`mcp__moz__get_phabricator_revision` for reviews) and returns that item's
+enrichment JSON. Collect the results into the enrichment map (keyed by id).
+
+Run them in parallel/batches so the main context stays small. Do the enrichment
+this way — don't inline it into this (possibly Opus) session.
 
 Produce, per item, keyed by its `id` (the bug number or `D…` id):
 
