@@ -83,6 +83,47 @@ reliably from an `@import`). Everything else visual comes from `/theme.css`.
 - **Motion**: short (`.12s–.24s`) transitions; a gentle `translateY` rise-in for
   list items is on-brand. Nothing bouncy or slow.
 
+## Layout & density
+
+The system fills the screen. **Use the viewport width — never strand content in a
+narrow centered column with big empty gutters.**
+
+- **Width.** Lay pages out full-bleed with *fluid side padding*
+  `clamp(16px, 2.5vw, 36px)`. Chrome (top bar, tab bar) uses the **same** side
+  padding as the content so left edges align. A `max-width` cap is allowed only to
+  stop absurd line lengths on ultra-wide monitors, and then it must be **generous
+  (~1600–1800px)** — never a tight 900–1100px column (that's the wasted-gutter
+  smell this rule exists to kill).
+- **Two layout patterns, both full-width:**
+  1. **Master–detail** (the investigation viewer): a fixed-width rail +
+     fluid detail that fills the rest — `grid-template-columns: var(--rail-w) 1fr`,
+     full viewport height, panes scroll (not the page). Use when you browse one of
+     many and read it in place.
+  2. **Card grid** (the dashboard): a list of cards is a **responsive grid**, not
+     a single column — `display:grid; grid-template-columns: repeat(auto-fill,
+     minmax(<min>, 1fr)); gap:10px; align-items:start`. It becomes multi-column on
+     wide screens and one column on narrow, with no wasted gutters. Pick a
+     readable `min` (~460–520px). `align-items:start` so expanding one card grows
+     only that card, not its row-mates.
+- **Spacing** is a small, consistent scale — card padding ~11–13px, gap between
+  cards ~8–10px, space between sections ~22px. Keep it dense and terminal-calm;
+  don't pad regions out with large empty vertical space.
+- **Sticky chrome:** top bar sticky at `top:0`; a secondary bar (tabs/filters)
+  sticky directly beneath it. Content scrolls under both.
+- **Responsive floor** (non-negotiable): usable down to mobile — grids collapse to
+  one column, tab/filter bars wrap, and non-essential chrome (e.g. the user email)
+  drops out on narrow. Visible keyboard focus; honor `prefers-reduced-motion`.
+
+## Using `frontend-design` under this system
+
+You may borrow *craft* from the general `frontend-design` skill — information
+hierarchy, spacing discipline, layout ideas, screenshot self-critique. But it is
+**subordinate to this system**: it must not introduce a new palette, new
+typefaces, a second accent, light backgrounds, or a distinct per-page "identity."
+Every color, font, and radius still comes from `/theme.css`; every layout follows
+the rules above. When `frontend-design`'s "take a distinctive risk" instinct
+conflicts with toolkit consistency, **this skill wins.**
+
 ## Do / don't
 
 - **Do** reference tokens; **don't** hardcode colors, fonts, or radii.
