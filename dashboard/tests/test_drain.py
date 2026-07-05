@@ -39,6 +39,11 @@ class TestPureHelpers(unittest.TestCase):
         self.assertEqual(out[0]["status"], "done")
         self.assertEqual(out[1]["status"], "queued")   # untouched
 
+    def test_drop_done_prunes_processed(self):
+        q = [{"id": "1", "action": "a", "status": "done"},
+             {"id": "2", "action": "b", "status": "queued"}]
+        self.assertEqual([e["id"] for e in drain.drop_done(q)], ["2"])
+
 
 class TestApplyEndToEnd(unittest.TestCase):
     def test_apply_merges_and_marks_done(self):
@@ -62,9 +67,10 @@ class TestApplyEndToEnd(unittest.TestCase):
                 results = json.loads(rf.read_text())
                 self.assertEqual(results["111::draft-reply"]["summary"], "drafted")
                 queue = json.loads(qf.read_text())
-                by_key = {drain.action_key(e["id"], e["action"]): e["status"] for e in queue}
-                self.assertEqual(by_key["111::draft-reply"], "done")
-                self.assertEqual(by_key["D9::review"], "queued")  # not in results → still pending
+                keys = {drain.action_key(e["id"], e["action"]) for e in queue}
+                # processed entry is pruned; the untouched one stays pending
+                self.assertNotIn("111::draft-reply", keys)
+                self.assertIn("D9::review", keys)
             finally:
                 drain.QUEUE = DASH / "queue.json"
                 drain.RESULTS = DASH / "results.json"

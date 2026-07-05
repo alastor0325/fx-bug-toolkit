@@ -256,15 +256,24 @@ function refreshData(){
   });
 }
 
+// Light-touch chrome update (no board rebuild): the "analyzing" pulse + the
+// "updated Nm ago" text. Called on every poll tick so the board DOM is left
+// alone — re-rendering #wrap each tick would replay the card animation and churn
+// the whole list for nothing.
+function updateChrome(){
+  $('#analyzing').classList.toggle('on', !!viewMode(DATA, STATUS).analyzing);
+  if(DATA && DATA.generated_at) $('#gen').textContent = `updated ${generatedAgo(DATA.generated_at, Date.now())}`;
+}
+
 // Poll status.json: flip the "analyzing" indicator, and when a new generation
-// finishes (generated_at changed) pull the fresh data in place.
+// finishes (generated_at changed) pull the fresh data in and re-render once.
 function poll(){
   j('/status.json').then(s=>{
     STATUS = s;
     if(s && s.state === "ready" && s.generated_at && s.generated_at !== lastGen){
       refreshData();
     } else {
-      render();
+      updateChrome();
     }
   });
 }

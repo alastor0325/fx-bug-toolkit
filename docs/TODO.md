@@ -19,6 +19,14 @@ Multi-stage. Full checkpoints + open questions in
 - [x] **Dep** — `bugzilla-cli` personal-list queries (`assigned`, `needinfos`,
       `--json`, personal auth via `BUGZILLA_API_KEY`) — landed in
       `~/projects/bugzilla-cli` (`81ec709`).
+- [ ] **Follow-up (🟡)** — `dashboard/serve.py` duplicates most of
+      `viewer/serve.py`'s launcher/port machinery (`pick_free_port`,
+      `resolve_port`, `running_pid`, `shared_asset_target`, no-store handler,
+      start/stop/status). Now that a second `serve.py` exists, hoist the shared
+      bits into one module both import; the real per-app deltas are the env-var
+      name/port/paths, viewer's index-rebuild `do_GET`, and dashboard's POST
+      `/queue`. Deferred from the Stage-2 /simplify pass — touches the shipped
+      viewer + both test suites. (2026-07-04)
 - [ ] **Follow-up (🟢 minor)** — viewer domain chips (`.chip.depth-deep/.cx-low/…`)
       re-declare colors that now also live in `assets/theme.css`
       (`.chip.amber/.green/…`). Dedup by having `viewer.logic.js` emit the shared

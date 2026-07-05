@@ -83,11 +83,8 @@ function buildQueueEntry(item, action) {
 //                 (show the last board + a subtle indicator)
 function viewMode(data, status) {
   const running = !!status && status.state === "running";
-  const total = data && data.sections
-    ? SECTIONS.reduce((n, s) => n + ((data.sections[s.key] || []).length), 0)
-    : 0;
-  if (!data || !data.sections) return { mode: running ? "processing" : "processing", analyzing: running };
-  if (total === 0 && !running) return { mode: "empty", analyzing: false };
+  if (!data || !data.sections) return { mode: "processing", analyzing: running };
+  if (totalItems(data) === 0 && !running) return { mode: "empty", analyzing: false };
   return { mode: "ready", analyzing: running };
 }
 

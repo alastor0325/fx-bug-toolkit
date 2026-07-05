@@ -53,6 +53,12 @@ def mark_done(queue: list, keys) -> list:
     return out
 
 
+def drop_done(queue: list) -> list:
+    """Prune processed entries so queue.json stays bounded to pending work — the
+    card's "done" state comes from results.json, not from a done queue entry."""
+    return [e for e in (queue or []) if e.get("status") != "done"]
+
+
 def _load(path: Path):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -77,10 +83,10 @@ def cmd_apply(results_path: str) -> int:
               file=sys.stderr)
         return 1
     results = merge_results(_load(RESULTS) or {}, new)
-    queue = mark_done(_load(QUEUE) or [], new.keys())
+    queue = drop_done(mark_done(_load(QUEUE) or [], new.keys()))
     _write(RESULTS, results)
     _write(QUEUE, queue)
-    print(f"applied {len(new)} result(s); {len(pending(queue))} still pending")
+    print(f"applied {len(new)} result(s); {len(queue)} still pending")
     return 0
 
 
