@@ -19,13 +19,19 @@ const DATA = {
   generated_at: "2026-07-04T09:00:00Z", user: "you@example.com", status: "ready",
   sections: {
     needinfos: [
+      // analyzed (brief) → "act" cards
       { type: "ni", id: "111", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=111",
         title: "Solvable NI", waiting_days: 3, from: "asker@example.com",
         tags: [{ text: "Audio/Video", kind: "component" }, { text: "S2", kind: "severity" }],
         brief: { bug: "what the bug is", ask: "what the ask is" },
         solvable: true, solvable_reason: "clear STR" },
       { type: "ni", id: "112", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=112",
-        title: "Older NI", waiting_days: 20, from: "asker2@example.com", tags: [], brief: null },
+        title: "Analyzed older NI", waiting_days: 20, from: "asker2@example.com",
+        tags: [], brief: { bug: "b", ask: "a" } },
+      // not analyzed → demoted stale ledger
+      { type: "ni", id: "113", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=113",
+        title: "Stale NI", waiting_days: 500, from: "old@example.com",
+        tags: [{ text: "Audio/Video", kind: "component" }], brief: null },
     ],
     reviews: [
       { type: "review", id: "D9", url: "https://phabricator.services.mozilla.com/D9",
@@ -34,12 +40,15 @@ const DATA = {
     ],
     my_bugs: [
       { type: "mybug", id: "222", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=222",
-        title: "My bug", age_days: 2, patch_status: "needs-revision",
-        tags: [{ text: "Web Audio", kind: "component" }], brief: { summary: "next step" } },
+        title: "My crash bug", age_days: 2, patch_status: "needs-revision",
+        tags: [{ text: "Playback", kind: "component" }], brief: null },
+      { type: "mybug", id: "223", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=223",
+        title: "Audio thing", age_days: 5, patch_status: "accepted",
+        tags: [{ text: "Web Audio", kind: "component" }], brief: null },
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 2, reviews: 1, my_bugs: 1 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 1, my_bugs: 2 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -91,22 +100,31 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["2", "1", "1"]);
+    assert.deepStrictEqual(counts, ["3", "1", "2"]);
   });
 
-  await check("needinfos default newest-first; order toggle flips to oldest-first", async () => {
+  await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
+    const cardIds = await page.$$eval('.tabpanel[data-k="needinfos"] .card', els => els.map(c => c.dataset.id));
+    assert.deepStrictEqual(cardIds.sort(), ["111", "112"], "only analyzed NIs are act cards");
+    assert.ok(!cardIds.includes("113"), "stale NI 113 is not an act card");
+  });
+
+  await check("needinfos act cards default newest-first; order toggle flips", async () => {
     const firstId = () => page.$eval('.tabpanel[data-k="needinfos"] .card', c => c.dataset.id);
     assert.strictEqual(await firstId(), "111", "newest (3d) on top by default");
-    assert.ok(await page.isVisible('.order-btn'), "order toggle shown on needinfos tab");
     await page.click('.order-btn');
     assert.strictEqual(await firstId(), "112", "oldest (20d) on top after toggle");
-    await page.click('.order-btn');   // back to default
+    await page.click('.order-btn');
     assert.strictEqual(await firstId(), "111");
   });
 
-  await check("needinfos tab is active by default; its card is visible", async () => {
-    assert.ok(await page.isVisible('.tabpanel[data-k="needinfos"] .card[data-id="111"]'));
-    assert.ok(!(await page.isVisible('.tabpanel[data-k="my_bugs"] .card[data-id="222"]')), "other panel hidden");
+  await check("stale divider is collapsed, and reveals the ledger row on click", async () => {
+    assert.ok((await page.textContent('.stale-divider')).includes("1 earlier"), "divider counts the 1 stale NI");
+    assert.ok(!(await page.isVisible('.stale-list .lrow')), "ledger hidden until opened");
+    await page.click('.stale-divider');
+    assert.ok(await page.isVisible('.stale-list .lrow'), "ledger row shown after toggle");
+    const row = await page.textContent('.stale-list .lrow');
+    assert.ok(row.includes("113") && row.includes("Stale NI"));
   });
 
   await check("expanding a solvable NI reveals brief + the /bug-start button", async () => {
@@ -127,14 +145,27 @@ async function main() {
     assert.ok(/queued/i.test(q), "button flips to queued");
   });
 
-  await check("switching to the my-bugs tab reveals its card (patch status, display-only)", async () => {
+  await check("reviews render expanded by default", async () => {
+    await page.click('.tab[data-k="reviews"]');
+    await page.waitForSelector('.tabpanel[data-k="reviews"].active');
+    assert.ok(await page.isVisible('.card[data-id="D9"].open'), "review card open by default");
+    assert.ok((await page.textContent('.card[data-id="D9"] .cbody')).includes("review summary"));
+  });
+
+  await check("my-bugs is a searchable ledger (rows, not cards; display-only)", async () => {
     await page.click('.tab[data-k="my_bugs"]');
     await page.waitForSelector('.tabpanel[data-k="my_bugs"].active');
-    assert.ok(await page.isVisible('.card[data-id="222"]'), "my-bug card now visible");
-    const pill = await page.$eval('.card[data-id="222"] .pstatus', e => e.textContent.trim());
+    assert.strictEqual((await page.$$('.tabpanel[data-k="my_bugs"] .card')).length, 0, "no cards");
+    const rows = await page.$$eval('#mb-ledger .lrow', els => els.map(r => r.dataset ? r.getAttribute('href') : ''));
+    assert.strictEqual(rows.length, 2, "two ledger rows");
+    const pill = await page.$eval('.lrow[href*="=222"] .pstatus', e => e.textContent.trim());
     assert.strictEqual(pill, "needs revision");
-    await page.click('.card[data-id="222"] .chead');
-    assert.strictEqual((await page.$$('.card[data-id="222"] .abtn')).length, 0, "no action buttons (MVP display-only)");
+    // search filters the ledger in place
+    await page.fill('#mbq', 'audio');
+    await page.waitForTimeout(120);
+    const after = await page.$$eval('#mb-ledger .lrow', els => els.map(r => r.getAttribute('href')));
+    assert.strictEqual(after.length, 1, "search narrows to 1");
+    assert.ok(after[0].includes("=223"), "matched the Audio bug");
   });
 
   await check("id link points at the bug and opens in a new tab", async () => {

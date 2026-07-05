@@ -100,6 +100,25 @@ function sortForSection(key, items, order) {
   return arr;
 }
 
+// Split a section's items into the "act" set (analyzed — has a brief, shown as
+// prominent cards) and the "rest" (not analyzed — shown as a demoted ledger).
+function analyzedSplit(items) {
+  const act = [], rest = [];
+  for (const it of items || []) (it && it.brief ? act : rest).push(it);
+  return { act, rest };
+}
+
+// Case-insensitive substring filter over id + title + tag text — for the
+// my-bugs ledger search. Pure.
+function filterLedger(items, q) {
+  const s = (q || "").trim().toLowerCase();
+  if (!s) return (items || []).slice();
+  return (items || []).filter(it => {
+    const hay = [it.id, it.title, ...((it.tags || []).map(t => t.text))].join(" ").toLowerCase();
+    return hay.includes(s);
+  });
+}
+
 // Count across all sections (top-bar summary).
 function totalItems(data) {
   if (!data || !data.sections) return 0;
@@ -122,5 +141,6 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
+    analyzedSplit, filterLedger,
   };
 }

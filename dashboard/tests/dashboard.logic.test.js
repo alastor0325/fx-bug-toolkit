@@ -75,6 +75,25 @@ test("sortForSection: needinfos newest by default, oldest when asked; others unc
   assert.deepStrictEqual(L.sortForSection("my_bugs", mine, "older").map(i => i.id), ["x", "y"]);  // order preserved
 });
 
+test("analyzedSplit: brief present → act, absent → rest", () => {
+  const { act, rest } = L.analyzedSplit([
+    { id: "1", brief: { ask: "x" } }, { id: "2", brief: null }, { id: "3" },
+  ]);
+  assert.deepStrictEqual(act.map(i => i.id), ["1"]);
+  assert.deepStrictEqual(rest.map(i => i.id), ["2", "3"]);
+});
+
+test("filterLedger: matches id/title/tags, case-insensitive; empty query = all", () => {
+  const items = [
+    { id: "111", title: "Crash on seek", tags: [{ text: "Playback" }] },
+    { id: "222", title: "Audio mute", tags: [{ text: "Web Audio" }] },
+  ];
+  assert.strictEqual(L.filterLedger(items, "").length, 2);
+  assert.deepStrictEqual(L.filterLedger(items, "crash").map(i => i.id), ["111"]);
+  assert.deepStrictEqual(L.filterLedger(items, "web audio").map(i => i.id), ["222"]);
+  assert.deepStrictEqual(L.filterLedger(items, "2").map(i => i.id), ["222"]);
+});
+
 test("totalItems sums across sections", () => {
   assert.strictEqual(L.totalItems({ sections: { needinfos: [1, 2], reviews: [3], my_bugs: [] } }), 3);
   assert.strictEqual(L.totalItems(null), 0);

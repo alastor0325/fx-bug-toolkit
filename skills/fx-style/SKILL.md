@@ -105,9 +105,17 @@ narrow centered column with big empty gutters.**
      wide screens and one column on narrow, with no wasted gutters. Pick a
      readable `min` (~460–520px). `align-items:start` so expanding one card grows
      only that card, not its row-mates.
+- **Density matches the item's role.** Things the user *acts on* → prominent
+  **cards** (brief, tags, buttons). Things the user *scans or references* →
+  compact **one-line ledger rows** (id · a tag or two · trailing meta · truncated
+  title). Big lists are always ledger rows (they fill width and stay scannable);
+  small action sets are cards. Don't render a 100-item reference list as cards, and
+  don't card-ify a backlog nobody triages item-by-item. Separate a section's
+  signal (act) from its noise (reference) with a collapsed divider rather than a
+  wall of equal-weight cards.
 - **Spacing** is a small, consistent scale — card padding ~11–13px, gap between
-  cards ~8–10px, space between sections ~22px. Keep it dense and terminal-calm;
-  don't pad regions out with large empty vertical space.
+  cards ~8–10px, ledger row padding ~6px, space between zones ~14–22px. Keep it
+  dense and terminal-calm; don't pad regions out with large empty vertical space.
 - **Sticky chrome:** top bar sticky at `top:0`; a secondary bar (tabs/filters)
   sticky directly beneath it. Content scrolls under both.
 - **Responsive floor** (non-negotiable): usable down to mobile — grids collapse to
