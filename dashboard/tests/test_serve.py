@@ -1,0 +1,123 @@
+"""Tests for the dashboard launcher: pure port/route helpers + a start/stop
+integration in an isolated temp copy on a free port (never touches a running
+/open-dashboard or the user's data).
+
+    python3 -m unittest discover -s dashboard/tests
+"""
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+import urllib.request
+from pathlib import Path
+
+DASH = Path(__file__).resolve().parents[1]  # dashboard/tests -> dashboard/
+# data.json is git-ignored (private) — the test writes its own fixture instead of
+# copying the live file, so it works in a clean checkout / CI.
+LAUNCHER_FILES = ["dashboard.html", "dashboard.logic.js", "favicon.svg", "serve.py"]
+SAMPLE_DATA = '{"status":"ready","user":"you@example.com","generated_at":"2026-07-04T00:00:00Z",' \
+              '"sections":{"needinfos":[],"reviews":[],"my_bugs":[]}}'
+
+sys.path.insert(0, str(DASH))
+import serve  # noqa: E402
+
+
+def free_port() -> int:
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    p = s.getsockname()[1]
+    s.close()
+    return p
+
+
+def get(url):
+    with urllib.request.urlopen(url, timeout=5) as r:
+        return r.status, r.read()
+
+
+class TestPortAndRouteHelpers(unittest.TestCase):
+    def test_default_port_is_9010(self):
+        self.assertEqual(serve.DEFAULT_PORT, 9010)
+
+    def test_url_for(self):
+        self.assertEqual(serve.url_for(9010), "http://127.0.0.1:9010/dashboard.html")
+
+    def test_resolve_port(self):
+        self.assertEqual(serve.resolve_port(9999, True, 8800), (8800, True))   # reuse live
+        self.assertEqual(serve.resolve_port(9999, False, None), (9999, False))  # env override
+        self.assertEqual(serve.resolve_port(None, False, None), (9010, False))  # default
+        self.assertEqual(serve.resolve_port(None, True, None), (9010, False))   # alive, no port
+
+    def test_shared_asset_target(self):
+        assets = Path("/plugin/assets")
+        self.assertEqual(serve.shared_asset_target("/theme.css", assets), str(assets / "theme.css"))
+        self.assertEqual(serve.shared_asset_target("/theme.css?v=2", assets), str(assets / "theme.css"))
+        self.assertIsNone(serve.shared_asset_target("/dashboard.html", assets))
+        self.assertIsNone(serve.shared_asset_target("/data.json", assets))
+
+    def test_env_port_parsing(self):
+        os.environ.pop("FX_DASHBOARD_PORT", None)
+        self.assertIsNone(serve.env_port())
+        os.environ["FX_DASHBOARD_PORT"] = "8802"
+        try:
+            self.assertEqual(serve.env_port(), 8802)
+            os.environ["FX_DASHBOARD_PORT"] = " nope "
+            self.assertIsNone(serve.env_port())
+        finally:
+            os.environ.pop("FX_DASHBOARD_PORT", None)
+
+
+class TestServeLauncher(unittest.TestCase):
+    def test_start_serves_then_stops(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+            root = Path(d)
+            web = root / "web"; web.mkdir()
+            for f in LAUNCHER_FILES:
+                shutil.copy(DASH / f, web / f)
+            (web / "data.json").write_text(SAMPLE_DATA)   # private file → inline fixture
+            # serve.py routes /theme.css to ../assets — stage it as a sibling of web/
+            assets = root / "assets"; assets.mkdir()
+            shutil.copy(DASH.parent / "assets" / "theme.css", assets / "theme.css")
+
+            port = free_port()
+            env = dict(os.environ, FX_DASHBOARD_PORT=str(port))
+            serve_py = str(web / "serve.py")
+            base = f"http://127.0.0.1:{port}"
+            try:
+                r = subprocess.run([sys.executable, serve_py, "start"], env=env,
+                                   capture_output=True, text=True, timeout=30)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn(f":{port}", r.stdout)
+
+                for _ in range(50):
+                    try:
+                        get(base + "/dashboard.html"); break
+                    except Exception:
+                        time.sleep(0.1)
+                else:
+                    self.fail("dashboard serve.py did not come up")
+
+                self.assertEqual(get(base + "/dashboard.html")[0], 200)
+                # shared theme served from the sibling assets/ dir
+                st, css = get(base + "/theme.css")
+                self.assertEqual(st, 200)
+                self.assertIn(b"--amber", css)
+                # data.json served + valid (v3 schema: sections)
+                _, raw = get(base + "/data.json")
+                self.assertIn("sections", json.loads(raw))
+
+                st = subprocess.run([sys.executable, serve_py, "status"], env=env,
+                                    capture_output=True, text=True, timeout=10)
+                self.assertIn("running", st.stdout)
+            finally:
+                subprocess.run([sys.executable, serve_py, "stop"], env=env,
+                               capture_output=True, text=True, timeout=10)
+
+
+if __name__ == "__main__":
+    unittest.main()

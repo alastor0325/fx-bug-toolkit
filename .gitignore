@@ -6,6 +6,11 @@ __pycache__/
 viewer/index.json
 viewer/.run/
 
+# dashboard: collected locally from Bugzilla/Phabricator — private, never commit
+dashboard/data.json
+dashboard/status.json
+dashboard/.run/
+
 # test deps (one node package at the repo root serves tests/ and viewer/tests/)
 /node_modules/
 /package-lock.json
