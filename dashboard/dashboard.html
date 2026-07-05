@@ -359,10 +359,11 @@ function queueRowHtml(e){
     <button class="rm" title="remove from queue">✕</button></div>`;
 }
 function queuePanel(){
-  if(!QUEUE.length) return `<div class="emptysec">Nothing queued — queue actions from the cards, then run <b>/dashboard-drain</b>.</div>`;
-  return `<div class="qbar"><span><span class="n">${QUEUE.length}</span> pending</span>
-    <span class="cmd">· to process, run</span> <code>/dashboard-drain</code>
-    <button class="copybtn" id="copycmd">copy</button></div>
+  if(!QUEUE.length) return `<div class="emptysec">Nothing queued — queue actions from the cards, then Process queue.</div>`;
+  return `<div class="qbar">
+    <span><span class="n">${QUEUE.length}</span> pending</span>
+    <button class="abtn primary" id="drainbtn">Process queue ▸</button>
+    <span class="cmd">runs <code>/dashboard-drain</code> in your Claude session</span></div>
     <div class="ledger">${QUEUE.map(queueRowHtml).join("")}</div>`;
 }
 function updateQueueCount(){ const c = document.getElementById('qcount'); if(c) c.textContent = QUEUE.length; }
@@ -393,9 +394,10 @@ $('#tabs').addEventListener('click', e=>{
 });
 // expand / action / stale-toggle within panels
 $('#panels').addEventListener('click', e=>{
-  if(e.target.id === 'copycmd'){                        // copy the drain command
+  if(e.target.id === 'drainbtn'){                       // "Process queue" — copy the drain command to run
     try { navigator.clipboard.writeText('/dashboard-drain'); } catch(_){}
-    e.target.textContent = 'copied'; setTimeout(()=>{ e.target.textContent = 'copy'; }, 1200);
+    e.target.textContent = 'copied — paste in your Claude terminal';
+    setTimeout(()=>{ e.target.textContent = 'Process queue ▸'; }, 1800);
     return;
   }
   const rm = e.target.closest('.rm');
