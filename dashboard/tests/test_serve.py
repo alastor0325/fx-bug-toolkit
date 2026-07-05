@@ -71,6 +71,18 @@ class TestPortAndRouteHelpers(unittest.TestCase):
         finally:
             os.environ.pop("FX_DASHBOARD_PORT", None)
 
+    def test_queue_append_dedups_pending(self):
+        e = {"id": "1", "action": "draft-reply", "status": "queued"}
+        out = serve.queue_append([], e)
+        self.assertEqual(len(out), 1)
+        # same id+action still pending → not appended again
+        self.assertEqual(len(serve.queue_append(out, dict(e))), 1)
+        # a different action is appended
+        self.assertEqual(len(serve.queue_append(out, {"id": "1", "action": "bug-start"})), 2)
+        # same id+action but the prior one is done → the new request is allowed
+        done = [{"id": "1", "action": "draft-reply", "status": "done"}]
+        self.assertEqual(len(serve.queue_append(done, e)), 2)
+
 
 class TestServeLauncher(unittest.TestCase):
     def test_start_serves_then_stops(self):
@@ -114,6 +126,18 @@ class TestServeLauncher(unittest.TestCase):
                 st = subprocess.run([sys.executable, serve_py, "status"], env=env,
                                     capture_output=True, text=True, timeout=10)
                 self.assertIn("running", st.stdout)
+
+                # POST /queue appends a card action to queue.json (no Claude)
+                body = json.dumps({"id": "1912033", "action": "draft-reply",
+                                   "type": "ni", "status": "queued"}).encode()
+                req = urllib.request.Request(base + "/queue", data=body,
+                                             headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    self.assertEqual(r.status, 200)
+                _, qraw = get(base + "/queue.json")
+                q = json.loads(qraw)
+                self.assertEqual(q[0]["id"], "1912033")
+                self.assertEqual(q[0]["action"], "draft-reply")
             finally:
                 subprocess.run([sys.executable, serve_py, "stop"], env=env,
                                capture_output=True, text=True, timeout=10)

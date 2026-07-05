@@ -14,130 +14,83 @@
      scrollbars live in /theme.css (the toolkit design system — see /fx-style). */
   body{overflow-y:auto}
 
-  /* ---------- top bar: a triage summary, not a vanity counter ---------- */
-  .topbar{
-    position:sticky; top:0; z-index:6; display:flex; align-items:center; gap:16px;
+  .topbar{position:sticky; top:0; z-index:6; display:flex; align-items:center; gap:16px;
     height:58px; padding:0 22px; border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg,#131317,#0f0f12);
-  }
+    background:linear-gradient(180deg,#131317,#0f0f12)}
   .summary{font-family:var(--mono); font-size:13px; color:var(--dim)}
-  .summary .blk{color:var(--amber); font-weight:600}
-  .summary .blk.zero{color:var(--green)}
-  .summary .wait{color:var(--red); font-weight:600}
-  .summary .sep{color:var(--faint); margin:0 8px}
+  .summary b{color:var(--amber); font-weight:600}
   .spacer{margin-left:auto}
   .who{font-family:var(--mono); font-size:12px; color:var(--faint)}
   .who b{color:var(--dim); font-weight:500}
-  .gen{font-family:var(--mono); font-size:11.5px; color:var(--faint); white-space:nowrap}
+  .gen{font-family:var(--mono); font-size:11.5px; color:var(--faint); white-space:nowrap; display:flex; align-items:center; gap:8px}
+  .analyzing{display:none; align-items:center; gap:6px; color:var(--amber)}
+  .analyzing.on{display:inline-flex}
+  .analyzing .pulse{width:7px; height:7px; border-radius:50%; background:var(--amber); animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.25} 50%{opacity:1}}
 
-  /* ---------- layout: dominant queue + demoted backlog rail ---------- */
-  .wrap{position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:20px 22px 96px;
-    display:grid; grid-template-columns:1fr 320px; gap:22px; align-items:start}
-  .wrap.railfold{grid-template-columns:1fr 0}
-  @media (max-width:880px){ .wrap,.wrap.railfold{grid-template-columns:1fr} }
+  .wrap{position:relative; z-index:1; max-width:940px; margin:0 auto; padding:22px 22px 80px}
 
-  /* ---------- queue ---------- */
-  .qhead{display:flex; align-items:center; gap:10px; margin:2px 0 12px}
-  .qhead .h{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink)}
-  .fchips{display:flex; gap:6px; margin-left:4px}
-  .fchip{font-family:var(--mono); font-size:11px; letter-spacing:.03em; padding:3px 10px; border-radius:20px;
-    background:#101015; border:1px solid var(--line); color:var(--dim); cursor:pointer; transition:.12s}
-  .fchip:hover{border-color:#37373f; color:var(--ink)}
-  .fchip.on{background:var(--amber-wash); border-color:var(--amber-dim); color:var(--amber)}
-  .fchip .fn{color:var(--faint); margin-left:5px}
-  .fchip.on .fn{color:var(--amber-dim)}
+  .section{margin-bottom:26px}
+  .shead{display:flex; align-items:center; gap:10px; margin:0 2px 11px}
+  .shead .dot{width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); flex:none}
+  .shead .lbl{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+  .shead .n{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--faint);
+    background:#101015; border:1px solid var(--line); border-radius:20px; padding:2px 10px}
+  .shead .n b{color:var(--accent); font-weight:600}
+  .section.amber{--accent:var(--amber)} .section.cyan{--accent:var(--cyan)} .section.blue{--accent:var(--blue)}
 
-  ul.queue{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
-
-  .qitem{
-    position:relative; display:grid; grid-template-columns:auto 1fr; gap:11px;
-    padding:11px 13px 12px; border-radius:10px; background:var(--panel);
-    border:1px solid var(--line); border-left:3px solid var(--edge,var(--line));
-    cursor:pointer; transition:background .12s,border-color .12s;
-    animation:rise .3s cubic-bezier(.2,.7,.3,1) backwards;
-  }
+  .cards{display:flex; flex-direction:column; gap:8px}
+  .card{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:10px; overflow:hidden; animation:rise .28s cubic-bezier(.2,.7,.3,1) backwards}
   @keyframes rise{from{opacity:0; transform:translateY(5px)}}
-  .qitem:hover{background:#17171c}
-  /* left edge = urgency; red reserved for blocking/security/S1 */
-  .qitem.lvl-crit{--edge:var(--red)}
-  .qitem.lvl-high{--edge:var(--amber)}
-  .qitem.lvl-med{--edge:var(--amber-dim)}
-  .qitem.lvl-low{--edge:#33333c}
-  .qitem.sel{background:var(--amber-wash); border-color:rgba(255,180,84,.35)}
-
-  /* the #1 item gets a touch more presence — "do this first" */
-  .qitem.top{box-shadow:0 0 0 1px rgba(255,180,84,.12), 0 8px 24px rgba(0,0,0,.35)}
-
-  .qitem .box{appearance:none; -webkit-appearance:none; width:16px; height:16px; margin-top:3px;
-    border:1px solid var(--line); border-radius:5px; background:var(--raised); cursor:pointer;
-    flex:none; position:relative; transition:.12s}
-  .qitem .box:hover{border-color:var(--amber-dim)}
-  .qitem .box:checked{background:var(--amber-wash); border-color:var(--amber)}
-  .qitem .box:checked::after{content:"✓"; position:absolute; inset:0; display:flex; align-items:center;
-    justify-content:center; font-size:11px; color:var(--amber)}
-
-  .qitem .top-row{display:flex; align-items:center; gap:8px}
-  .tchip{font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.06em;
-    padding:2px 6px; border-radius:5px; border:1px solid var(--line); background:#101015; flex:none}
-  .tchip.amber{color:var(--amber); border-color:rgba(255,180,84,.35)}
-  .tchip.cyan{color:var(--cyan); border-color:rgba(106,215,198,.30)}
-  .tchip.green{color:var(--green); border-color:rgba(134,210,140,.30)}
-  .tchip.blue{color:var(--blue); border-color:rgba(124,194,255,.30)}
-  .qitem a.id{font-family:var(--mono); font-size:12px; color:var(--dim); text-decoration:none; font-weight:500}
-  .qitem a.id:hover{color:var(--ink); text-decoration:underline}
-  .secflag{font-family:var(--mono); font-size:10px; color:#ffb4ad; border:1px solid rgba(255,123,114,.55);
-    background:rgba(255,123,114,.14); border-radius:5px; padding:2px 6px; font-weight:600}
-  .wait{margin-left:auto; font-family:var(--mono); font-size:11px; padding:1px 7px; border-radius:5px;
-    border:1px solid var(--line); color:var(--faint); flex:none; white-space:nowrap}
-  .wait.crit{color:var(--red); border-color:rgba(255,123,114,.35)}
-  .wait.high{color:var(--amber); border-color:rgba(255,180,84,.30)}
-
-  .qitem a.title{display:block; margin-top:5px; font-size:13.5px; color:var(--ink); text-decoration:none; line-height:1.42;
+  .chead{padding:11px 13px; cursor:pointer}
+  .chead:hover{background:#17171c}
+  .crow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .card a.id{font-family:var(--mono); font-size:12px; color:var(--accent); text-decoration:none; font-weight:500; flex:none}
+  .card a.id:hover{text-decoration:underline}
+  .meta{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint); white-space:nowrap; flex:none}
+  .briefline{margin-top:6px; font-size:13px; color:var(--dim); line-height:1.4;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
-  .qitem a.title:hover{color:#fff}
-  .qitem .meta{margin-top:7px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-    font-family:var(--mono); font-size:10.5px; color:var(--faint)}
-  .qitem .meta .who2{color:var(--dim)}
-  .qitem .meta .sev{color:var(--dim)}
+  .card.open .briefline{display:none}
+  .caret{font-family:var(--mono); color:var(--faint); font-size:11px; transition:transform .15s}
+  .card.open .caret{transform:rotate(90deg); color:var(--accent)}
 
-  /* ---------- backlog rail ---------- */
-  .rail{background:var(--rail); border:1px solid var(--line); border-radius:12px; overflow:hidden}
-  .wrap.railfold .rail{display:none}
-  .railhead{display:flex; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line-soft)}
-  .railhead .h{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
-  .railhead .n{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint)}
-  .rail ul{list-style:none; margin:0; padding:6px}
-  .bitem{display:block; text-decoration:none; color:inherit; padding:9px 10px; border-radius:8px; border:1px solid transparent}
-  .bitem:hover{background:#17171c; border-color:var(--line)}
-  .bitem .l1{display:flex; align-items:center; gap:7px}
-  .bitem .id{font-family:var(--mono); font-size:11.5px; color:var(--blue)}
-  .bitem .age{margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--faint)}
-  .bitem .t{margin-top:4px; font-size:12px; color:var(--dim); line-height:1.35;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
-  .bitem .pill{font-family:var(--mono); font-size:9.5px; padding:1px 5px; border-radius:4px;
-    border:1px solid var(--line); color:var(--faint)}
-  .bitem .pill.rev{color:var(--green); border-color:rgba(134,210,140,.30)}
-  .railtoggle{height:28px; padding:0 9px; border-radius:6px; background:var(--raised); border:1px solid var(--line);
-    color:var(--dim); font-family:var(--mono); font-size:11px; cursor:pointer}
-  .railtoggle:hover{color:var(--ink); border-color:#37373f}
+  .cbody{border-top:1px solid var(--line-soft); padding:12px 13px; display:none}
+  .card.open .cbody{display:block}
+  .cbody .title{font-size:13.5px; color:var(--ink); font-weight:500; line-height:1.4; margin-bottom:10px}
+  .cbody .brief p{margin:0 0 6px; font-size:13px; color:var(--dim); line-height:1.5}
+  .cbody .brief .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); margin-right:6px}
+  .noanalysis{font-family:var(--mono); font-size:11.5px; color:var(--faint); font-style:italic}
 
-  /* ---------- sticky action bar (Stage-2 scaffold; inert for now) ---------- */
-  .actionbar{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(140%);
-    z-index:20; display:flex; align-items:center; gap:14px; padding:10px 12px 10px 18px;
-    background:var(--raised); border:1px solid var(--amber-dim); border-radius:12px;
-    box-shadow:0 16px 40px rgba(0,0,0,.55); transition:transform .2s cubic-bezier(.2,.7,.3,1)}
-  .actionbar.show{transform:translateX(-50%) translateY(0)}
-  .actionbar .lbl{font-family:var(--mono); font-size:12px; color:var(--ink)}
-  .actionbar .lbl b{color:var(--amber)}
-  .actionbar .soon{font-family:var(--mono); font-size:10px; color:var(--faint); border:1px solid var(--line);
-    border-radius:20px; padding:2px 8px}
-  .actionbar .go{height:32px; padding:0 14px; border-radius:8px; background:var(--amber-wash);
-    border:1px solid var(--amber-dim); color:var(--amber); font-family:var(--mono); font-size:12px; font-weight:600; cursor:pointer}
-  .actionbar .clear{background:none; border:none; color:var(--faint); font-family:var(--mono); font-size:12px; cursor:pointer}
-  .actionbar .clear:hover{color:var(--ink)}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .abtn{height:30px; padding:0 12px; border-radius:7px; background:var(--raised); border:1px solid var(--line);
+    color:var(--dim); font-family:var(--mono); font-size:11.5px; cursor:pointer; transition:.12s}
+  .abtn:hover{color:var(--ink); border-color:#37373f}
+  .abtn.primary{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-wash)}
+  .abtn.queued{color:var(--green); border-color:rgba(134,210,140,.35); cursor:default}
+  .abtn[disabled]{opacity:.6; cursor:default}
+  .result{margin-top:10px; padding:9px 11px; border-radius:8px; background:#101015; border:1px solid var(--line-soft);
+    font-size:12.5px; color:var(--dim); line-height:1.45}
+  .result .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--green)}
 
-  .loaderr{max-width:1200px; margin:60px auto; text-align:center; color:var(--faint); font-family:var(--mono)}
-  .allclear{padding:40px 16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:13px}
+  .pstatus{font-family:var(--mono); font-size:10px; padding:1px 7px; border-radius:5px; border:1px solid var(--line); flex:none}
+  .pstatus.blue{color:var(--blue); border-color:rgba(124,194,255,.30)}
+  .pstatus.cyan{color:var(--cyan); border-color:rgba(106,215,198,.28)}
+  .pstatus.amber{color:var(--amber); border-color:rgba(255,180,84,.30)}
+  .pstatus.green{color:var(--green); border-color:rgba(134,210,140,.30)}
+
+  .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
+    border:1px dashed var(--line); border-radius:10px}
+
+  /* first-run processing + load error */
+  .overlay{position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; color:var(--faint); font-family:var(--mono)}
+  .overlay .ring{width:44px; height:44px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--amber);
+    animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .overlay .big{font-size:14px; color:var(--dim)}
+  .overlay .sub{font-size:12px}
+  .hidden{display:none}
 </style>
 </head>
 <body>
@@ -146,170 +99,177 @@
     <div class="summary" id="summary"></div>
     <div class="spacer"></div>
     <div class="who" id="who"></div>
-    <div class="gen" id="gen"></div>
+    <div class="gen"><span class="analyzing" id="analyzing"><span class="pulse"></span>analyzing…</span><span id="gen"></span></div>
   </header>
 
-  <main class="wrap" id="wrap">
-    <section class="col-queue">
-      <div class="qhead">
-        <span class="h">Needs you now</span>
-        <div class="fchips" id="fchips"></div>
-      </div>
-      <ul class="queue" id="queue"></ul>
-    </section>
-    <aside class="rail" id="rail">
-      <div class="railhead">
-        <span class="h">Backlog · assigned</span>
-        <span class="n" id="railn"></span>
-        <button class="railtoggle" id="railtoggle" title="Fold the backlog">hide</button>
-      </div>
-      <ul id="backlog"></ul>
-    </aside>
-  </main>
+  <main class="wrap" id="wrap"></main>
 
-  <div class="actionbar" id="actionbar">
-    <span class="lbl" id="actionlbl"></span>
-    <span class="soon">Stage 2</span>
-    <button class="go" id="actiongo">Process ▸</button>
-    <button class="clear" id="actionclear">clear</button>
+  <div class="overlay" id="overlay">
+    <div class="ring"></div>
+    <div class="big" id="overlaybig">Generating your dashboard…</div>
+    <div class="sub" id="overlaysub">first run — reading your needinfos, reviews, and bugs</div>
   </div>
 
 <script src="/dashboard.logic.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-let DATA = null, filter = "all";
-const selected = new Set();               // selected queue-item ids
+let DATA = null, STATUS = null, QUEUE = [], RESULTS = {};
+let lastGen = null;
+const openCards = new Set();   // ids the user has expanded (persist across refresh)
 
-// find a queue item by id (for building the action verb from the selection)
-const itemById = id => (DATA.queue || []).find(i => String(i.id) === String(id));
-
-function waitClass(item){
-  const lvl = urgencyLevel(item);
-  return lvl === "crit" ? "crit" : lvl === "high" ? "high" : "";
+function tagsHtml(tags){
+  return (tags||[]).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
 }
 
-function metaHtml(it){
-  if(it.type === "ni"){
-    const sev = it.severity ? `<span class="sev">${escapeHtml(it.severity)}</span>` : "";
-    const sec = it.sec ? `<span class="secflag">SEC</span>` : "";
-    return `<span class="who2">${escapeHtml(it.from||"")} needs you</span>${sev?'<span>·</span>'+sev:''}${sec?'<span>·</span>'+sec:''}`;
+function collapsedMeta(it){
+  if(it.type === "mybug"){
+    const m = patchStatusMeta(it.patch_status);
+    return `<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
   }
-  if(it.type === "review"){
-    const size = (it.loc_added!=null) ? `<span>+${it.loc_added} · ${it.files||0}f</span>` : "";
-    const rr = it.is_rerequest ? `<span class="sev">re-requested</span>` : "";
-    return `<span class="who2">by ${escapeHtml(it.from||"")}</span>${size?'<span>·</span>'+size:''}${rr?'<span>·</span>'+rr:''}`;
-  }
-  if(it.type === "land") return `<span class="who2">reviewed — ready to land</span>`;
-  if(it.type === "fix")  return `<span class="who2">${it.unresolved||0} unresolved comment${(it.unresolved===1)?'':'s'} to address</span>`;
-  return "";
+  const who = it.type === "review" && it.author ? ` · ${escapeHtml(it.author)}` : "";
+  return `<span>waiting ${waitingLabel(it.waiting_days)}${who}</span>`;
 }
 
-function itemHtml(it, isTop){
-  const t = TYPE[it.type] || {label:it.type, glyph:"•", accent:""};
-  const lvl = urgencyLevel(it);
-  const wc = waitClass(it);
-  const checked = selected.has(String(it.id)) ? "checked" : "";
-  return `<li class="qitem lvl-${lvl}${isTop?' top':''}${checked?' sel':''}" data-id="${escapeHtml(it.id)}">
-      <input type="checkbox" class="box" ${checked} aria-label="select ${escapeHtml(it.id)}">
-      <div>
-        <div class="top-row">
-          <span class="tchip ${t.accent}">${escapeHtml(t.glyph)} ${escapeHtml(t.label)}</span>
-          <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
-          <span class="wait ${wc}">waiting ${waitingLabel(it.waiting_days)}</span>
-        </div>
-        <a class="title" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a>
-        <div class="meta">${metaHtml(it)}</div>
-      </div>
-    </li>`;
+function briefLineText(it){
+  const b = it.brief;
+  if(!b) return "not analyzed yet — run /dashboard-generate";
+  return b.ask || b.summary || b.bug || "";
 }
 
-function backlogHtml(b){
-  const rev = b.has_revision ? `<span class="pill rev">◧ patch up</span>` : "";
-  const sev = b.severity ? `<span class="pill">${escapeHtml(b.severity)}</span>` : "";
-  const pri = b.priority ? `<span class="pill">${escapeHtml(b.priority)}</span>` : "";
-  return `<li><a class="bitem" href="${escapeHtml(b.url)}" target="_blank" rel="noopener">
-      <div class="l1"><span class="id">${escapeHtml(b.id)}</span>
-        <span class="age">${waitingLabel(b.last_activity_days)}</span></div>
-      <div class="t">${escapeHtml(b.title)}</div>
-      <div class="l1" style="margin-top:6px; gap:5px">${sev}${pri}${rev}</div>
-    </a></li>`;
+function briefBodyHtml(it){
+  const b = it.brief;
+  if(!b) return `<div class="noanalysis">No analysis yet. Run <b>/dashboard-generate</b> to produce a brief.</div>`;
+  const rows = [];
+  if(b.bug) rows.push(`<p><span class="k">bug</span>${escapeHtml(b.bug)}</p>`);
+  if(b.ask) rows.push(`<p><span class="k">needinfo</span>${escapeHtml(b.ask)}</p>`);
+  if(b.summary) rows.push(`<p>${escapeHtml(b.summary)}</p>`);
+  if(it.type === "ni" && it.solvable) rows.push(`<p class="k" style="color:var(--green)">✓ looks solvable — ${escapeHtml(it.solvable_reason||"")}</p>`);
+  return `<div class="brief">${rows.join("")}</div>`;
 }
 
-function renderFilters(){
-  const counts = {};
-  (DATA.queue||[]).forEach(i => {
-    counts[i.type] = (counts[i.type]||0)+1;
-    const g = (TYPE[i.type]||{}).group; if(g) counts[g]=(counts[g]||0)+1;
-  });
-  const total = (DATA.queue||[]).length;
-  $('#fchips').innerHTML = FILTERS.map(f => {
-    const n = f.key==="all" ? total : (counts[f.key]||0);
-    return `<span class="fchip ${f.key===filter?'on':''}" data-f="${f.key}">${escapeHtml(f.label)}<span class="fn">${n}</span></span>`;
+function actionsHtml(it){
+  const acts = actionsForItem(it);
+  if(!acts.length) return "";
+  const btns = acts.map(a => {
+    const key = actionKey(it.id, a.action);
+    const done = RESULTS[key];
+    const queued = QUEUE.some(q => actionKey(q.id, q.action) === key && q.status !== "done");
+    const cls = a.action === "bug-start" ? "primary" : "";
+    if(done) return `<button class="abtn queued" disabled>✓ ${escapeHtml(a.label)}</button>`;
+    if(queued) return `<button class="abtn queued" disabled>queued: ${escapeHtml(a.label)}</button>`;
+    return `<button class="abtn ${cls}" data-action="${escapeHtml(a.action)}">${escapeHtml(a.label)}</button>`;
   }).join("");
+  const results = acts.map(a => {
+    const r = RESULTS[actionKey(it.id, a.action)];
+    if(!r) return "";
+    return `<div class="result"><span class="k">${escapeHtml(a.label)} — done</span><br>${escapeHtml(r.summary || "see result")}</div>`;
+  }).join("");
+  return `<div class="actions">${btns}</div>${results}`;
 }
 
-function renderQueue(){
-  const items = sortQueue(filterQueue(DATA.queue||[], filter));
-  const ul = $('#queue');
-  if(!items.length){ ul.innerHTML = `<div class="allclear">▚ nothing here — you're clear.</div>`; return; }
-  ul.innerHTML = items.map((it,i)=>itemHtml(it, i===0 && filter==="all")).join("");
+function cardHtml(it){
+  const open = openCards.has(String(it.id)) ? " open" : "";
+  return `<article class="card${open}" data-id="${escapeHtml(it.id)}" data-type="${escapeHtml(it.type)}">
+    <div class="chead">
+      <div class="crow">
+        <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
+        ${tagsHtml(it.tags)}
+        <span class="meta">${collapsedMeta(it)} <span class="caret">▸</span></span>
+      </div>
+      <div class="briefline">${escapeHtml(briefLineText(it))}</div>
+    </div>
+    <div class="cbody">
+      <div class="title">${escapeHtml(it.title)}</div>
+      ${briefBodyHtml(it)}
+      ${actionsHtml(it)}
+    </div>
+  </article>`;
 }
 
-function renderBacklog(){
-  const b = DATA.backlog || [];
-  $('#railn').textContent = b.length;
-  $('#backlog').innerHTML = b.length ? b.map(backlogHtml).join("") : `<div class="allclear">empty</div>`;
-}
-
-function renderSummary(){
-  const s = summarize(DATA.queue||[]);
-  const blkCls = s.blocking === 0 ? "blk zero" : "blk";
-  const wait = s.oldestWait > 0 ? `<span class="sep">·</span>oldest wait <span class="wait">${waitingLabel(s.oldestWait)}</span>` : "";
-  $('#summary').innerHTML = `<span class="${blkCls}">${s.blocking}</span> blocking you${wait}`;
-  $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
-  $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
-}
-
-function renderActionbar(){
-  const items = [...selected].map(itemById).filter(Boolean);
-  const bar = $('#actionbar');
-  if(!items.length){ bar.classList.remove('show'); return; }
-  $('#actionlbl').innerHTML = actionVerb(items).replace(/\((\d+)\)/, '(<b>$1</b>)');
-  bar.classList.add('show');
+function sectionHtml(sec){
+  const items = (DATA.sections && DATA.sections[sec.key]) || [];
+  const body = items.length
+    ? `<div class="cards">${items.map(cardHtml).join("")}</div>`
+    : `<div class="emptysec">${escapeHtml(sec.empty)}</div>`;
+  return `<section class="section ${sec.accent}">
+    <div class="shead"><span class="dot"></span><span class="lbl">${escapeHtml(sec.label)}</span>
+      <span class="n"><b>${items.length}</b></span></div>
+    ${body}
+  </section>`;
 }
 
 function render(){
-  renderSummary(); renderFilters(); renderQueue(); renderBacklog(); renderActionbar();
+  const view = viewMode(DATA, STATUS);
+  $('#analyzing').classList.toggle('on', !!view.analyzing);
+  if(view.mode === "processing"){
+    $('#overlay').classList.remove('hidden');
+    return;
+  }
+  $('#overlay').classList.add('hidden');
+  $('#summary').innerHTML = `<b>${totalItems(DATA)}</b> items need you`;
+  $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
+  $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
+  if(view.mode === "empty"){
+    $('#wrap').innerHTML = `<div class="emptysec" style="margin-top:40px">All clear — nothing needs you right now.</div>`;
+    return;
+  }
+  $('#wrap').innerHTML = SECTIONS.map(sectionHtml).join("");
 }
 
-// selection: toggle on checkbox or row-background click; links open normally
-$('#queue').addEventListener('click', e=>{
-  const li = e.target.closest('.qitem'); if(!li) return;
-  if(e.target.closest('a')) return;                       // let id/title link out
-  const id = li.dataset.id;
-  if(selected.has(id)) selected.delete(id); else selected.add(id);
-  li.classList.toggle('sel', selected.has(id));
-  const box = li.querySelector('.box'); if(box) box.checked = selected.has(id);
-  renderActionbar();
-});
-$('#fchips').addEventListener('click', e=>{
-  const chip = e.target.closest('.fchip'); if(!chip) return;
-  filter = chip.dataset.f; renderFilters(); renderQueue();
-});
-$('#railtoggle').addEventListener('click', ()=>{
-  const w = $('#wrap'); const folded = w.classList.toggle('railfold');
-  $('#railtoggle').textContent = folded ? 'show' : 'hide';
-});
-$('#actionclear').addEventListener('click', ()=>{ selected.clear(); renderQueue(); renderActionbar(); });
-$('#actiongo').addEventListener('click', ()=>{
-  // Stage-2 scaffold: actioning (draft NI replies / run /review) lands later.
-  $('#actiongo').textContent = 'coming in Stage 2';
-  setTimeout(()=>{ $('#actiongo').textContent = 'Process ▸'; }, 1400);
+// expand / collapse (clicks on the id/title link still open the bug)
+$('#wrap').addEventListener('click', e=>{
+  if(e.target.closest('a')) return;
+  const btn = e.target.closest('.abtn');
+  if(btn){ queueAction(btn); return; }
+  const head = e.target.closest('.chead'); if(!head) return;
+  const card = head.closest('.card'); const id = card.dataset.id;
+  const nowOpen = card.classList.toggle('open');
+  if(nowOpen) openCards.add(id); else openCards.delete(id);
 });
 
-fetch('/data.json', {cache:'no-store'}).then(r=>r.json()).then(d=>{ DATA=d; render(); })
-  .catch(()=>{ $('#wrap').innerHTML =
-    `<div class="loaderr">could not load data.json — run <b>/open-dashboard</b> to collect it</div>`; });
+function queueAction(btn){
+  const card = btn.closest('.card');
+  const it = findItem(card.dataset.id);
+  if(!it) return;
+  const entry = { ...buildQueueEntry(it, btn.dataset.action), ts: Date.now() };
+  btn.disabled = true; btn.classList.add('queued'); btn.textContent = 'queued: ' + btn.textContent;
+  fetch('/queue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry) })
+    .then(r=>{ if(!r.ok) throw new Error(); QUEUE.push(entry); })
+    .catch(()=>{ btn.disabled=false; btn.classList.remove('queued'); btn.textContent = btn.textContent.replace('queued: ',''); });
+}
+
+function findItem(id){
+  for(const s of SECTIONS){
+    const hit = ((DATA.sections||{})[s.key]||[]).find(i => String(i.id) === String(id));
+    if(hit) return hit;
+  }
+  return null;
+}
+
+const j = (url) => fetch(url, {cache:'no-store'}).then(r => r.ok ? r.json() : null).catch(()=>null);
+
+function refreshData(){
+  return Promise.all([j('/data.json'), j('/queue.json'), j('/results.json')]).then(([d,q,r])=>{
+    DATA = d; QUEUE = q || []; RESULTS = r || {};
+    lastGen = d && d.generated_at;
+    render();
+  });
+}
+
+// Poll status.json: flip the "analyzing" indicator, and when a new generation
+// finishes (generated_at changed) pull the fresh data in place.
+function poll(){
+  j('/status.json').then(s=>{
+    STATUS = s;
+    if(s && s.state === "ready" && s.generated_at && s.generated_at !== lastGen){
+      refreshData();
+    } else {
+      render();
+    }
+  });
+}
+
+refreshData().then(()=>{ poll(); setInterval(poll, 3000); });
 </script>
 </body>
 </html>

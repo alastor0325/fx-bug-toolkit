@@ -6,12 +6,13 @@ start of every implementation task.
 
 Non-negotiables (see the skill for the full loop):
 
-- **Tests must pass before committing.** Two Python suites —
-  `python3 -m unittest discover -s tests` (plugin structure + serve-locator seam)
-  and `python3 -m unittest discover -s viewer/tests` (viewer indexer/serve) —
-  plus `node --test` (from the repo root — not `node --test tests/`, which fails
-  on Node ≥ 21); plus `node viewer/tests/viewer.e2e.cjs` when viewer DOM
-  behavior changed.
+- **Tests must pass before committing.** Three Python suites —
+  `python3 -m unittest discover -s tests` (plugin structure + serve-locator seam),
+  `python3 -m unittest discover -s viewer/tests` (viewer indexer/serve), and
+  `python3 -m unittest discover -s dashboard/tests` (dashboard collector + serve)
+  — plus `node --test` (from the repo root — not `node --test tests/`, which fails
+  on Node ≥ 21); plus the browser E2Es (`node viewer/tests/viewer.e2e.cjs`,
+  `node dashboard/tests/dashboard.e2e.cjs`) when viewer/dashboard DOM changed.
 - **Extract pure logic so it's unit-testable** (`viewer/viewer.logic.js`;
   named functions in `build_index.py`). Every changed function gets a test.
 - **No personal data / machine paths** in shipped files; keep

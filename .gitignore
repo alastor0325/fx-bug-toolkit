@@ -9,6 +9,8 @@ viewer/.run/
 # dashboard: collected locally from Bugzilla/Phabricator — private, never commit
 dashboard/data.json
 dashboard/status.json
+dashboard/queue.json
+dashboard/results.json
 dashboard/.run/
 
 # test deps (one node package at the repo root serves tests/ and viewer/tests/)

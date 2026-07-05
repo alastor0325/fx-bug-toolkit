@@ -51,7 +51,8 @@ Then run — all must be green:
 ```bash
 python3 -m unittest discover -s tests          # plugin structure + serve-locator seam
 python3 -m unittest discover -s viewer/tests    # viewer indexer + build/serve integration
-node --test                                     # viewer pure-logic units (recursive; from repo root, not `node --test tests/`)
+python3 -m unittest discover -s dashboard/tests # dashboard collector (mock backends) + launcher
+node --test                                     # viewer + dashboard pure-logic units (recursive; from repo root, not `node --test tests/`)
 ```
 
 If you changed **viewer DOM behavior** (rendering, selection, search, keyboard,

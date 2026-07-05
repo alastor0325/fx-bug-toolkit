@@ -1,28 +1,16 @@
-/* Pure, DOM-free logic for the personal dashboard — unit-tested via `node --test`
- * (dashboard/tests/dashboard.logic.test.js). The HTML wires these into the DOM;
- * anything testable lives here, never inline in dashboard.html.
+/* Pure, DOM-free logic for the personal dashboard (v3 cards). Unit-tested via
+ * `node --test` (dashboard/tests/dashboard.logic.test.js). The HTML wires these
+ * into the DOM; anything testable lives here, not inline.
  *
- * Model: the collector emits ONE urgency-ranked `queue` (things that need YOU:
- * needinfos, review requests, and your own revisions to land/fix) plus a
- * secondary `backlog` (bugs assigned to you). The queue is a triage list — the
- * dashboard's job is "what do I unblock first," not "here are four equal lists."
- */
+ * The page only DISPLAYS what the generate skill produced (data.json) and its
+ * progress (status.json). Card buttons don't call Claude — they POST an action to
+ * the local serve.py, which appends it to a queue file the drain skill processes. */
 
-// Queue item types, with display label, glyph, accent (a /theme.css chip color),
-// and the Stage-2 action verb. `mine` groups land+fix for filtering.
-const TYPE = {
-  ni:     { label: "NI",     glyph: "?", accent: "amber", verb: "Draft replies",    group: "ni" },
-  review: { label: "REVIEW", glyph: "⌥", accent: "cyan",  verb: "Run /review",      group: "review" },
-  land:   { label: "LAND",   glyph: "✓", accent: "green", verb: "Land",             group: "mine" },
-  fix:    { label: "FIX",    glyph: "✎", accent: "blue",  verb: "Open for fixes",   group: "mine" },
-};
-
-// Top-of-queue filter chips. `match` maps a chip to the types it shows.
-const FILTERS = [
-  { key: "all",    label: "All" },
-  { key: "ni",     label: "Needinfo" },
-  { key: "review", label: "Reviews" },
-  { key: "mine",   label: "Yours" },
+// The three sections, in display order, with a /theme.css accent color each.
+const SECTIONS = [
+  { key: "needinfos", label: "Needinfos",            accent: "amber", empty: "No open needinfos — you're clear." },
+  { key: "reviews",   label: "Review requests",      accent: "cyan",  empty: "No reviews waiting on you." },
+  { key: "my_bugs",   label: "Bugs I'm working on",  accent: "blue",  empty: "Nothing in progress." },
 ];
 
 function escapeHtml(s) {
@@ -31,8 +19,14 @@ function escapeHtml(s) {
   ));
 }
 
-// Coarse human age from a day count — the dashboard cares about "how stale," not
-// exact hours. Used for the "waiting on you Nd" badge.
+// Map a tag's `kind` to a shared chip color class ("" = neutral chip). Keeps the
+// page's tag palette consistent with /theme.css.
+function tagClass(kind) {
+  return ({ component: "cyan", severity: "amber", security: "security",
+            regression: "red", warn: "amber", good: "green" })[kind] || "";
+}
+
+// Coarse human age from a day count.
 function waitingLabel(days) {
   const d = Math.max(0, Math.floor(Number(days) || 0));
   if (d === 0) return "today";
@@ -41,80 +35,69 @@ function waitingLabel(days) {
   return Math.floor(d / 30) + "mo";
 }
 
-// Composite urgency score (higher = more urgent). Drives queue order so the #1
-// thing to unblock is always on top, regardless of which system it came from.
-// Inputs: type (someone-blocked-on-me ranks highest), waiting-on-me age (capped
-// so one ancient item can't dominate), security flag, severity, priority, and a
-// review re-request (author pushed changes and is waiting again).
-function urgencyScore(item) {
-  const TYPE_BASE = { ni: 60, review: 50, land: 45, fix: 30 };
-  let s = TYPE_BASE[item.type] || 0;
-  s += Math.min(Number(item.waiting_days) || 0, 21) * 2;
-  if (item.sec) s += 50;
-  s += ({ S1: 35, S2: 18, S3: 6 })[item.severity] || 0;
-  s += ({ P1: 20, P2: 8 })[item.priority] || 0;
-  if (item.is_rerequest) s += 10;
-  return s;
+// Patch-status pill for a "my bug" card: {label, cls}.
+function patchStatusMeta(status) {
+  return ({
+    wip:               { label: "WIP",            cls: "blue" },
+    "in-review":       { label: "in review",      cls: "cyan" },
+    "needs-revision":  { label: "needs revision", cls: "amber" },
+    accepted:          { label: "accepted · land", cls: "green" },
+    landed:            { label: "landed",         cls: "" },
+    none:              { label: "no patch",       cls: "" },
+  })[status] || { label: status || "unknown", cls: "" };
 }
 
-// Urgency tier for the row's left accent bar. RED ("crit") is reserved for
-// "someone/something is genuinely blocked or dangerous" — a security bug, an S1,
-// or a person/patch that's been blocked on you a week or more — NOT merely "old."
-function urgencyLevel(item) {
-  if (item.sec || item.severity === "S1") return "crit";
-  const blocking = item.type === "ni" || item.type === "review";
-  const w = Number(item.waiting_days) || 0;
-  if (blocking && w >= 7) return "crit";
-  if (w >= 7 || item.severity === "S2") return "high";
-  if (w >= 3) return "med";
-  return "low";
-}
-
-// Queue sorted most-urgent first (score desc). Stable tiebreak on waiting age so
-// order is deterministic (matters for tests + a steady UI across refreshes).
-function sortQueue(items) {
-  return (items || []).slice().sort((a, b) => {
-    const d = urgencyScore(b) - urgencyScore(a);
-    return d !== 0 ? d : (Number(b.waiting_days) || 0) - (Number(a.waiting_days) || 0);
-  });
-}
-
-// Filter the queue to a chip. "mine" = land+fix; a type key matches that type;
-// "all" (or anything unknown) passes everything through.
-function filterQueue(items, filterKey) {
-  if (!filterKey || filterKey === "all") return (items || []).slice();
-  return (items || []).filter(it => {
-    const g = (TYPE[it.type] || {}).group;
-    return it.type === filterKey || g === filterKey;
-  });
-}
-
-// Top-bar triage summary: how many items are blocking someone else on you, and
-// the longest anything has waited. "2 blocking you · oldest wait 9d" beats a bare
-// total count — it's a call to action, not a vanity number.
-function summarize(queue) {
-  const q = queue || [];
-  const blocking = q.filter(i => i.type === "ni" || i.type === "review").length;
-  const oldestWait = q.reduce((m, i) => Math.max(m, Number(i.waiting_days) || 0), 0);
-  return { blocking, oldestWait, total: q.length };
-}
-
-// The verb for the sticky action bar, given the selected items. A homogeneous
-// selection gets its specific verb ("Draft 2 replies"); a mixed one falls back to
-// a generic "Process N selected". Stage 2 wires these to real actions.
-function actionVerb(selected) {
-  const sel = selected || [];
-  if (!sel.length) return "";
-  const types = new Set(sel.map(i => i.type));
-  if (types.size === 1) {
-    const t = TYPE[sel[0].type];
-    if (t) return `${t.verb} (${sel.length})`;
+// The action buttons a card offers, given its type + item. NI always offers
+// draft-reply + bug-investigate, plus run-/bug-start ONLY when the generation
+// gate marked it solvable. Reviews offer run-/review. "my bugs" are display-only
+// in the MVP (no buttons). Each: {action, label}.
+function actionsForItem(item) {
+  if (!item) return [];
+  if (item.type === "ni") {
+    const a = [
+      { action: "draft-reply", label: "Draft reply" },
+      { action: "bug-investigate", label: "Bug investigate" },
+    ];
+    if (item.solvable) a.push({ action: "bug-start", label: "Looks ready → run /bug-start" });
+    return a;
   }
-  return `Process ${sel.length} selected`;
+  if (item.type === "review") return [{ action: "review", label: "Run /review" }];
+  return [];
 }
 
-// "3m ago" / "2h ago" / "just now" from an ISO timestamp relative to `now` (ms) —
-// the top-bar "updated …" freshness line.
+// Stable key for pairing a queued request / a drain result with a card+action.
+function actionKey(id, action) {
+  return `${id}::${action}`;
+}
+
+// A queue entry the page POSTs when a button is clicked (the caller stamps `ts`,
+// since Date.now() isn't available/deterministic here).
+function buildQueueEntry(item, action) {
+  return { id: item.id, type: item.type, action, title: item.title, status: "queued" };
+}
+
+// What the page should render, from data.json (or null) + status.json (or null):
+//   - processing: first run, nothing generated yet → full-page spinner
+//   - empty:      generation done but no items at all
+//   - ready:      show the board; `analyzing` true = a regeneration is running
+//                 (show the last board + a subtle indicator)
+function viewMode(data, status) {
+  const running = !!status && status.state === "running";
+  const total = data && data.sections
+    ? SECTIONS.reduce((n, s) => n + ((data.sections[s.key] || []).length), 0)
+    : 0;
+  if (!data || !data.sections) return { mode: running ? "processing" : "processing", analyzing: running };
+  if (total === 0 && !running) return { mode: "empty", analyzing: false };
+  return { mode: "ready", analyzing: running };
+}
+
+// Count across all sections (top-bar summary).
+function totalItems(data) {
+  if (!data || !data.sections) return 0;
+  return SECTIONS.reduce((n, s) => n + ((data.sections[s.key] || []).length), 0);
+}
+
+// "3m ago" / "2h ago" from an ISO timestamp relative to `now` (ms).
 function generatedAgo(iso, nowMs) {
   const t = Date.parse(iso);
   if (isNaN(t)) return "";
@@ -128,7 +111,7 @@ function generatedAgo(iso, nowMs) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    TYPE, FILTERS, escapeHtml, waitingLabel, urgencyScore, urgencyLevel,
-    sortQueue, filterQueue, summarize, actionVerb, generatedAgo,
+    SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
+    actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo,
   };
 }

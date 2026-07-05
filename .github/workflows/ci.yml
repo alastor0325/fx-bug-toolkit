@@ -28,7 +28,10 @@ jobs:
       # (exercises the per-OS detach/kill branches)
       - name: Viewer Python tests
         run: python -m unittest discover -s viewer/tests -v
-      # viewer pure-logic units (node --test finds *.test.js recursively)
+      # dashboard collector (mock backends) + launcher (start/stop, POST /queue)
+      - name: Dashboard Python tests
+        run: python -m unittest discover -s dashboard/tests -v
+      # viewer + dashboard pure-logic units (node --test finds *.test.js recursively)
       - name: Node logic tests
         run: node --test
 
@@ -52,5 +55,7 @@ jobs:
         run: node viewer/tests/viewer.e2e.cjs
       - name: Viewer serve E2E (real serve.py + browser)
         run: node viewer/tests/viewer.serve.e2e.cjs
+      - name: Dashboard E2E
+        run: node dashboard/tests/dashboard.e2e.cjs
       - name: Tutorial E2E
         run: node tests/tutorial.e2e.cjs

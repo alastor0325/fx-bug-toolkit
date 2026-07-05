@@ -20,11 +20,13 @@ viewer — the toolkit design system.
 from __future__ import annotations
 
 import http.server
+import json
 import os
 import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -41,6 +43,23 @@ DEFAULT_PORT = 9010   # fixed default; FX_DASHBOARD_PORT overrides, busy → fre
 
 # URLs served from the shared assets/ dir rather than the dashboard's own dir.
 SHARED_ASSETS = frozenset({"/theme.css"})
+
+# Card buttons POST here; the drain skill reads it. Serving never runs Claude —
+# it only appends the request to this file.
+QUEUE_FILE = DIR / "queue.json"
+
+
+def queue_append(entries: list, entry: dict) -> list:
+    """Append a card action to the queue, skipping an exact duplicate that's still
+    pending (same id+action, not yet done) so double-clicks don't pile up. Pure."""
+    key = (str(entry.get("id")), entry.get("action"))
+    for e in entries:
+        if (str(e.get("id")), e.get("action")) == key and e.get("status") != "done":
+            return entries
+    return entries + [entry]
+
+
+_queue_lock = threading.Lock()   # serialize concurrent POST /queue appends
 
 
 def env_port() -> int | None:
@@ -135,6 +154,29 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, must-revalidate")
         super().end_headers()
+
+    def do_POST(self):
+        # The only write path: append a card action to the queue file. No Claude
+        # call — the drain skill processes the queue separately.
+        if self.path.split("?", 1)[0].rstrip("/") != "/queue":
+            self.send_error(404)
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            entry = json.loads(self.rfile.read(length) or b"{}")
+        except ValueError:
+            self.send_error(400, "invalid JSON")
+            return
+        with _queue_lock:
+            try:
+                existing = json.loads(QUEUE_FILE.read_text())
+            except (OSError, ValueError):
+                existing = []
+            QUEUE_FILE.write_text(json.dumps(queue_append(existing, entry), indent=2))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"ok":true}')
 
     def log_message(self, *args):
         pass  # quiet — the detached child's stdout/stderr go to the logfile
