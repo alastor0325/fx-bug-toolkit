@@ -216,14 +216,14 @@ action buttons that hook into existing skills.
 
 ---
 
-## Stage 2 — Build order (agreed 2026-07-04)  🔴
+## Stage 2 — Build order (agreed 2026-07-04)  🟢 (MVP done, local-green; CI pending push)
 
 Build the producer before the consumer, so each phase is testable against a real
 contract. Follow the fx-bug-toolkit Dev Loop for every phase (tests green,
 README, `/sync-tutorial` when the viewer changes, release, CI green). Keep
 secrets in env only; no real email anywhere ([[no-real-email-in-code]]).
 
-### Phase A — Generate skill (the heavy `/triage`-style pass)  🔴
+### Phase A — Generate skill (the heavy `/triage`-style pass)  🟢 (MVP done, local-green; CI pending push)
 Produces the v3 data file the HTML displays. LLM cost lives here, once per run.
 - [ ] **A1. Define the v3 data schema** (the contract for Phase B): per section
       (`needinfos` / `reviews` / `my_bugs`), each item carries
@@ -245,7 +245,7 @@ Produces the v3 data file the HTML displays. LLM cost lives here, once per run.
       against **mock backend** payloads (no live BMO/Phab, no real email); status
       file written correctly.
 
-### Phase B — Update the HTML to the v3 card design  🔴
+### Phase B — Update the HTML to the v3 card design  🟢 (MVP done, local-green; CI pending push)
 Pure display of Phase A's data; no Claude calls from the page.
 - [ ] **B1. Three sections** (Needinfos · Review requests · Bugs I'm working on),
       replacing the v2 unified-queue layout, on `/theme.css` + `/fx-style`.
@@ -262,7 +262,7 @@ Pure display of Phase A's data; no Claude calls from the page.
 - [ ] **B5. `/open-dashboard` skill** — serve-only launcher (Task 5); wire creds
       into `/init`, README, `/sync-tutorial`.
 
-### Phase C — Drain skill (execute queued card actions)  🔴
+### Phase C — Drain skill (execute queued card actions)  🟢 (MVP done, local-green; CI pending push)
 - [ ] **C1. Queue + results + status schema** — buttons (Draft reply · Run
       /review · Run /bug-start) append to a queue file the page writes; drain
       writes results the page reads back onto the card.
