@@ -34,10 +34,18 @@ const DATA = {
         tags: [{ text: "Audio/Video", kind: "component" }], brief: null },
     ],
     reviews: [
+      // group, analyzed → Group zone act card
       { type: "review", id: "D9", url: "https://phabricator.services.mozilla.com/D9",
-        title: "A review", waiting_days: 1, author: "coworker",
-        reviewers: ["#media-playback-reviewers"], tags: [],
-        brief: { summary: "review summary" } },
+        title: "A group review", waiting_days: 1, author: "coworker", direct: false,
+        reviewers: ["#media-playback-reviewers"], tags: [], brief: { summary: "review summary" } },
+      // direct, analyzed → Direct zone act card
+      { type: "review", id: "D10", url: "https://phabricator.services.mozilla.com/D10",
+        title: "A direct review", waiting_days: 2, author: "someone", direct: true,
+        reviewers: ["me"], tags: [], brief: { summary: "direct summary" } },
+      // group, not analyzed → Group zone stale ledger
+      { type: "review", id: "D11", url: "https://phabricator.services.mozilla.com/D11",
+        title: "Old group review", waiting_days: 40, author: "x", direct: false,
+        reviewers: ["#media-playback-reviewers"], tags: [], brief: null },
     ],
     my_bugs: [
       { type: "mybug", id: "222", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=222",
@@ -49,7 +57,7 @@ const DATA = {
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 1, my_bugs: 2 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 2 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -103,7 +111,7 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "1", "2", "0"]);  // queue empty at start
+    assert.deepStrictEqual(counts, ["3", "3", "2", "0"]);  // queue empty at start
   });
 
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
@@ -160,13 +168,20 @@ async function main() {
     assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "0", "count decremented");
   });
 
-  await check("reviews render expanded by default + show the requested reviewer", async () => {
+  await check("reviews split into Direct + Group zones; group chip shows; group backlog collapses", async () => {
     await page.click('.tab[data-k="reviews"]');
     await page.waitForSelector('.tabpanel[data-k="reviews"].active');
-    assert.ok(await page.isVisible('.card[data-id="D9"].open'), "review card open by default");
-    assert.ok((await page.textContent('.card[data-id="D9"] .cbody')).includes("review summary"));
-    const chips = await page.$$eval('.card[data-id="D9"] .crow .chip', els => els.map(e => e.textContent));
-    assert.ok(chips.some(c => c.includes("media-playback-reviewers")), "shows the requested reviewer group in preview");
+    const rp = '.tabpanel[data-k="reviews"]';
+    const zones = await page.$$eval(`${rp} .zone-h`, els => els.map(e => e.textContent.replace(/\s+·.*$/, "").trim()));
+    assert.deepStrictEqual(zones, ["Direct", "Group"], "Direct zone on top, Group second");
+    // Direct zone card = D10; Group zone act card = D9; the group chip is shown
+    assert.ok(await page.$(`${rp} .card[data-id="D10"]`), "direct review is an act card");
+    const chips = await page.$$eval(`${rp} .card[data-id="D9"] .crow .chip`, els => els.map(e => e.textContent));
+    assert.ok(chips.some(c => c.includes("media-playback-reviewers")), "group card shows its group chip");
+    // the stale (unanalyzed) group review is behind a collapsed ledger
+    assert.ok(!(await page.isVisible(`${rp} .stale-list .lrow`)), "group backlog collapsed");
+    await page.click(`${rp} .stale-divider`);
+    assert.ok((await page.textContent(`${rp} .stale-list`)).includes("D11"), "reveals the old group review");
   });
 
   await check("my-bugs is a searchable ledger (rows, not cards; display-only)", async () => {

@@ -82,11 +82,14 @@ Sections: `needinfos`, `reviews`, `my_bugs`.
 Read the base `data.json`. **Scope the enrichment — do NOT analyze everything**
 (real accounts have hundreds of items; enriching all is impractical/expensive):
 
-- **Needinfos: only those with `waiting_days <= 7`** (recent). Leave older NIs
-  **untouched** — they keep `brief: null` and render "not analyzed yet". This is
-  the primary, intentional cap.
-- **Reviews and my-bugs:** leave un-enriched for now (scope TBD) — don't analyze
-  them this pass.
+- **Needinfos AND review requests: only those with `waiting_days <= 7`** (recent).
+  Leave older ones **untouched** — they keep `brief: null` and stay in the
+  collapsed "not analyzed" ledger. This is the primary, intentional cap.
+  - For a **review**, read the revision + its linked bug and produce a brief
+    (what the patch does / what to focus a review on) + `extra_tags` (e.g. the
+    bug's component, patch size). Reviews split into Direct vs Group on the page
+    via the `direct` flag — you don't set that; just brief + tag the recent ones.
+- **My-bugs:** leave un-enriched for now.
 
 For each item **in scope**, read its source and produce an enrichment entry.
 Read sources with the tools you have:

@@ -104,7 +104,8 @@
 
   /* zone header above the "act" cards */
   .zone-h{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--amber-dim); margin:2px 2px 10px}
+    color:var(--amber-dim); margin:20px 2px 10px}
+  .tabpanel .zone-h:first-child{margin-top:2px}   /* first zone hugs the top */
   .zone-h b{color:var(--amber); font-weight:600}
 
   /* collapsed "N earlier · not analyzed" divider → reveals a compact ledger */
@@ -199,7 +200,9 @@ let activeTab = (()=>{ try { return localStorage.getItem(TAB_KEY) || 'needinfos'
 const ORDER_KEY = 'fxdash.order';
 let sortOrder = (()=>{ try { return localStorage.getItem(ORDER_KEY) || 'newer'; } catch(e){ return 'newer'; } })();
 const STALE_KEY = 'fxdash.stale';
-let staleOpen = (()=>{ try { return localStorage.getItem(STALE_KEY) === 'true'; } catch(e){ return false; } })();
+// set of open "N earlier · not analyzed" dividers, keyed (ni / review-direct / review-group)
+let staleOpen = (()=>{ try { return new Set(JSON.parse(localStorage.getItem(STALE_KEY) || '[]')); } catch(e){ return new Set(); } })();
+function saveStale(){ try { localStorage.setItem(STALE_KEY, JSON.stringify([...staleOpen])); } catch(e){} }
 let myBugsQuery = '';
 
 function tagsHtml(tags){
@@ -246,10 +249,13 @@ function actionsHtml(it){
   }).join("");
   return `<div class="actions">${btns}</div>${results}`;
 }
-// review cards: show which reviewer/group it's requested on (e.g. #media-playback-reviewers)
+// review cards: show which review GROUP it's requested on (e.g. #media-playback-
+// reviewers). A direct-to-you reviewer is implied by the Direct zone, so only
+// group reviewers (names starting "#") get a chip.
 function reqChipsHtml(it){
-  if(it.type !== "review" || !(it.reviewers && it.reviewers.length)) return "";
-  return it.reviewers.map(r => `<span class="chip cyan" title="requested reviewer">→ ${escapeHtml(r)}</span>`).join("");
+  if(it.type !== "review") return "";
+  return (it.reviewers || []).filter(r => r && r.charAt(0) === "#")
+    .map(r => `<span class="chip cyan" title="requested reviewer group">→ ${escapeHtml(r)}</span>`).join("");
 }
 function cardHtml(it){
   const open = openCards.has(String(it.id)) ? " open" : "";
@@ -282,25 +288,39 @@ function ledgerRowHtml(it){
     <span class="lmeta">${meta}</span></a>`;
 }
 
-// Needinfos: prominent "act" cards (analyzed) + a collapsed ledger of the rest.
-function needinfosPanel(){
-  const all = sortForSection('needinfos', (DATA.sections && DATA.sections.needinfos) || [], sortOrder);
-  const { act, rest } = analyzedSplit(all);
-  if(!all.length) return `<div class="emptysec">No open needinfos — you're clear.</div>`;
-  const actBody = act.length
-    ? `<div class="zone-h">Needs you · <b>${act.length}</b></div><div class="cards">${act.map(cardHtml).join("")}</div>`
-    : `<div class="emptysec">No recent needinfos to act on — older ones are below.</div>`;
-  const restBody = rest.length ? `
-    <div class="stale-divider${staleOpen?' open':''}" data-toggle="stale">${rest.length} earlier · not analyzed <span class="caret">▸</span></div>
-    <div class="stale-list${staleOpen?' open':''}">${rest.map(ledgerRowHtml).join("")}</div>` : "";
-  return actBody + restBody;
+// A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
+// rest ("N earlier · not analyzed"). The shared act/stale block used by both
+// Needinfos and each Reviews zone, so the two tabs read identically.
+function actStaleBlock(label, items, staleKey){
+  const { act, rest } = analyzedSplit(items);
+  let html = `<div class="zone-h">${escapeHtml(label)} · <b>${act.length}</b></div>`;
+  if(act.length) html += `<div class="cards">${act.map(cardHtml).join("")}</div>`;
+  if(rest.length){
+    const open = staleOpen.has(staleKey);
+    html += `<div class="stale-divider${open?' open':''}" data-stale="${escapeHtml(staleKey)}">${rest.length} earlier · not analyzed <span class="caret">▸</span></div>
+      <div class="stale-list${open?' open':''}">${rest.map(ledgerRowHtml).join("")}</div>`;
+  }
+  return html;
 }
 
-// Reviews: few; render as cards, expanded by default.
+// Needinfos: one "Needs you" zone.
+function needinfosPanel(){
+  const all = sortForSection('needinfos', (DATA.sections && DATA.sections.needinfos) || [], sortOrder);
+  if(!all.length) return `<div class="emptysec">No open needinfos — you're clear.</div>`;
+  return actStaleBlock('Needs you', all, 'ni');
+}
+
+// Reviews: two zones — Direct (requested straight to you) on top, then Group.
 function reviewsPanel(){
   const items = (DATA.sections && DATA.sections.reviews) || [];
   if(!items.length) return `<div class="emptysec">You're clear — no reviews waiting on you.</div>`;
-  return `<div class="cards">${items.map(cardHtml).join("")}</div>`;
+  const byWait = a => a.slice().sort((x,y)=>(x.waiting_days||0)-(y.waiting_days||0));  // newest first
+  const direct = byWait(items.filter(r => r.direct));
+  const group  = byWait(items.filter(r => !r.direct));
+  let html = "";
+  if(direct.length) html += actStaleBlock('Direct', direct, 'review-direct');
+  if(group.length)  html += actStaleBlock('Group', group, 'review-group');
+  return html;
 }
 
 // My-bugs: a searchable compact ledger (a reference, not an action feed).
@@ -411,12 +431,14 @@ $('#panels').addEventListener('click', e=>{
   const btn = e.target.closest('.abtn');
   if(btn){ queueAction(btn); return; }
   const div = e.target.closest('.stale-divider');
-  if(div){                                              // reveal/hide the stale ledger (no re-render)
-    staleOpen = !staleOpen;
-    try { localStorage.setItem(STALE_KEY, staleOpen); } catch(e){}
-    div.classList.toggle('open', staleOpen);
+  if(div){                                              // reveal/hide a stale ledger (no re-render)
+    const key = div.dataset.stale;
+    if(staleOpen.has(key)) staleOpen.delete(key); else staleOpen.add(key);
+    saveStale();
+    const open = staleOpen.has(key);
+    div.classList.toggle('open', open);
     const list = div.nextElementSibling;
-    if(list && list.classList.contains('stale-list')) list.classList.toggle('open', staleOpen);
+    if(list && list.classList.contains('stale-list')) list.classList.toggle('open', open);
     return;
   }
   const head = e.target.closest('.chead'); if(!head) return;

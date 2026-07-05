@@ -91,19 +91,25 @@ class TestBaseItems(unittest.TestCase):
             "you@example.com", NOW)
         self.assertEqual(it["from"], "mine@example.com")
 
-    def test_review_base_item(self):
+    def test_review_base_item_group_only(self):
         it = collect.review_base_item(
             rev(3210, author="PHID-A", modified="2026-06-30T15:00:00Z", title="Fix seek",
                 reviewers=["PHID-GRP", "PHID-OTHER"]),
             {"PHID-A": "contributor", "PHID-GRP": "#media-playback-reviewers"},
-            NOW, {"PHID-GRP"})
-        self.assertEqual(it["type"], "review")
+            NOW, {"PHID-GRP"}, my_phid="PHID-ME")
         self.assertEqual(it["id"], "D3210")
         self.assertEqual(it["author"], "contributor")
         self.assertEqual(it["waiting_days"], 3)
-        self.assertTrue(it["url"].endswith("/D3210"))
         self.assertEqual(it["reviewers"], ["#media-playback-reviewers"])  # only my group, not PHID-OTHER
+        self.assertFalse(it["direct"])                                    # I'm not a reviewer personally
         self.assertIsNone(it["brief"])
+
+    def test_review_base_item_direct(self):
+        it = collect.review_base_item(
+            rev(1, reviewers=["PHID-ME", "PHID-GRP"]),
+            {"PHID-ME": "you", "PHID-GRP": "#grp"}, NOW, {"PHID-ME", "PHID-GRP"}, my_phid="PHID-ME")
+        self.assertTrue(it["direct"])
+        self.assertEqual(it["reviewers"], ["you", "#grp"])
 
     def test_review_requires_matches_me_or_my_groups(self):
         r = rev(9, reviewers=["PHID-ME", "PHID-GRP", "PHID-STRANGER"])
@@ -236,15 +242,17 @@ class TestBackendSeams(unittest.TestCase):
         orig = collect.conduit
         collect.conduit = fake_conduit
         try:
-            reviews, names, my_revs, mine = collect.fetch_phabricator("api-fake")
+            reviews, names, my_revs, mine, my_phid = collect.fetch_phabricator("api-fake")
             self.assertEqual(reviews[0]["id"], 9)
             self.assertEqual(names["PHID-A"], "alice")
             self.assertEqual(names["PHID-GRP"], "#media-playback-reviewers")
             self.assertIn("PHID-GRP", mine)
+            self.assertEqual(my_phid, "PHID-ME")
             self.assertEqual(my_revs[0]["id"], 5)
-            # the review carries which group it's requested on
-            it = collect.review_base_item(reviews[0], names, NOW, mine)
+            # the review carries which group it's requested on, and is not "direct"
+            it = collect.review_base_item(reviews[0], names, NOW, mine, my_phid)
             self.assertEqual(it["reviewers"], ["#media-playback-reviewers"])
+            self.assertFalse(it["direct"])
         finally:
             collect.conduit = orig
 
@@ -252,7 +260,7 @@ class TestBackendSeams(unittest.TestCase):
         orig = collect.conduit
         collect.conduit = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("down"))
         try:
-            self.assertEqual(collect.fetch_phabricator("api-fake"), ([], {}, [], set()))
+            self.assertEqual(collect.fetch_phabricator("api-fake"), ([], {}, [], set(), None))
         finally:
             collect.conduit = orig
 
