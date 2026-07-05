@@ -192,6 +192,10 @@ class TestBuildBaseAndEnrichment(unittest.TestCase):
         self.assertTrue(any(t["text"] == "ready" for t in item["tags"]))
         self.assertEqual(enriched["status"], "ready")
         self.assertTrue(enriched["generated_at"].endswith("Z"))
+        # re-finalizing must be idempotent — extra_tags don't duplicate
+        again = collect.apply_enrichment(enriched, {
+            "1": {"extra_tags": [{"text": "ready", "kind": "good"}]}}, NOW)
+        self.assertEqual(sum(1 for t in again["sections"]["needinfos"][0]["tags"] if t["text"] == "ready"), 1)
 
     def test_apply_enrichment_ignores_unknown_ids(self):
         base = collect.build_base("you@example.com", [], [], {}, [], [], NOW)

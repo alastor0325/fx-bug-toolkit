@@ -296,7 +296,14 @@ def apply_enrichment(base: dict, enrichment: dict, now: datetime) -> dict:
             if e.get("solvable_reason"):
                 item["solvable_reason"] = e["solvable_reason"]
             if e.get("extra_tags"):
-                item.setdefault("tags", []).extend(e["extra_tags"])
+                # dedup by (text, kind) so re-running finalize is idempotent
+                existing = item.setdefault("tags", [])
+                have = {(t.get("text"), t.get("kind")) for t in existing}
+                for t in e["extra_tags"]:
+                    key = (t.get("text"), t.get("kind"))
+                    if key not in have:
+                        existing.append(t)
+                        have.add(key)
     base["status"] = "ready"
     base["generated_at"] = iso_utc(now)
     return base

@@ -101,6 +101,8 @@
 
   .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
     border:1px dashed var(--line); border-radius:10px}
+  .ledger-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--faint); margin:14px 2px 6px}
 
   /* zone header above the "act" cards */
   .zone-h{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
@@ -291,14 +293,22 @@ function ledgerRowHtml(it){
 // A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
 // rest ("N earlier · not analyzed"). The shared act/stale block used by both
 // Needinfos and each Reviews zone, so the two tabs read identically.
-function actStaleBlock(label, items, staleKey){
+// `collapseRest`: true hides the un-analyzed rest behind a collapsed divider
+// (needinfos — the rest is years-old stale noise). false shows them as a plain
+// visible ledger (reviews — every review is live/actionable, don't hide them).
+function actStaleBlock(label, items, staleKey, collapseRest=true){
   const { act, rest } = analyzedSplit(items);
   let html = `<div class="zone-h">${escapeHtml(label)} · <b>${act.length}</b></div>`;
   if(act.length) html += `<div class="cards">${act.map(cardHtml).join("")}</div>`;
   if(rest.length){
-    const open = staleOpen.has(staleKey);
-    html += `<div class="stale-divider${open?' open':''}" data-stale="${escapeHtml(staleKey)}">${rest.length} earlier · not analyzed <span class="caret">▸</span></div>
-      <div class="stale-list${open?' open':''}">${rest.map(ledgerRowHtml).join("")}</div>`;
+    if(collapseRest){
+      const open = staleOpen.has(staleKey);
+      html += `<div class="stale-divider${open?' open':''}" data-stale="${escapeHtml(staleKey)}">${rest.length} earlier · not analyzed <span class="caret">▸</span></div>
+        <div class="stale-list${open?' open':''}">${rest.map(ledgerRowHtml).join("")}</div>`;
+    } else {
+      html += `<div class="ledger-label">${rest.length} not yet analyzed · run /dashboard-generate for briefs</div>
+        <div class="ledger">${rest.map(ledgerRowHtml).join("")}</div>`;
+    }
   }
   return html;
 }
@@ -318,8 +328,8 @@ function reviewsPanel(){
   const direct = byWait(items.filter(r => r.direct));
   const group  = byWait(items.filter(r => !r.direct));
   let html = "";
-  if(direct.length) html += actStaleBlock('Direct', direct, 'review-direct');
-  if(group.length)  html += actStaleBlock('Group', group, 'review-group');
+  if(direct.length) html += actStaleBlock('Direct', direct, 'review-direct', false);
+  if(group.length)  html += actStaleBlock('Group', group, 'review-group', false);
   return html;
 }
 

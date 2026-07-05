@@ -178,10 +178,10 @@ async function main() {
     assert.ok(await page.$(`${rp} .card[data-id="D10"]`), "direct review is an act card");
     const chips = await page.$$eval(`${rp} .card[data-id="D9"] .crow .chip`, els => els.map(e => e.textContent));
     assert.ok(chips.some(c => c.includes("media-playback-reviewers")), "group card shows its group chip");
-    // the stale (unanalyzed) group review is behind a collapsed ledger
-    assert.ok(!(await page.isVisible(`${rp} .stale-list .lrow`)), "group backlog collapsed");
-    await page.click(`${rp} .stale-divider`);
-    assert.ok((await page.textContent(`${rp} .stale-list`)).includes("D11"), "reveals the old group review");
+    // un-analyzed reviews are shown as a VISIBLE ledger (reviews are all actionable, not hidden)
+    assert.strictEqual((await page.$$(`${rp} .stale-divider`)).length, 0, "no collapse toggle for reviews");
+    assert.ok(await page.isVisible(`${rp} .ledger .lrow[href*="=D11"], ${rp} .ledger .lrow`), "un-analyzed review visible in ledger");
+    assert.ok((await page.textContent(`${rp} .ledger`)).includes("Old group review"), "shows the un-analyzed group review inline");
   });
 
   await check("my-bugs is a searchable ledger (rows, not cards; display-only)", async () => {
