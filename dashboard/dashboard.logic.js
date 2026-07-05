@@ -10,8 +10,12 @@
 const SECTIONS = [
   { key: "needinfos", label: "Needinfos",            accent: "amber", empty: "No open needinfos — you're clear." },
   { key: "reviews",   label: "Review requests",      accent: "cyan",  empty: "No reviews waiting on you." },
-  { key: "my_bugs",   label: "Bugs I'm working on",  accent: "blue",  empty: "Nothing in progress." },
+  { key: "my_bugs",   label: "My work",              accent: "blue",  empty: "Nothing in progress." },
 ];
+
+// A "my work" bug is actively in progress when it has an open patch in one of
+// these states; anything else (no patch, or already landed) is backlog.
+const ACTIVE_PATCH = ["wip", "in-review", "needs-revision", "accepted"];
 
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
@@ -119,6 +123,20 @@ function actionMeta(action) {
   return ACTION_META[action] || { label: action || "action", accent: "" };
 }
 
+// Split "my work" into actively-in-progress (has an open patch) vs backlog
+// (assigned, no active patch). Pure.
+function myBugsSplit(items) {
+  const active = [], backlog = [];
+  for (const b of items || []) (ACTIVE_PATCH.includes(b && b.patch_status) ? active : backlog).push(b);
+  return { active, backlog };
+}
+
+// Sort bugs most-recently-active first (smallest last_activity_days on top), so
+// the bugs I'm actually moving stay at the top. Pure (new array).
+function byRecency(items) {
+  return (items || []).slice().sort((a, b) => (Number(a.last_activity_days) || 0) - (Number(b.last_activity_days) || 0));
+}
+
 // Case-insensitive substring filter over id + title + tag text — for the
 // my-bugs ledger search. Pure.
 function filterLedger(items, q) {
@@ -152,6 +170,6 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
-    analyzedSplit, filterLedger, ACTION_META, actionMeta,
+    analyzedSplit, filterLedger, ACTION_META, actionMeta, ACTIVE_PATCH, myBugsSplit, byRecency,
   };
 }

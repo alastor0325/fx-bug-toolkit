@@ -333,14 +333,26 @@ function reviewsPanel(){
   return html;
 }
 
-// My-bugs: a searchable compact ledger (a reference, not an action feed).
+// My work: an "In progress" focus zone (bugs with an open patch, most-recent
+// first) always on top, + a collapsed "assigned · no active patch" backlog.
+// Searchable. Display-only (a reference, not an action feed).
+function myBugsBody(rows){
+  const { active, backlog } = myBugsSplit(rows);
+  const a = byRecency(active), bk = byRecency(backlog);
+  let h = "";
+  if(a.length) h += `<div class="zone-h">In progress · <b>${a.length}</b></div><div class="ledger">${a.map(ledgerRowHtml).join("")}</div>`;
+  if(bk.length){
+    const open = staleOpen.has('mybugs-backlog');
+    h += `<div class="stale-divider${open?' open':''}" data-stale="mybugs-backlog">${bk.length} assigned · no active patch <span class="caret">▸</span></div>
+      <div class="stale-list${open?' open':''}">${bk.map(ledgerRowHtml).join("")}</div>`;
+  }
+  return h || `<div class="emptysec">no matches</div>`;
+}
 function myBugsPanel(){
   const items = (DATA.sections && DATA.sections.my_bugs) || [];
-  const rows = filterLedger(items, myBugsQuery);
-  const body = rows.length ? rows.map(ledgerRowHtml).join("") : `<div class="emptysec">no matches</div>`;
   return `<div class="search mb-search"><input id="mbq" type="text" spellcheck="false" autocomplete="off"
       placeholder="search ${items.length} bugs — id, title, component" value="${escapeHtml(myBugsQuery)}"></div>
-    <div class="ledger" id="mb-ledger">${body}</div>`;
+    <div id="mb-body">${myBugsBody(filterLedger(items, myBugsQuery))}</div>`;
 }
 
 function panelHtml(sec){
@@ -460,10 +472,9 @@ $('#panels').addEventListener('click', e=>{
 $('#panels').addEventListener('input', e=>{
   if(e.target.id !== 'mbq') return;
   myBugsQuery = e.target.value;
-  const led = document.getElementById('mb-ledger');
-  if(!led) return;
-  const rows = filterLedger((DATA.sections && DATA.sections.my_bugs) || [], myBugsQuery);
-  led.innerHTML = rows.length ? rows.map(ledgerRowHtml).join("") : `<div class="emptysec">no matches</div>`;
+  const body = document.getElementById('mb-body');
+  if(!body) return;
+  body.innerHTML = myBugsBody(filterLedger((DATA.sections && DATA.sections.my_bugs) || [], myBugsQuery));
 });
 function queueAction(btn){
   const card = btn.closest('.card');

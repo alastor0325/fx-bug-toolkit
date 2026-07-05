@@ -48,16 +48,21 @@ const DATA = {
         reviewers: ["#media-playback-reviewers"], tags: [], brief: null },
     ],
     my_bugs: [
+      // active (open patch) → In-progress zone, most-recent first
       { type: "mybug", id: "222", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=222",
-        title: "My crash bug", age_days: 2, patch_status: "needs-revision",
+        title: "My crash bug", last_activity_days: 1, patch_status: "needs-revision",
         tags: [{ text: "Playback", kind: "component" }], brief: null },
       { type: "mybug", id: "223", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=223",
-        title: "Audio thing", age_days: 5, patch_status: "accepted",
+        title: "Audio thing", last_activity_days: 5, patch_status: "accepted",
         tags: [{ text: "Web Audio", kind: "component" }], brief: null },
+      // no patch → collapsed backlog
+      { type: "mybug", id: "224", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=224",
+        title: "Old assigned bug", last_activity_days: 200, patch_status: "none",
+        tags: [{ text: "Playback", kind: "component" }], brief: null },
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 2 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 3 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -109,9 +114,9 @@ async function main() {
 
   await check("section tabs + queue tab render with counts", async () => {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
-    assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on", "Queue"]);
+    assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "My work", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "3", "2", "0"]);  // queue empty at start
+    assert.deepStrictEqual(counts, ["3", "3", "3", "0"]);  // queue empty at start
   });
 
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
@@ -184,20 +189,24 @@ async function main() {
     assert.ok((await page.textContent(`${rp} .ledger`)).includes("Old group review"), "shows the un-analyzed group review inline");
   });
 
-  await check("my-bugs is a searchable ledger (rows, not cards; display-only)", async () => {
+  await check("my work: In-progress focus (recent first) + collapsed backlog; searchable", async () => {
     await page.click('.tab[data-k="my_bugs"]');
     await page.waitForSelector('.tabpanel[data-k="my_bugs"].active');
-    assert.strictEqual((await page.$$('.tabpanel[data-k="my_bugs"] .card')).length, 0, "no cards");
-    const rows = await page.$$eval('#mb-ledger .lrow', els => els.map(r => r.dataset ? r.getAttribute('href') : ''));
-    assert.strictEqual(rows.length, 2, "two ledger rows");
-    const pill = await page.$eval('.lrow[href*="=222"] .pstatus', e => e.textContent.trim());
-    assert.strictEqual(pill, "needs revision");
-    // search filters the ledger in place
+    const mp = '.tabpanel[data-k="my_bugs"]';
+    assert.strictEqual((await page.$$(`${mp} .cards .card`)).length, 0, "display-only, no cards");
+    assert.ok((await page.textContent(`${mp} .zone-h`)).includes("In progress"), "In-progress zone");
+    // active bugs (open patch) listed most-recent first (222 @1d before 223 @5d)
+    const active = await page.$$eval(`${mp} .ledger .lrow`, els => els.map(r => r.getAttribute('href')));
+    assert.ok(active[0].includes("=222") && active.some(h => h.includes("=223")), "active bugs, recent first");
+    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=222"] .pstatus`, e => e.textContent.trim()), "needs revision");
+    // backlog (no patch) is collapsed
+    assert.ok(!(await page.isVisible(`${mp} .stale-list .lrow`)), "backlog collapsed");
+    await page.click(`${mp} .stale-divider`);
+    assert.ok((await page.textContent(`${mp} .stale-list`)).includes("224"), "backlog reveals 224");
+    // search filters the whole section
     await page.fill('#mbq', 'audio');
     await page.waitForTimeout(120);
-    const after = await page.$$eval('#mb-ledger .lrow', els => els.map(r => r.getAttribute('href')));
-    assert.strictEqual(after.length, 1, "search narrows to 1");
-    assert.ok(after[0].includes("=223"), "matched the Audio bug");
+    assert.ok((await page.textContent('#mb-body')).includes("223"), "search matches the Audio bug");
   });
 
   await check("id link points at the bug and opens in a new tab", async () => {

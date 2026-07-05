@@ -100,6 +100,19 @@ test("filterLedger: matches id/title/tags, case-insensitive; empty query = all",
   assert.deepStrictEqual(L.filterLedger(items, "2").map(i => i.id), ["222"]);
 });
 
+test("myBugsSplit: active (open patch) vs backlog; byRecency puts recent on top", () => {
+  const items = [
+    { id: "1", patch_status: "none", last_activity_days: 3 },
+    { id: "2", patch_status: "needs-revision", last_activity_days: 9 },
+    { id: "3", patch_status: "accepted", last_activity_days: 1 },
+    { id: "4", patch_status: "landed", last_activity_days: 2 },
+  ];
+  const { active, backlog } = L.myBugsSplit(items);
+  assert.deepStrictEqual(active.map(b => b.id).sort(), ["2", "3"]);   // open patches
+  assert.deepStrictEqual(backlog.map(b => b.id).sort(), ["1", "4"]);  // none + landed
+  assert.deepStrictEqual(L.byRecency(active).map(b => b.id), ["3", "2"]);  // 1d before 9d
+});
+
 test("totalItems sums across sections", () => {
   assert.strictEqual(L.totalItems({ sections: { needinfos: [1, 2], reviews: [3], my_bugs: [] } }), 3);
   assert.strictEqual(L.totalItems(null), 0);
