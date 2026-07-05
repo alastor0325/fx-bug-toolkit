@@ -35,7 +35,8 @@ const DATA = {
     ],
     reviews: [
       { type: "review", id: "D9", url: "https://phabricator.services.mozilla.com/D9",
-        title: "A review", waiting_days: 1, author: "coworker", tags: [],
+        title: "A review", waiting_days: 1, author: "coworker",
+        reviewers: ["#media-playback-reviewers"], tags: [],
         brief: { summary: "review summary" } },
     ],
     my_bugs: [
@@ -159,11 +160,13 @@ async function main() {
     assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "0", "count decremented");
   });
 
-  await check("reviews render expanded by default", async () => {
+  await check("reviews render expanded by default + show the requested reviewer", async () => {
     await page.click('.tab[data-k="reviews"]');
     await page.waitForSelector('.tabpanel[data-k="reviews"].active');
     assert.ok(await page.isVisible('.card[data-id="D9"].open'), "review card open by default");
     assert.ok((await page.textContent('.card[data-id="D9"] .cbody')).includes("review summary"));
+    const chips = await page.$$eval('.card[data-id="D9"] .crow .chip', els => els.map(e => e.textContent));
+    assert.ok(chips.some(c => c.includes("media-playback-reviewers")), "shows the requested reviewer group in preview");
   });
 
   await check("my-bugs is a searchable ledger (rows, not cards; display-only)", async () => {

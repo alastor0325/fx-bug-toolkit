@@ -246,13 +246,18 @@ function actionsHtml(it){
   }).join("");
   return `<div class="actions">${btns}</div>${results}`;
 }
+// review cards: show which reviewer/group it's requested on (e.g. #media-playback-reviewers)
+function reqChipsHtml(it){
+  if(it.type !== "review" || !(it.reviewers && it.reviewers.length)) return "";
+  return it.reviewers.map(r => `<span class="chip cyan" title="requested reviewer">→ ${escapeHtml(r)}</span>`).join("");
+}
 function cardHtml(it){
   const open = openCards.has(String(it.id)) ? " open" : "";
   return `<article class="card${open}" data-id="${escapeHtml(it.id)}" data-type="${escapeHtml(it.type)}">
     <div class="chead">
       <div class="crow">
         <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
-        ${tagsHtml(it.tags)}
+        ${tagsHtml(it.tags)}${reqChipsHtml(it)}
         <span class="meta">${collapsedMeta(it)} <span class="caret">▸</span></span>
       </div>
       <div class="briefline">${escapeHtml(briefLineText(it))}</div>
@@ -450,8 +455,10 @@ const j = (url) => fetch(url, {cache:'no-store'}).then(r => r.ok ? r.json() : nu
 function refreshData(){
   return Promise.all([j('/data.json'), j('/queue.json'), j('/results.json')]).then(([d,q,r])=>{
     DATA = d; QUEUE = q || []; RESULTS = r || {};
-    // reviews are few → show them expanded by default (still collapsible)
-    ((DATA && DATA.sections && DATA.sections.reviews) || []).forEach(rv => openCards.add(String(rv.id)));
+    // only auto-expand reviews when there are few (a group like media-playback
+    // can bring dozens — don't render a wall of open cards)
+    const reviews = (DATA && DATA.sections && DATA.sections.reviews) || [];
+    if(reviews.length <= 3) reviews.forEach(rv => openCards.add(String(rv.id)));
     lastGen = d && d.generated_at;
     render();
   });

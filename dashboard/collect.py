@@ -160,8 +160,25 @@ def ni_base_item(bug: dict, user_email: str, now: datetime) -> dict:
     }
 
 
-def review_base_item(rev: dict, names: dict, now: datetime) -> dict:
-    """A Conduit revision awaiting my review → a base review card."""
+def review_requires(rev: dict, mine_phids, names: dict) -> list:
+    """The reviewer(s) on `rev` that are me or a review group I'm in — i.e. *why*
+    this revision is in my queue. Returns display names (e.g. "#media-playback-
+    reviewers", "you"). Reads the `reviewers` attachment. Pure."""
+    reviewers = (((rev.get("attachments") or {}).get("reviewers") or {}).get("reviewers")) or []
+    mine = mine_phids or set()
+    out = []
+    for r in reviewers:
+        ph = r.get("reviewerPHID")
+        if ph in mine:
+            nm = (names or {}).get(ph, ph)
+            if nm and nm not in out:
+                out.append(nm)
+    return out
+
+
+def review_base_item(rev: dict, names: dict, now: datetime, mine_phids=None) -> dict:
+    """A Conduit revision awaiting my (or my group's) review → a base review card.
+    `reviewers` lists which of my identities/groups it's requested on."""
     f = rev.get("fields") or {}
     rid = rev.get("id")
     return {
@@ -171,6 +188,7 @@ def review_base_item(rev: dict, names: dict, now: datetime) -> dict:
         "title": f.get("title") or "",
         "waiting_days": age_days_epoch(f.get("dateModified"), now),
         "author": names.get(f.get("authorPHID")) or "",
+        "reviewers": review_requires(rev, mine_phids, names),
         "tags": [],
         "brief": None,
     }
@@ -238,7 +256,8 @@ def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime) -> lis
 
 
 def build_base(user_email: str, needinfos: list, reviews: list, review_names: dict,
-               assigned: list, my_revisions: list, now: datetime) -> dict:
+               assigned: list, my_revisions: list, now: datetime,
+               review_mine_phids=None) -> dict:
     """Assemble the base data file (status "running" — enrichment not done yet).
     Pure; the collector's heart, fully unit-tested against mock backends."""
     return {
@@ -247,7 +266,7 @@ def build_base(user_email: str, needinfos: list, reviews: list, review_names: di
         "status": "running",
         "sections": {
             "needinfos": [ni_base_item(b, user_email, now) for b in (needinfos or [])],
-            "reviews": [review_base_item(r, review_names or {}, now) for r in (reviews or [])],
+            "reviews": [review_base_item(r, review_names or {}, now, review_mine_phids) for r in (reviews or [])],
             "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now),
         },
     }
@@ -324,16 +343,35 @@ def conduit(method: str, params: dict, token: str) -> dict:
 
 
 def fetch_phabricator(token: str):
-    """Return (reviews, review_names, my_revisions) or empties on any error — the
-    dashboard still renders the Bugzilla half. Never raises to the caller."""
+    """Return (reviews, review_names, my_revisions, mine_phids) or empties on any
+    error — the dashboard still renders the Bugzilla half. Never raises.
+
+    Reviews include revisions requested on a **review group I'm a member of**
+    (e.g. #media-playback-reviewers), not just ones assigned to me directly — a
+    revision is mine to review if any of {me, my groups} is a reviewer."""
     try:
         me = conduit("user.whoami", {}, token)
         phid = me.get("phid")
         if not phid:
-            return [], {}, []
+            return [], {}, [], set()
+        names = {phid: me.get("userName") or "you"}
+        # review groups (projects) I'm a member of
+        groups = (conduit("project.search", {"constraints": {"members": [phid]}}, token)
+                  .get("data") or [])
+        group_phids = []
+        for g in groups:
+            gp = g.get("phid")
+            if not gp:
+                continue
+            group_phids.append(gp)
+            gf = g.get("fields") or {}
+            names[gp] = "#" + (gf.get("slug") or gf.get("name") or "group")
+        mine_phids = set([phid] + group_phids)
+
         reviews = (conduit("differential.revision.search",
-                           {"constraints": {"reviewerPHIDs": [phid],
-                                            "statuses": ["needs-review"]}}, token)
+                           {"constraints": {"reviewerPHIDs": [phid] + group_phids,
+                                            "statuses": ["needs-review"]},
+                            "attachments": {"reviewers": 1}}, token)
                    .get("data") or [])
         my_revs = (conduit("differential.revision.search",
                            {"constraints": {"authorPHIDs": [phid],
@@ -343,16 +381,15 @@ def fetch_phabricator(token: str):
                    .get("data") or [])
         author_phids = sorted({(r.get("fields") or {}).get("authorPHID")
                                for r in reviews if (r.get("fields") or {}).get("authorPHID")})
-        names = {}
         if author_phids:
             users = conduit("user.search", {"constraints": {"phids": author_phids}}, token)
             for u in users.get("data") or []:
                 f = u.get("fields") or {}
                 names[u.get("phid")] = f.get("username") or f.get("realName") or ""
-        return reviews, names, my_revs
+        return reviews, names, my_revs, mine_phids
     except Exception as e:  # noqa: BLE001 — degrade gracefully, never crash generation
         print(f"warning: Phabricator collection skipped ({e})", file=sys.stderr)
-        return [], {}, []
+        return [], {}, [], set()
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -387,13 +424,13 @@ def cmd_base() -> int:
 
     token = os.environ.get("FX_PHABRICATOR_TOKEN") or ""
     if token:
-        reviews, names, my_revs = fetch_phabricator(token)
+        reviews, names, my_revs, mine_phids = fetch_phabricator(token)
     else:
         print("warning: FX_PHABRICATOR_TOKEN not set — skipping Phabricator "
               "(reviews + patch status).", file=sys.stderr)
-        reviews, names, my_revs = [], {}, []
+        reviews, names, my_revs, mine_phids = [], {}, [], set()
 
-    base = build_base(user_email, needinfos, reviews, names, assigned, my_revs, now)
+    base = build_base(user_email, needinfos, reviews, names, assigned, my_revs, now, mine_phids)
     write_json(OUT, base)
     write_json(STATUS_OUT, status_payload(base, "running"))
     print(f"wrote base {OUT} — {len(base['sections']['needinfos'])} NI, "

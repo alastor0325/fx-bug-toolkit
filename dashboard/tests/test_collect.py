@@ -38,13 +38,17 @@ def ni_flag(requestee="you@example.com", setter="asker@example.com",
 
 
 def rev(rid, status="needs-review", bugid=None, author="PHID-A",
-        modified="2026-07-01T00:00:00Z", title="A patch"):
+        modified="2026-07-01T00:00:00Z", title="A patch", reviewers=None):
     epoch = int(datetime.fromisoformat(modified.replace("Z", "+00:00")).timestamp())
     fields = {"title": title, "authorPHID": author, "dateModified": epoch,
               "status": {"value": status}}
     if bugid is not None:
         fields["bugzilla.bug-id"] = str(bugid)
-    return {"id": rid, "fields": fields}
+    r = {"id": rid, "fields": fields}
+    if reviewers is not None:
+        r["attachments"] = {"reviewers": {"reviewers":
+            [{"reviewerPHID": p, "status": "added"} for p in reviewers]}}
+    return r
 
 
 class TestTags(unittest.TestCase):
@@ -89,14 +93,25 @@ class TestBaseItems(unittest.TestCase):
 
     def test_review_base_item(self):
         it = collect.review_base_item(
-            rev(3210, author="PHID-A", modified="2026-06-30T15:00:00Z", title="Fix seek"),
-            {"PHID-A": "contributor"}, NOW)
+            rev(3210, author="PHID-A", modified="2026-06-30T15:00:00Z", title="Fix seek",
+                reviewers=["PHID-GRP", "PHID-OTHER"]),
+            {"PHID-A": "contributor", "PHID-GRP": "#media-playback-reviewers"},
+            NOW, {"PHID-GRP"})
         self.assertEqual(it["type"], "review")
         self.assertEqual(it["id"], "D3210")
         self.assertEqual(it["author"], "contributor")
         self.assertEqual(it["waiting_days"], 3)
         self.assertTrue(it["url"].endswith("/D3210"))
+        self.assertEqual(it["reviewers"], ["#media-playback-reviewers"])  # only my group, not PHID-OTHER
         self.assertIsNone(it["brief"])
+
+    def test_review_requires_matches_me_or_my_groups(self):
+        r = rev(9, reviewers=["PHID-ME", "PHID-GRP", "PHID-STRANGER"])
+        names = {"PHID-ME": "you", "PHID-GRP": "#media-playback-reviewers"}
+        self.assertEqual(collect.review_requires(r, {"PHID-ME", "PHID-GRP"}, names),
+                         ["you", "#media-playback-reviewers"])
+        self.assertEqual(collect.review_requires(r, set(), names), [])   # nothing mine
+        self.assertEqual(collect.review_requires(rev(9), {"PHID-ME"}, names), [])  # no reviewers attachment
 
 
 class TestPatchStatus(unittest.TestCase):
@@ -202,14 +217,18 @@ class TestBackendSeams(unittest.TestCase):
         finally:
             collect.subprocess.run = orig
 
-    def test_fetch_phabricator_with_mock_conduit(self):
+    def test_fetch_phabricator_includes_group_reviews(self):
         def fake_conduit(method, params, token):
             if method == "user.whoami":
-                return {"phid": "PHID-ME"}
+                return {"phid": "PHID-ME", "userName": "me"}
+            if method == "project.search":                       # my review groups
+                return {"data": [{"phid": "PHID-GRP", "fields": {"slug": "media-playback-reviewers"}}]}
             if method == "differential.revision.search":
                 if "authorPHIDs" in params["constraints"]:
                     return {"data": [rev(5, "accepted", bugid=2)]}
-                return {"data": [rev(9, "needs-review", author="PHID-A")]}
+                # the reviewer constraint should include my group's PHID
+                assert "PHID-GRP" in params["constraints"]["reviewerPHIDs"]
+                return {"data": [rev(9, "needs-review", author="PHID-A", reviewers=["PHID-GRP"])]}
             if method == "user.search":
                 return {"data": [{"phid": "PHID-A", "fields": {"username": "alice"}}]}
             return {}
@@ -217,10 +236,15 @@ class TestBackendSeams(unittest.TestCase):
         orig = collect.conduit
         collect.conduit = fake_conduit
         try:
-            reviews, names, my_revs = collect.fetch_phabricator("api-fake")
+            reviews, names, my_revs, mine = collect.fetch_phabricator("api-fake")
             self.assertEqual(reviews[0]["id"], 9)
             self.assertEqual(names["PHID-A"], "alice")
+            self.assertEqual(names["PHID-GRP"], "#media-playback-reviewers")
+            self.assertIn("PHID-GRP", mine)
             self.assertEqual(my_revs[0]["id"], 5)
+            # the review carries which group it's requested on
+            it = collect.review_base_item(reviews[0], names, NOW, mine)
+            self.assertEqual(it["reviewers"], ["#media-playback-reviewers"])
         finally:
             collect.conduit = orig
 
@@ -228,7 +252,7 @@ class TestBackendSeams(unittest.TestCase):
         orig = collect.conduit
         collect.conduit = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("down"))
         try:
-            self.assertEqual(collect.fetch_phabricator("api-fake"), ([], {}, []))
+            self.assertEqual(collect.fetch_phabricator("api-fake"), ([], {}, [], set()))
         finally:
             collect.conduit = orig
 
