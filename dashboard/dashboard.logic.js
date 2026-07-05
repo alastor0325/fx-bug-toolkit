@@ -88,6 +88,17 @@ function viewMode(data, status) {
   return { mode: "ready", analyzing: running };
 }
 
+// Per-section ordering. Needinfos are sorted oldest-waiting first (the earliest
+// dated needinfo — the one that's been on you longest — comes first); other
+// sections keep collector order. Pure (returns a new array).
+function sortForSection(key, items) {
+  const arr = (items || []).slice();
+  if (key === "needinfos") {
+    arr.sort((a, b) => (Number(b.waiting_days) || 0) - (Number(a.waiting_days) || 0));
+  }
+  return arr;
+}
+
 // Count across all sections (top-bar summary).
 function totalItems(data) {
   if (!data || !data.sections) return 0;
@@ -109,6 +120,6 @@ function generatedAgo(iso, nowMs) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
-    actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo,
+    actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
   };
 }

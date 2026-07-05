@@ -79,8 +79,17 @@ Sections: `needinfos`, `reviews`, `my_bugs`.
 
 ## Step 3 — Enrich each item (your reasoning — the LLM half)
 
-Read the base `data.json`. For **every** item across all three sections, read its
-source and produce an enrichment entry. Read sources with the tools you have:
+Read the base `data.json`. **Scope the enrichment — do NOT analyze everything**
+(real accounts have hundreds of items; enriching all is impractical/expensive):
+
+- **Needinfos: only those with `waiting_days <= 7`** (recent). Leave older NIs
+  **untouched** — they keep `brief: null` and render "not analyzed yet". This is
+  the primary, intentional cap.
+- **Reviews and my-bugs:** leave un-enriched for now (scope TBD) — don't analyze
+  them this pass.
+
+For each item **in scope**, read its source and produce an enrichment entry.
+Read sources with the tools you have:
 `mcp__moz__get_bugzilla_bug(bug_id)` for bugs (fall back to `bmo-to-md` for
 security bugs), `mcp__moz__get_phabricator_revision` for reviews. For many items,
 **fan out**: spawn a subagent per item (or per small batch) via the Agent tool so

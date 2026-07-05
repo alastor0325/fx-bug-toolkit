@@ -83,18 +83,18 @@ async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(`${base}/dashboard.html`, { waitUntil: "load" });
-  await page.waitForSelector(".card");
+  await page.waitForSelector(".tab");
 
-  await check("three sections render with counts", async () => {
-    const labels = await page.$$eval(".section .shead .lbl", els => els.map(e => e.textContent));
+  await check("three section tabs render with counts", async () => {
+    const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on"]);
-    const counts = await page.$$eval(".section .shead .n b", els => els.map(e => e.textContent));
+    const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
     assert.deepStrictEqual(counts, ["1", "1", "1"]);
   });
 
-  await check("my-bug shows its patch status", async () => {
-    const pill = await page.$eval('.card[data-id="222"] .pstatus', e => e.textContent.trim());
-    assert.strictEqual(pill, "needs revision");
+  await check("needinfos tab is active by default; its card is visible", async () => {
+    assert.ok(await page.isVisible('.tabpanel[data-k="needinfos"] .card[data-id="111"]'));
+    assert.ok(!(await page.isVisible('.tabpanel[data-k="my_bugs"] .card[data-id="222"]')), "other panel hidden");
   });
 
   await check("expanding a solvable NI reveals brief + the /bug-start button", async () => {
@@ -107,12 +107,6 @@ async function main() {
     assert.ok(btns.some(b => b.includes("/bug-start")), "solvable → offers /bug-start");
   });
 
-  await check("my-bug card is display-only (no action buttons)", async () => {
-    await page.click('.card[data-id="222"] .chead');
-    const btns = await page.$$('.card[data-id="222"] .abtn');
-    assert.strictEqual(btns.length, 0);
-  });
-
   await check("clicking an action POSTs it to /queue and the button shows queued", async () => {
     await page.click('.card[data-id="111"] .abtn[data-action="draft-reply"]');
     await page.waitForTimeout(200);
@@ -121,7 +115,18 @@ async function main() {
     assert.ok(/queued/i.test(q), "button flips to queued");
   });
 
+  await check("switching to the my-bugs tab reveals its card (patch status, display-only)", async () => {
+    await page.click('.tab[data-k="my_bugs"]');
+    await page.waitForSelector('.tabpanel[data-k="my_bugs"].active');
+    assert.ok(await page.isVisible('.card[data-id="222"]'), "my-bug card now visible");
+    const pill = await page.$eval('.card[data-id="222"] .pstatus', e => e.textContent.trim());
+    assert.strictEqual(pill, "needs revision");
+    await page.click('.card[data-id="222"] .chead');
+    assert.strictEqual((await page.$$('.card[data-id="222"] .abtn')).length, 0, "no action buttons (MVP display-only)");
+  });
+
   await check("id link points at the bug and opens in a new tab", async () => {
+    await page.click('.tab[data-k="needinfos"]');
     const [href, target] = await page.$eval('.card[data-id="111"] a.id', e => [e.href, e.target]);
     assert.ok(href.includes("show_bug.cgi?id=111"));
     assert.strictEqual(target, "_blank");

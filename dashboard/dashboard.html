@@ -14,10 +14,10 @@
      scrollbars live in /theme.css (the toolkit design system — see /fx-style). */
   body{overflow-y:auto}
 
-  .topbar{position:sticky; top:0; z-index:6; display:flex; align-items:center; gap:16px;
-    height:58px; padding:0 22px; border-bottom:1px solid var(--line);
+  .topbar{position:sticky; top:0; z-index:7; display:flex; align-items:center; gap:14px;
+    height:56px; padding:0 clamp(14px,4vw,24px); border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#131317,#0f0f12)}
-  .summary{font-family:var(--mono); font-size:13px; color:var(--dim)}
+  .summary{font-family:var(--mono); font-size:12.5px; color:var(--dim); white-space:nowrap}
   .summary b{color:var(--amber); font-weight:600}
   .spacer{margin-left:auto}
   .who{font-family:var(--mono); font-size:12px; color:var(--faint)}
@@ -28,21 +28,33 @@
   .analyzing .pulse{width:7px; height:7px; border-radius:50%; background:var(--amber); animation:pulse 1s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:.25} 50%{opacity:1}}
 
-  .wrap{position:relative; z-index:1; max-width:940px; margin:0 auto; padding:22px 22px 80px}
+  /* ---------- tabs (section switcher): switching only toggles a class, no re-render ---------- */
+  .tabs{position:sticky; top:56px; z-index:6; display:flex; gap:6px; flex-wrap:wrap;
+    padding:10px clamp(14px,4vw,24px); background:var(--bg); border-bottom:1px solid var(--line)}
+  .tab{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px;
+    padding:6px 13px; border-radius:8px; background:var(--panel); border:1px solid var(--line);
+    color:var(--dim); cursor:pointer; transition:color .12s,border-color .12s,background .12s}
+  .tab:hover{color:var(--ink); border-color:#37373f}
+  .tab.active{color:var(--ink); border-color:var(--accent,var(--amber)); background:#17171c}
+  .tab.active .dot{box-shadow:0 0 8px var(--accent)}
+  .tab .dot{width:7px; height:7px; border-radius:50%; background:var(--accent,var(--amber)); flex:none}
+  .tab .n{font-size:11px; color:var(--faint); background:#101015; border:1px solid var(--line); border-radius:20px; padding:1px 8px}
+  .tab.active .n{color:var(--accent)}
+  .tab[data-k="needinfos"]{--accent:var(--amber)} .tab[data-k="reviews"]{--accent:var(--cyan)} .tab[data-k="my_bugs"]{--accent:var(--blue)}
 
-  .section{margin-bottom:26px}
-  .shead{display:flex; align-items:center; gap:10px; margin:0 2px 11px}
-  .shead .dot{width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); flex:none}
-  .shead .lbl{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
-  .shead .n{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--faint);
-    background:#101015; border:1px solid var(--line); border-radius:20px; padding:2px 10px}
-  .shead .n b{color:var(--accent); font-weight:600}
-  .section.amber{--accent:var(--amber)} .section.cyan{--accent:var(--cyan)} .section.blue{--accent:var(--blue)}
+  .wrap{max-width:1080px; margin:0 auto; padding:18px clamp(14px,4vw,24px) 80px}
+
+  /* one panel per section; only the active one shows, and it fades in (no DOM rebuild on switch) */
+  .tabpanel{display:none}
+  .tabpanel.active{display:block; animation:fadein .16s ease}
+  @keyframes fadein{from{opacity:0; transform:translateY(3px)}}
 
   .cards{display:flex; flex-direction:column; gap:8px}
   .card{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
-    border-radius:10px; overflow:hidden; animation:rise .28s cubic-bezier(.2,.7,.3,1) backwards}
-  @keyframes rise{from{opacity:0; transform:translateY(5px)}}
+    border-radius:10px; overflow:hidden}
+  .tabpanel[data-k="needinfos"] .card{--accent:var(--amber)}
+  .tabpanel[data-k="reviews"] .card{--accent:var(--cyan)}
+  .tabpanel[data-k="my_bugs"] .card{--accent:var(--blue)}
   .chead{padding:11px 13px; cursor:pointer}
   .chead:hover{background:#17171c}
   .crow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
@@ -68,7 +80,6 @@
   .abtn:hover{color:var(--ink); border-color:#37373f}
   .abtn.primary{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-wash)}
   .abtn.queued{color:var(--green); border-color:rgba(134,210,140,.35); cursor:default}
-  .abtn[disabled]{opacity:.6; cursor:default}
   .result{margin-top:10px; padding:9px 11px; border-radius:8px; background:#101015; border:1px solid var(--line-soft);
     font-size:12.5px; color:var(--dim); line-height:1.45}
   .result .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--green)}
@@ -82,7 +93,6 @@
   .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
     border:1px dashed var(--line); border-radius:10px}
 
-  /* first-run processing + load error */
   .overlay{position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:16px; color:var(--faint); font-family:var(--mono)}
   .overlay .ring{width:44px; height:44px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--amber);
@@ -91,6 +101,14 @@
   .overlay .big{font-size:14px; color:var(--dim)}
   .overlay .sub{font-size:12px}
   .hidden{display:none}
+
+  /* ---------- narrow screens ---------- */
+  @media (max-width:640px){
+    .topbar{gap:10px}
+    .who{display:none}                    /* drop the email on small screens */
+    .summary{font-size:11.5px; white-space:normal}
+    .tab{padding:5px 10px; font-size:11.5px}
+  }
 </style>
 </head>
 <body>
@@ -102,7 +120,8 @@
     <div class="gen"><span class="analyzing" id="analyzing"><span class="pulse"></span>analyzing…</span><span id="gen"></span></div>
   </header>
 
-  <main class="wrap" id="wrap"></main>
+  <nav class="tabs" id="tabs"></nav>
+  <main class="wrap"><div id="panels"></div></main>
 
   <div class="overlay" id="overlay">
     <div class="ring"></div>
@@ -115,12 +134,13 @@
 const $ = s => document.querySelector(s);
 let DATA = null, STATUS = null, QUEUE = [], RESULTS = {};
 let lastGen = null;
-const openCards = new Set();   // ids the user has expanded (persist across refresh)
+const openCards = new Set();
+const TAB_KEY = 'fxdash.tab';
+let activeTab = (()=>{ try { return localStorage.getItem(TAB_KEY) || 'needinfos'; } catch(e){ return 'needinfos'; } })();
 
 function tagsHtml(tags){
   return (tags||[]).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
 }
-
 function collapsedMeta(it){
   if(it.type === "mybug"){
     const m = patchStatusMeta(it.patch_status);
@@ -129,13 +149,11 @@ function collapsedMeta(it){
   const who = it.type === "review" && it.author ? ` · ${escapeHtml(it.author)}` : "";
   return `<span>waiting ${waitingLabel(it.waiting_days)}${who}</span>`;
 }
-
 function briefLineText(it){
   const b = it.brief;
   if(!b) return "not analyzed yet — run /dashboard-generate";
   return b.ask || b.summary || b.bug || "";
 }
-
 function briefBodyHtml(it){
   const b = it.brief;
   if(!b) return `<div class="noanalysis">No analysis yet. Run <b>/dashboard-generate</b> to produce a brief.</div>`;
@@ -146,7 +164,6 @@ function briefBodyHtml(it){
   if(it.type === "ni" && it.solvable) rows.push(`<p class="k" style="color:var(--green)">✓ looks solvable — ${escapeHtml(it.solvable_reason||"")}</p>`);
   return `<div class="brief">${rows.join("")}</div>`;
 }
-
 function actionsHtml(it){
   const acts = actionsForItem(it);
   if(!acts.length) return "";
@@ -161,12 +178,10 @@ function actionsHtml(it){
   }).join("");
   const results = acts.map(a => {
     const r = RESULTS[actionKey(it.id, a.action)];
-    if(!r) return "";
-    return `<div class="result"><span class="k">${escapeHtml(a.label)} — done</span><br>${escapeHtml(r.summary || "see result")}</div>`;
+    return r ? `<div class="result"><span class="k">${escapeHtml(a.label)} — done</span><br>${escapeHtml(r.summary || "see result")}</div>` : "";
   }).join("");
   return `<div class="actions">${btns}</div>${results}`;
 }
-
 function cardHtml(it){
   const open = openCards.has(String(it.id)) ? " open" : "";
   return `<article class="card${open}" data-id="${escapeHtml(it.id)}" data-type="${escapeHtml(it.type)}">
@@ -185,39 +200,45 @@ function cardHtml(it){
     </div>
   </article>`;
 }
-
-function sectionHtml(sec){
-  const items = (DATA.sections && DATA.sections[sec.key]) || [];
+function panelHtml(sec){
+  const items = sortForSection(sec.key, (DATA.sections && DATA.sections[sec.key]) || []);
   const body = items.length
     ? `<div class="cards">${items.map(cardHtml).join("")}</div>`
     : `<div class="emptysec">${escapeHtml(sec.empty)}</div>`;
-  return `<section class="section ${sec.accent}">
-    <div class="shead"><span class="dot"></span><span class="lbl">${escapeHtml(sec.label)}</span>
-      <span class="n"><b>${items.length}</b></span></div>
-    ${body}
-  </section>`;
+  return `<section class="tabpanel${sec.key===activeTab?' active':''}" data-k="${sec.key}">${body}</section>`;
+}
+function tabHtml(sec){
+  const n = ((DATA.sections && DATA.sections[sec.key]) || []).length;
+  return `<button class="tab${sec.key===activeTab?' active':''}" data-k="${sec.key}">
+    <span class="dot"></span>${escapeHtml(sec.label)}<span class="n">${n}</span></button>`;
+}
+function setActiveTab(k){
+  activeTab = k;
+  try { localStorage.setItem(TAB_KEY, k); } catch(e){}
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.dataset.k === k));
 }
 
 function render(){
   const view = viewMode(DATA, STATUS);
   $('#analyzing').classList.toggle('on', !!view.analyzing);
-  if(view.mode === "processing"){
-    $('#overlay').classList.remove('hidden');
-    return;
-  }
+  if(view.mode === "processing"){ $('#overlay').classList.remove('hidden'); return; }
   $('#overlay').classList.add('hidden');
   $('#summary').innerHTML = `<b>${totalItems(DATA)}</b> items need you`;
   $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
   $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
-  if(view.mode === "empty"){
-    $('#wrap').innerHTML = `<div class="emptysec" style="margin-top:40px">All clear — nothing needs you right now.</div>`;
-    return;
-  }
-  $('#wrap').innerHTML = SECTIONS.map(sectionHtml).join("");
+  if(!SECTIONS.some(s => s.key === activeTab)) activeTab = SECTIONS[0].key;
+  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("");
+  $('#panels').innerHTML = SECTIONS.map(panelHtml).join("");
 }
 
-// expand / collapse (clicks on the id/title link still open the bug)
-$('#wrap').addEventListener('click', e=>{
+// tab switch — class toggle only, no DOM rebuild
+$('#tabs').addEventListener('click', e=>{
+  const t = e.target.closest('.tab'); if(!t) return;
+  setActiveTab(t.dataset.k);
+});
+// expand / action within panels
+$('#panels').addEventListener('click', e=>{
   if(e.target.closest('a')) return;
   const btn = e.target.closest('.abtn');
   if(btn){ queueAction(btn); return; }
@@ -226,7 +247,6 @@ $('#wrap').addEventListener('click', e=>{
   const nowOpen = card.classList.toggle('open');
   if(nowOpen) openCards.add(id); else openCards.delete(id);
 });
-
 function queueAction(btn){
   const card = btn.closest('.card');
   const it = findItem(card.dataset.id);
@@ -237,7 +257,6 @@ function queueAction(btn){
     .then(r=>{ if(!r.ok) throw new Error(); QUEUE.push(entry); })
     .catch(()=>{ btn.disabled=false; btn.classList.remove('queued'); btn.textContent = btn.textContent.replace('queued: ',''); });
 }
-
 function findItem(id){
   for(const s of SECTIONS){
     const hit = ((DATA.sections||{})[s.key]||[]).find(i => String(i.id) === String(id));
@@ -247,7 +266,6 @@ function findItem(id){
 }
 
 const j = (url) => fetch(url, {cache:'no-store'}).then(r => r.ok ? r.json() : null).catch(()=>null);
-
 function refreshData(){
   return Promise.all([j('/data.json'), j('/queue.json'), j('/results.json')]).then(([d,q,r])=>{
     DATA = d; QUEUE = q || []; RESULTS = r || {};
@@ -255,29 +273,17 @@ function refreshData(){
     render();
   });
 }
-
-// Light-touch chrome update (no board rebuild): the "analyzing" pulse + the
-// "updated Nm ago" text. Called on every poll tick so the board DOM is left
-// alone — re-rendering #wrap each tick would replay the card animation and churn
-// the whole list for nothing.
 function updateChrome(){
   $('#analyzing').classList.toggle('on', !!viewMode(DATA, STATUS).analyzing);
   if(DATA && DATA.generated_at) $('#gen').textContent = `updated ${generatedAgo(DATA.generated_at, Date.now())}`;
 }
-
-// Poll status.json: flip the "analyzing" indicator, and when a new generation
-// finishes (generated_at changed) pull the fresh data in and re-render once.
 function poll(){
   j('/status.json').then(s=>{
     STATUS = s;
-    if(s && s.state === "ready" && s.generated_at && s.generated_at !== lastGen){
-      refreshData();
-    } else {
-      updateChrome();
-    }
+    if(s && s.state === "ready" && s.generated_at && s.generated_at !== lastGen) refreshData();
+    else updateChrome();
   });
 }
-
 refreshData().then(()=>{ poll(); setInterval(poll, 3000); });
 </script>
 </body>
