@@ -83,6 +83,15 @@ class TestPortAndRouteHelpers(unittest.TestCase):
         done = [{"id": "1", "action": "draft-reply", "status": "done"}]
         self.assertEqual(len(serve.queue_append(done, e)), 2)
 
+    def test_queue_remove(self):
+        q = [{"id": "1", "action": "draft-reply"}, {"id": "1", "action": "bug-start"},
+             {"id": "2", "action": "draft-reply"}]
+        out = serve.queue_remove(q, "1", "draft-reply")
+        self.assertEqual([(e["id"], e["action"]) for e in out],
+                         [("1", "bug-start"), ("2", "draft-reply")])
+        # no match → unchanged
+        self.assertEqual(len(serve.queue_remove(q, "9", "nope")), 3)
+
 
 class TestServeLauncher(unittest.TestCase):
     def test_start_serves_then_stops(self):

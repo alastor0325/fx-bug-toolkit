@@ -59,6 +59,12 @@ def queue_append(entries: list, entry: dict) -> list:
     return entries + [entry]
 
 
+def queue_remove(entries: list, item_id, action) -> list:
+    """Drop the queue entry matching id+action (the card's ✕ remove). Pure."""
+    return [e for e in (entries or [])
+            if not (str(e.get("id")) == str(item_id) and e.get("action") == action)]
+
+
 _queue_lock = threading.Lock()   # serialize concurrent POST /queue appends
 
 
@@ -156,14 +162,15 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self):
-        # The only write path: append a card action to the queue file. No Claude
-        # call — the drain skill processes the queue separately.
-        if self.path.split("?", 1)[0].rstrip("/") != "/queue":
+        # The only write paths: append (/queue) or remove (/unqueue) a card
+        # action. No Claude call — the drain skill processes the queue separately.
+        route = self.path.split("?", 1)[0].rstrip("/")
+        if route not in ("/queue", "/unqueue"):
             self.send_error(404)
             return
         length = int(self.headers.get("Content-Length") or 0)
         try:
-            entry = json.loads(self.rfile.read(length) or b"{}")
+            body = json.loads(self.rfile.read(length) or b"{}")
         except ValueError:
             self.send_error(400, "invalid JSON")
             return
@@ -172,7 +179,9 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
                 existing = json.loads(QUEUE_FILE.read_text())
             except (OSError, ValueError):
                 existing = []
-            QUEUE_FILE.write_text(json.dumps(queue_append(existing, entry), indent=2))
+            updated = (queue_append(existing, body) if route == "/queue"
+                       else queue_remove(existing, body.get("id"), body.get("action")))
+            QUEUE_FILE.write_text(json.dumps(updated, indent=2))
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

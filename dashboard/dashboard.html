@@ -136,6 +136,22 @@
   .mb-search{flex:1 1 auto; max-width:none; margin-bottom:10px}
   @media (max-width:640px){ .lrow .lchips{display:none} }
 
+  /* queue tab view */
+  .qbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 2px 12px;
+    font-family:var(--mono); font-size:12px; color:var(--dim)}
+  .qbar .n{color:var(--amber); font-weight:600}
+  .qbar .cmd{color:var(--faint)}
+  .qbar code{font-family:var(--mono); font-size:12px; background:var(--raised); border:1px solid var(--line-soft);
+    border-radius:5px; padding:2px 7px; color:#ffd8a8}
+  .copybtn{height:24px; padding:0 10px; border-radius:6px; background:var(--raised); border:1px solid var(--line);
+    color:var(--dim); font-family:var(--mono); font-size:11px; cursor:pointer}
+  .copybtn:hover{color:var(--ink); border-color:#37373f}
+  .qrow .qaction{flex:none}
+  .qrow .rm{margin-left:4px; flex:none; background:none; border:1px solid var(--line); border-radius:5px;
+    color:var(--faint); font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer}
+  .qrow .rm:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
+  .tab[data-k="queue"]{--accent:var(--amber)}
+
   .overlay{position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:16px; color:var(--faint); font-family:var(--mono)}
   .overlay .ring{width:44px; height:44px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--amber);
@@ -322,10 +338,46 @@ function render(){
   $('#summary').innerHTML = `<b>${totalItems(DATA)}</b> items need you`;
   $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
   $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
-  if(!SECTIONS.some(s => s.key === activeTab)) activeTab = SECTIONS[0].key;
-  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("") + orderBtnHtml();
-  $('#panels').innerHTML = SECTIONS.map(panelHtml).join("");
+  const validTabs = SECTIONS.map(s => s.key).concat('queue');
+  if(!validTabs.includes(activeTab)) activeTab = SECTIONS[0].key;
+  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("") + queueTabHtml() + orderBtnHtml();
+  $('#panels').innerHTML = SECTIONS.map(panelHtml).join("")
+    + `<section class="tabpanel${activeTab==='queue'?' active':''}" data-k="queue">${queuePanel()}</section>`;
   document.body.dataset.tab = activeTab;
+}
+
+function queueTabHtml(){
+  return `<button class="tab${activeTab==='queue'?' active':''}" data-k="queue">
+    <span class="dot"></span>Queue<span class="n" id="qcount">${QUEUE.length}</span></button>`;
+}
+function queueRowHtml(e){
+  const m = actionMeta(e.action);
+  return `<div class="lrow qrow" data-id="${escapeHtml(e.id)}" data-action="${escapeHtml(e.action)}">
+    <a class="id" href="${escapeHtml(e.url||'#')}" target="_blank" rel="noopener">${escapeHtml(e.id)}</a>
+    <span class="chip ${m.accent} qaction">${escapeHtml(m.label)}</span>
+    <span class="ltitle">${escapeHtml(e.title||'')}</span>
+    <button class="rm" title="remove from queue">✕</button></div>`;
+}
+function queuePanel(){
+  if(!QUEUE.length) return `<div class="emptysec">Nothing queued — queue actions from the cards, then run <b>/dashboard-drain</b>.</div>`;
+  return `<div class="qbar"><span><span class="n">${QUEUE.length}</span> pending</span>
+    <span class="cmd">· to process, run</span> <code>/dashboard-drain</code>
+    <button class="copybtn" id="copycmd">copy</button></div>
+    <div class="ledger">${QUEUE.map(queueRowHtml).join("")}</div>`;
+}
+function updateQueueCount(){ const c = document.getElementById('qcount'); if(c) c.textContent = QUEUE.length; }
+function rerenderQueuePanel(){
+  const panel = document.querySelector('.tabpanel[data-k="queue"]');
+  if(panel) panel.innerHTML = queuePanel();
+  updateQueueCount();
+}
+function removeFromQueue(row){
+  const id = row.dataset.id, action = row.dataset.action;
+  fetch('/unqueue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, action}) })
+    .then(r=>{ if(!r.ok) throw new Error();
+      QUEUE = QUEUE.filter(e => !(String(e.id)===String(id) && e.action===action));
+      rerenderQueuePanel();
+    }).catch(()=>{});
 }
 
 // tab switch — class toggle only, no DOM rebuild. The order toggle re-sorts NI.
@@ -341,6 +393,13 @@ $('#tabs').addEventListener('click', e=>{
 });
 // expand / action / stale-toggle within panels
 $('#panels').addEventListener('click', e=>{
+  if(e.target.id === 'copycmd'){                        // copy the drain command
+    try { navigator.clipboard.writeText('/dashboard-drain'); } catch(_){}
+    e.target.textContent = 'copied'; setTimeout(()=>{ e.target.textContent = 'copy'; }, 1200);
+    return;
+  }
+  const rm = e.target.closest('.rm');
+  if(rm){ removeFromQueue(rm.closest('.qrow')); return; }  // unqueue
   if(e.target.closest('a')) return;                     // ledger rows + links open normally
   const btn = e.target.closest('.abtn');
   if(btn){ queueAction(btn); return; }
@@ -374,7 +433,7 @@ function queueAction(btn){
   const entry = { ...buildQueueEntry(it, btn.dataset.action), ts: Date.now() };
   btn.disabled = true; btn.classList.add('queued'); btn.textContent = 'queued: ' + btn.textContent;
   fetch('/queue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry) })
-    .then(r=>{ if(!r.ok) throw new Error(); QUEUE.push(entry); })
+    .then(r=>{ if(!r.ok) throw new Error(); QUEUE.push(entry); rerenderQueuePanel(); })
     .catch(()=>{ btn.disabled=false; btn.classList.remove('queued'); btn.textContent = btn.textContent.replace('queued: ',''); });
 }
 function findItem(id){

@@ -63,11 +63,13 @@ function startServer() {
   };
   const srv = http.createServer((req, res) => {
     const url = req.url.split("?")[0];
-    if (req.method === "POST" && url === "/queue") {
+    if (req.method === "POST" && (url === "/queue" || url === "/unqueue")) {
       let body = "";
       req.on("data", c => (body += c));
       req.on("end", () => {
-        posted.push(JSON.parse(body || "{}"));
+        const e = JSON.parse(body || "{}");
+        if (url === "/queue") posted.push(e);
+        else posted = posted.filter(p => !(String(p.id) === String(e.id) && p.action === e.action));
         res.writeHead(200, { "content-type": "application/json" });
         res.end('{"ok":true}');
       });
@@ -96,11 +98,11 @@ async function main() {
   await page.goto(`${base}/dashboard.html`, { waitUntil: "load" });
   await page.waitForSelector(".tab");
 
-  await check("three section tabs render with counts", async () => {
+  await check("section tabs + queue tab render with counts", async () => {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
-    assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on"]);
+    assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "Bugs I'm working on", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "1", "2"]);
+    assert.deepStrictEqual(counts, ["3", "1", "2", "0"]);  // queue empty at start
   });
 
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
@@ -143,6 +145,18 @@ async function main() {
     assert.ok(posted.some(p => p.id === "111" && p.action === "draft-reply"), "POST /queue received");
     const q = await page.$eval('.card[data-id="111"] .abtn.queued', e => e.textContent).catch(() => "");
     assert.ok(/queued/i.test(q), "button flips to queued");
+  });
+
+  await check("Queue tab lists the queued action; ✕ removes it (count updates live)", async () => {
+    assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "1", "queue count bumped on queue");
+    await page.click('.tab[data-k="queue"]');
+    await page.waitForSelector('.tabpanel[data-k="queue"].active');
+    assert.ok(await page.$('.qrow[data-id="111"][data-action="draft-reply"]'), "queued row present");
+    assert.ok((await page.textContent('.qrow[data-id="111"] .qaction')).includes("Draft reply"));
+    await page.click('.qrow[data-id="111"] .rm');
+    await page.waitForTimeout(150);
+    assert.strictEqual((await page.$$('.qrow')).length, 0, "row removed after ✕");
+    assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "0", "count decremented");
   });
 
   await check("reviews render expanded by default", async () => {

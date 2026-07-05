@@ -73,7 +73,7 @@ function actionKey(id, action) {
 // A queue entry the page POSTs when a button is clicked (the caller stamps `ts`,
 // since Date.now() isn't available/deterministic here).
 function buildQueueEntry(item, action) {
-  return { id: item.id, type: item.type, action, title: item.title, status: "queued" };
+  return { id: item.id, type: item.type, action, title: item.title, url: item.url, status: "queued" };
 }
 
 // What the page should render, from data.json (or null) + status.json (or null):
@@ -106,6 +106,17 @@ function analyzedSplit(items) {
   const act = [], rest = [];
   for (const it of items || []) (it && it.brief ? act : rest).push(it);
   return { act, rest };
+}
+
+// Display metadata for a queued action: {label, accent (a /theme.css chip color)}.
+const ACTION_META = {
+  "draft-reply":     { label: "Draft reply",    accent: "amber" },
+  "bug-investigate": { label: "Bug investigate", accent: "cyan" },
+  "bug-start":       { label: "run /bug-start",  accent: "green" },
+  "review":          { label: "Run /review",     accent: "cyan" },
+};
+function actionMeta(action) {
+  return ACTION_META[action] || { label: action || "action", accent: "" };
 }
 
 // Case-insensitive substring filter over id + title + tag text — for the
@@ -141,6 +152,6 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
-    analyzedSplit, filterLedger,
+    analyzedSplit, filterLedger, ACTION_META, actionMeta,
   };
 }

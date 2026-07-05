@@ -47,9 +47,15 @@ test("actionKey pairs a card+action stably", () => {
   assert.strictEqual(L.actionKey("1911204", "draft-reply"), "1911204::draft-reply");
 });
 
-test("buildQueueEntry carries id/type/action/title and queued status", () => {
-  const e = L.buildQueueEntry({ id: "D5", type: "review", title: "t" }, "review");
-  assert.deepStrictEqual(e, { id: "D5", type: "review", action: "review", title: "t", status: "queued" });
+test("buildQueueEntry carries id/type/action/title/url and queued status", () => {
+  const e = L.buildQueueEntry({ id: "D5", type: "review", title: "t", url: "u" }, "review");
+  assert.deepStrictEqual(e, { id: "D5", type: "review", action: "review", title: "t", url: "u", status: "queued" });
+});
+
+test("actionMeta labels + accents known actions; falls back for unknown", () => {
+  assert.strictEqual(L.actionMeta("bug-start").label, "run /bug-start");
+  assert.strictEqual(L.actionMeta("draft-reply").accent, "amber");
+  assert.deepStrictEqual(L.actionMeta("mystery"), { label: "mystery", accent: "" });
 });
 
 test("viewMode: processing on first run, ready with data, empty when done+0", () => {
