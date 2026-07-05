@@ -114,6 +114,31 @@ narrow centered column with big empty gutters.**
   one column, tab/filter bars wrap, and non-essential chrome (e.g. the user email)
   drops out on narrow. Visible keyboard focus; honor `prefers-reduced-motion`.
 
+## Justify every UX change (reason, don't rearrange)
+
+A layout/UX change ships only with a **reliable reason**. State three things, or
+don't make the change:
+
+1. **Problem** — the specific thing that's wrong, in the user's terms (e.g.
+   "can't find the actionable item among 49 stale ones"), not a vibe.
+2. **Mechanism** — *how* the change fixes that problem (the causal link), not just
+   that it's different.
+3. **Better-than-before** — why it beats the current layout for the user's job,
+   and what it costs.
+
+Guard against **rearrangement dressed up as a fix** — moving a control (e.g. tabs
+top → side) does **not** reduce content density or help you find the important
+item; those are different axes. If a change doesn't attack the stated problem via
+its mechanism, cut it.
+
+**"Uses the width" is not automatic.** Horizontal space is only *used* if it
+carries content or controls the user actually needs there. A side rail holding a
+few nav items is a tall, mostly-empty column — that wastes space just like empty
+gutters do. A rail earns its width only when it holds **persistently useful**
+controls (filters, search, summary you consult constantly); otherwise keep the
+control at the top and give the width to content. Fill width with *structured
+content* (e.g. a row that splits into brief + metadata), not with chrome.
+
 ## Using `frontend-design` under this system
 
 You may borrow *craft* from the general `frontend-design` skill — information
