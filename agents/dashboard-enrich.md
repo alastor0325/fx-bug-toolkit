@@ -57,12 +57,19 @@ enrichment for this one item. No prose, no code fences.
 }
 ```
 
-- **`ask_kind`** — the key call:
-  - **`investigate`** — the NI asks you to look into / check / diagnose the bug (a
-    real technical question).
-  - **`easy`** — a quick/procedural ask you can answer without digging (confirm
-    repro, which version, a ping, an opinion). For easy, emit ONLY `brief` +
-    `ask_kind` (skip everything below).
+- **`ask_kind`** — the key call. **Check for diagnostic artifacts FIRST**, before
+  deciding — don't judge from the ask's wording alone:
+  - If the bug has any analyzable artifact — a **profiler capture / share.firefox.dev
+    link, a MOZ_LOG/media log, a crash signature or crash id, about:support, a
+    regression range** — it is **`investigate`**. There's something to dig into;
+    analyze it (this is triage's Step 2c) and produce a `hypothesis`.
+  - **`investigate`** also covers any ask to look into / check / diagnose the bug,
+    including "**can you suggest how to debug / why does X happen**" — a request
+    for diagnostic help is investigation, not a quick answer.
+  - **`easy`** is only for a genuinely trivial ask with **nothing to analyze** —
+    confirm a version, a ping, "is this still repro?" with no attached diagnostics,
+    an opinion you already hold. When in doubt, prefer `investigate`. For `easy`,
+    emit ONLY `brief` + `ask_kind` (skip everything below).
 - For **investigate**, assess the bug the way `/triage` does (this mirrors its
   §1a/§1b completeness gate — reuse an existing triage/investigation if present):
   - **`ready`** — `true` only if the bug already has enough to investigate/fix

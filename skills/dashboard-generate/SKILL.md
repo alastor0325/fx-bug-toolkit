@@ -118,7 +118,9 @@ shape). In brief, keyed by `id`:
 - **reviews** → `{ brief: {summary}, extra_tags? }`.
 - **needinfos** → a triage-style assessment (mirrors `/triage --analyze-only`):
   - `brief: {bug, ask}` + **`ask_kind`** (`investigate` = the NI asks me to look
-    into/diagnose the bug; `easy` = a quick/procedural ask). For `easy`, that's all.
+    into/diagnose the bug — **or the bug carries an analyzable artifact** (profiler,
+    MOZ_LOG, crash id, about:support, regression range), which is always
+    investigate; `easy` = a trivial ask with nothing to analyze). For `easy`, that's all.
   - For `investigate`: **`ready`** (bug has enough to run `/bug-start`) +
     `ready_reason`; when not ready, **`missing_info`** (concrete gaps as short
     chips); when a root cause is already determinable from artifacts,
