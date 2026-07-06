@@ -41,6 +41,11 @@
   .tab .n{font-size:11px; color:var(--faint); background:#101015; border:1px solid var(--line); border-radius:20px; padding:1px 8px}
   .tab.active .n{color:var(--accent)}
   .tab[data-k="needinfos"]{--accent:var(--amber)} .tab[data-k="reviews"]{--accent:var(--cyan)} .tab[data-k="my_bugs"]{--accent:var(--blue)}
+  /* drag-to-reorder cues: grab cursor, ghost the dragged tab, amber edge marks drop side */
+  .tab[data-draggable="1"]{cursor:grab}
+  .tab.dragging{opacity:.4; cursor:grabbing}
+  .tab.drop-before{box-shadow:inset 3px 0 0 var(--amber)}
+  .tab.drop-after{box-shadow:inset -3px 0 0 var(--amber)}
   /* order toggle — only meaningful for (and shown on) the needinfos tab.
      Match the tabs' padding-based height + center the label (theme .sortbtn is a
      fixed 34px non-flex button, which misaligned it in this flex row). */
@@ -215,6 +220,10 @@ const TAB_KEY = 'fxdash.tab';
 let activeTab = (()=>{ try { return localStorage.getItem(TAB_KEY) || 'needinfos'; } catch(e){ return 'needinfos'; } })();
 const ORDER_KEY = 'fxdash.order';
 let sortOrder = (()=>{ try { return localStorage.getItem(ORDER_KEY) || 'newer'; } catch(e){ return 'newer'; } })();
+// user's drag-reordered section-tab order (array of section keys)
+const SECORDER_KEY = 'fxdash.secorder';
+let sectionOrder = (()=>{ try { return JSON.parse(localStorage.getItem(SECORDER_KEY)||'null') || SECTIONS.map(s=>s.key); } catch(e){ return SECTIONS.map(s=>s.key); } })();
+function saveSectionOrder(){ try { localStorage.setItem(SECORDER_KEY, JSON.stringify(sectionOrder)); } catch(e){} }
 const STALE_KEY = 'fxdash.stale';
 // set of open "N earlier · not analyzed" dividers, keyed (ni / review-direct / review-group)
 let staleOpen = (()=>{ try { return new Set(JSON.parse(localStorage.getItem(STALE_KEY) || '[]')); } catch(e){ return new Set(); } })();
@@ -418,7 +427,8 @@ function panelHtml(sec){
 }
 function tabHtml(sec){
   const n = ((DATA.sections && DATA.sections[sec.key]) || []).length;
-  return `<button class="tab${sec.key===activeTab?' active':''}" data-k="${sec.key}">
+  // section tabs are drag-reorderable (Queue is not — it's rendered separately)
+  return `<button class="tab${sec.key===activeTab?' active':''}" draggable="true" data-k="${sec.key}" data-draggable="1">
     <span class="dot"></span>${escapeHtml(sec.label)}<span class="n">${n}</span></button>`;
 }
 function orderBtnHtml(){
@@ -440,10 +450,11 @@ function render(){
   $('#summary').innerHTML = `<b>${totalItems(DATA)}</b> items need you`;
   $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
   $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
-  const validTabs = SECTIONS.map(s => s.key).concat('queue');
-  if(!validTabs.includes(activeTab)) activeTab = SECTIONS[0].key;
-  $('#tabs').innerHTML = SECTIONS.map(tabHtml).join("") + queueTabHtml() + orderBtnHtml();
-  $('#panels').innerHTML = SECTIONS.map(panelHtml).join("")
+  const secs = orderedSections(sectionOrder);            // user's drag order
+  const validTabs = secs.map(s => s.key).concat('queue');
+  if(!validTabs.includes(activeTab)) activeTab = secs[0].key;
+  $('#tabs').innerHTML = secs.map(tabHtml).join("") + queueTabHtml() + orderBtnHtml();
+  $('#panels').innerHTML = secs.map(panelHtml).join("")
     + `<section class="tabpanel${activeTab==='queue'?' active':''}" data-k="queue">${queuePanel()}</section>`;
   document.body.dataset.tab = activeTab;
 }
@@ -494,6 +505,45 @@ $('#tabs').addEventListener('click', e=>{
   const t = e.target.closest('.tab'); if(!t) return;
   setActiveTab(t.dataset.k);
 });
+
+// drag-reorder the section tabs (delegated on #tabs so it survives re-render).
+// Drop position is before/after the target depending on which half you drop on.
+let dragKey = null;
+const clearDropCues = () => document.querySelectorAll('.tab.drop-before,.tab.drop-after,.tab.dragging')
+  .forEach(x => x.classList.remove('drop-before','drop-after','dragging'));
+$('#tabs').addEventListener('dragstart', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t){ e.preventDefault(); return; }
+  dragKey = t.dataset.k;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', dragKey); } catch(_){}
+  t.classList.add('dragging');
+});
+$('#tabs').addEventListener('dragover', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t || !dragKey) return;
+  e.preventDefault();                                    // allow drop
+  e.dataTransfer.dropEffect = 'move';
+  const r = t.getBoundingClientRect();
+  const after = e.clientX > r.left + r.width/2;
+  document.querySelectorAll('.tab.drop-before,.tab.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'));
+  if(t.dataset.k !== dragKey) t.classList.add(after ? 'drop-after' : 'drop-before');
+});
+$('#tabs').addEventListener('drop', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t || !dragKey) return;
+  e.preventDefault();
+  const to = t.dataset.k;
+  if(to !== dragKey){
+    const r = t.getBoundingClientRect();
+    const after = e.clientX > r.left + r.width/2;
+    sectionOrder = moveKey(orderedSections(sectionOrder).map(s=>s.key), dragKey, to, after);
+    saveSectionOrder();
+    render();
+  }
+  dragKey = null; clearDropCues();
+});
+$('#tabs').addEventListener('dragend', ()=>{ dragKey = null; clearDropCues(); });
 // expand / action / stale-toggle within panels
 $('#panels').addEventListener('click', e=>{
   if(e.target.id === 'drainbtn'){                       // "Process queue" — copy the drain command to run

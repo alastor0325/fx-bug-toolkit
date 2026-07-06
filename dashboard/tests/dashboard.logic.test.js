@@ -8,6 +8,23 @@ test("SECTIONS are the three v3 buckets in order", () => {
   assert.deepStrictEqual(L.SECTIONS.map(s => s.key), ["needinfos", "reviews", "my_bugs"]);
 });
 
+test("orderedSections: honors saved order, appends missing, ignores unknown", () => {
+  const keys = saved => L.orderedSections(saved).map(s => s.key);
+  assert.deepStrictEqual(keys(null), ["needinfos", "reviews", "my_bugs"]);          // default
+  assert.deepStrictEqual(keys([]), ["needinfos", "reviews", "my_bugs"]);            // empty → default
+  assert.deepStrictEqual(keys(["my_bugs", "needinfos", "reviews"]), ["my_bugs", "needinfos", "reviews"]);
+  assert.deepStrictEqual(keys(["reviews"]), ["reviews", "needinfos", "my_bugs"]);   // rest appended in default order
+  assert.deepStrictEqual(keys(["bogus", "my_bugs"]), ["my_bugs", "needinfos", "reviews"]); // unknown ignored
+});
+
+test("moveKey: drop before / after target, unknown target → end", () => {
+  const base = ["needinfos", "reviews", "my_bugs"];
+  assert.deepStrictEqual(L.moveKey(base, "my_bugs", "needinfos", false), ["my_bugs", "needinfos", "reviews"]); // before first
+  assert.deepStrictEqual(L.moveKey(base, "needinfos", "my_bugs", true), ["reviews", "my_bugs", "needinfos"]);  // after last
+  assert.deepStrictEqual(L.moveKey(base, "needinfos", "reviews", false), ["needinfos", "reviews", "my_bugs"]); // no-op position
+  assert.deepStrictEqual(L.moveKey(base, "needinfos", "zzz", false), ["reviews", "my_bugs", "needinfos"]);     // unknown → end
+});
+
 test("tagClass: color is signal only — danger red, attention amber, rest neutral", () => {
   assert.strictEqual(L.tagClass("security"), "security");   // filled red
   assert.strictEqual(L.tagClass("warn"), "red");            // crash → danger

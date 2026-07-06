@@ -14,6 +14,32 @@ const SECTIONS = [
 ];
 
 
+// The section tabs in the user's saved drag order. `saved` is an array of section
+// keys; unknown keys are ignored and any section missing from it is appended in
+// the default SECTIONS order — so stale storage or a newly added section never
+// drops a tab. Pure (new array).
+function orderedSections(saved) {
+  const byKey = new Map(SECTIONS.map(s => [s.key, s]));
+  const out = [], seen = new Set();
+  for (const k of saved || []) {
+    if (byKey.has(k) && !seen.has(k)) { out.push(byKey.get(k)); seen.add(k); }
+  }
+  for (const s of SECTIONS) if (!seen.has(s.key)) out.push(s);
+  return out;
+}
+
+// Reorder a key array by moving `from` to sit before (or after, if `after`) the
+// `to` key — the drag-drop drop result. An unknown `to` sends `from` to the end.
+// Pure (new array).
+function moveKey(keys, from, to, after) {
+  const arr = (keys || []).filter(k => k !== from);
+  let i = arr.indexOf(to);
+  if (i < 0) { arr.push(from); return arr; }
+  if (after) i += 1;
+  arr.splice(i, 0, from);
+  return arr;
+}
+
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
@@ -229,7 +255,7 @@ function generatedAgo(iso, nowMs) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    SECTIONS, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem,
+    SECTIONS, orderedSections, moveKey, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
     analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
     readyCount, ACTIVE_DAYS,

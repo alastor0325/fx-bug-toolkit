@@ -137,6 +137,33 @@ async function main() {
     assert.deepStrictEqual(counts, ["3", "3", "7", "0"]);  // queue empty at start
   });
 
+  await check("section tabs drag-reorder and persist", async () => {
+    const tabKeys = () => page.$$eval('#tabs .tab', els => els.map(e => e.dataset.k));
+    assert.deepStrictEqual(await tabKeys(), ["needinfos", "reviews", "my_bugs", "queue"], "default order");
+    // section tabs are draggable, Queue is not
+    assert.strictEqual(await page.getAttribute('.tab[data-k="my_bugs"]', "draggable"), "true");
+    assert.notStrictEqual(await page.getAttribute('.tab[data-k="queue"]', "draggable"), "true");
+    // drag "My work" onto the left half of "Needinfos" → drops before it (HTML5 DnD)
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      const from = document.querySelector('.tab[data-k="my_bugs"]');
+      const to = document.querySelector('.tab[data-k="needinfos"]');
+      const x = to.getBoundingClientRect().left + 2;
+      for (const type of ["dragstart", "dragover", "drop", "dragend"]) {
+        const el = (type === "dragstart" || type === "dragend") ? from : to;
+        el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: x }));
+      }
+    });
+    assert.deepStrictEqual(await tabKeys(), ["my_bugs", "needinfos", "reviews", "queue"], "My work moved to front");
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("fxdash.secorder")));
+    assert.deepStrictEqual(saved, ["my_bugs", "needinfos", "reviews"], "new order persisted to localStorage");
+    // restore the default order for the rest of the suite
+    await page.evaluate(() => localStorage.removeItem("fxdash.secorder"));
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(".tabpanel.active");
+    assert.deepStrictEqual(await tabKeys(), ["needinfos", "reviews", "my_bugs", "queue"], "reset to default");
+  });
+
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
     const cardIds = await page.$$eval('.tabpanel[data-k="needinfos"] .card', els => els.map(c => c.dataset.id));
     assert.deepStrictEqual(cardIds.sort(), ["111", "112"], "only analyzed NIs are act cards");
