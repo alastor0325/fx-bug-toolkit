@@ -251,12 +251,14 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
                 doc["placements"].pop(bid, None)
                 store.write_overlay_doc(doc)
             return self._send_json({"ok": True})
-        if route == "/my-bugs/remove":           # unpin a hand-added bug
+        if route in ("/my-bugs/remove", "/my-bugs/dismiss"):   # ✕ on a non-assigned bug: remove for good
             bid = parse_bug_id(body.get("id"))
             with _overlay_lock:
                 doc = store.read_overlay_doc()
                 doc["items"] = [i for i in doc["items"] if str(i.get("id")) != bid]
                 doc["placements"].pop(bid, None)
+                if bid and bid not in doc["dismissed"]:
+                    doc["dismissed"].append(bid)   # keep it gone even if the collector re-includes it
                 store.write_overlay_doc(doc)
             return self._send_json({"ok": True})
         self.send_error(404)

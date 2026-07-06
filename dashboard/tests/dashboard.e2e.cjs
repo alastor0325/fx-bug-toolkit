@@ -50,7 +50,7 @@ const DATA = {
     my_bugs: [
       // Needs me: r- (needs-revision) and r+ (accepted)
       { type: "mybug", id: "222", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=222",
-        title: "My crash bug", last_activity_days: 1, patch_status: "needs-revision",
+        title: "My crash bug", last_activity_days: 1, patch_status: "needs-revision", assigned: true,
         reviewer: "padenot", rev_url: "https://phabricator.services.mozilla.com/D1222",
         tags: [{ text: "S2", kind: "severity" }, { text: "sec", kind: "security" }], brief: null },
       // accepted but parked (r+ I'm not landing) → backlog, even though fresh
@@ -65,7 +65,7 @@ const DATA = {
         tags: [], brief: null },
       // active review — a 2-patch stack, 1 of 2 accepted (X/Y count)
       { type: "mybug", id: "225", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=225",
-        title: "Waiting review bug", last_activity_days: 3, patch_status: "in-review",
+        title: "Waiting review bug", last_activity_days: 3, patch_status: "in-review", assigned: false,
         patch_accepted: 1, patch_total: 2,
         reviewer: "kershaw", rev_url: "https://phabricator.services.mozilla.com/D1225", tags: [], brief: null },
       // active wip (draft I'm working)
@@ -88,6 +88,7 @@ const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { need
 // manual section placements (like the real overlay): 230 pinned into Next; 228
 // (an in-review bug, default Focus) shoved to Backlog → exercises the drift hint.
 let placements = { "230": "next", "228": "backlog" };
+let dismissed = [];   // bug ids the user ✕-removed (non-assigned)
 let posted = [];   // POST /queue payloads captured
 
 function startServer() {
@@ -110,7 +111,7 @@ function startServer() {
         if (url === "/unqueue") { posted = posted.filter(p => !(String(p.id) === String(e.id) && p.action === e.action)); return ok(); }
         if (url === "/my-bugs/place") { placements[bugId(e.id)] = e.section; return ok(); }
         if (url === "/my-bugs/reset") { delete placements[bugId(e.id)]; return ok(); }
-        if (url === "/my-bugs/remove") { const id = bugId(e.id); DATA.sections.my_bugs = DATA.sections.my_bugs.filter(b => String(b.id) !== id); delete placements[id]; return ok(); }
+        if (url === "/my-bugs/remove" || url === "/my-bugs/dismiss") { const id = bugId(e.id); DATA.sections.my_bugs = DATA.sections.my_bugs.filter(b => String(b.id) !== id); delete placements[id]; if (!dismissed.includes(id)) dismissed.push(id); return ok(); }
         if (url === "/my-bugs/add") {
           const id = bugId(e.ref || e.id);
           if (!DATA.sections.my_bugs.some(b => String(b.id) === id))
@@ -122,7 +123,11 @@ function startServer() {
       });
       return;
     }
-    if (url === "/data.json") { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ ...DATA, placements })); return; }
+    if (url === "/data.json") {
+      const my_bugs = DATA.sections.my_bugs.filter(b => !dismissed.includes(String(b.id)));
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ...DATA, placements, sections: { ...DATA.sections, my_bugs } })); return;
+    }
     if (url === "/queue.json") { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(posted)); return; }
     const buf = files[url];
     if (!buf) { res.writeHead(404); res.end(); return; }
@@ -266,7 +271,7 @@ async function main() {
     assert.ok(await page.$(`${mp} .secdrop[data-section="next"] .lrow[data-id="226"]`), "226 (wip) in Next");
     const pinned = `${mp} .secdrop[data-section="next"] .lrow[data-id="230"]`;
     assert.ok(await page.$(`${pinned} .chip.pin`), "pinned 230 in Next shows pin");
-    assert.ok(await page.$(`${pinned} .mbrm`), "pinned row has remove ✕");
+    assert.ok(await page.$(`${pinned} .mbx`), "pinned row has ✕");
     // 228 placed in Backlog though its status defaults to Focus → drift hint + reset
     await page.click(`${mp} .stale-divider[data-section="backlog"]`);   // expand backlog
     const b228 = `${mp} .lrow[data-id="228"]`;
@@ -292,6 +297,15 @@ async function main() {
     await page.click(`${mp} .lrow[data-id="228"] .mbreset`);
     await page.waitForTimeout(200);
     assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] [data-id="228"]`), "228 reset back to Focus");
+    // ✕ on an ASSIGNED Focus bug (222) → demoted to Backlog (not removed). Backlog
+    // is already expanded (staleOpen persists), so the row shows without re-toggling.
+    await page.click(`${mp} .card[data-id="222"] .mbx`);
+    await page.waitForTimeout(200);
+    assert.ok(await page.isVisible(`${mp} .stale-list [data-id="222"]`), "assigned bug ✕ → Backlog");
+    // ✕ on a NON-assigned Focus bug (225) → removed from My work entirely
+    await page.click(`${mp} .secdrop[data-section="focus"] [data-id="225"] .mbx`);
+    await page.waitForTimeout(200);
+    assert.ok(!(await page.$(`${mp} [data-id="225"]`)), "non-assigned bug ✕ → gone");
     // search still filters
     await page.fill('#mbq', 'crash');
     await page.waitForTimeout(120);

@@ -288,7 +288,7 @@ def derive_mybug_tags(bug: dict) -> list:
     return tags
 
 
-def _mybug_item(bid, title, last_activity_days, revs, tags, names):
+def _mybug_item(bid, title, last_activity_days, revs, tags, names, assigned=False):
     agg = aggregate_patch(revs or [])
     primary = agg["primary"]
     return {
@@ -303,6 +303,7 @@ def _mybug_item(bid, title, last_activity_days, revs, tags, names):
         "rev_url": phab_url(primary["id"]) if primary else None,
         "reviewer": rev_reviewer(primary, names) if primary else "",
         "is_open": True,                     # collected my_bugs are open by construction
+        "assigned": assigned,                # assigned to me? (drives ✕ = demote vs remove)
         "tags": tags,
         "brief": None,
     }
@@ -336,7 +337,7 @@ def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime,
             continue                 # tracking bug — not worked directly
         items.append(_mybug_item(bid, b.get("summary") or "",
                                  age_days(b.get("last_change_time"), now),
-                                 revs_by_bug.get(bid), derive_mybug_tags(b), names))
+                                 revs_by_bug.get(bid), derive_mybug_tags(b), names, assigned=True))
     # union: bugs I have an open revision on but that aren't assigned to me —
     # only if confirmed still open (and not a meta bug), with the real bug summary.
     for bid, revs in revs_by_bug.items():
@@ -556,6 +557,7 @@ def user_mybug_item(bid, detail: dict, now: datetime) -> dict:
         "rev_url": None, "reviewer": "",
         "tags": derive_mybug_tags(detail),
         "is_open": detail.get("is_open", True),
+        "assigned": False,   # a hand-pinned bug; ✕ removes it (vs demote for assigned)
         "added": True, "brief": None,
     }
 

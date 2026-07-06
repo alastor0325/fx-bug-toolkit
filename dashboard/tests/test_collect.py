@@ -177,6 +177,8 @@ class TestMyBugs(unittest.TestCase):
         self.assertEqual(by_id["10"]["reviewer"], "padenot")     # resolved from names
         self.assertTrue(by_id["10"]["rev_url"].endswith("/D1"))  # patch link
         self.assertIn("last_activity_days", by_id["10"])
+        self.assertTrue(by_id["10"]["assigned"])                 # assigned-to-me path
+        self.assertFalse(by_id["99"]["assigned"])                # revision-only → not assigned
         self.assertEqual(by_id["99"]["patch_status"], "accepted")
         self.assertEqual(by_id["99"]["title"], "The real bug summary")  # bug summary, NOT the rev title
         self.assertIn({"text": "S2", "kind": "severity"}, by_id["99"]["tags"])  # tags from the real bug

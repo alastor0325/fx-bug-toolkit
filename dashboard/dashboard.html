@@ -185,9 +185,10 @@
   .mb-add input::placeholder{color:var(--faint)}
   /* a bug you pinned by hand: subtle amber chip + an ✕ to unpin */
   .chip.pin{color:var(--amber-dim); border-color:rgba(255,180,84,.30)}
-  .lrow .mbrm{flex:none; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+  /* ✕ close on any My-work bug: demote to Backlog if it's assigned to me, else remove */
+  .mbx{flex:none; margin-left:2px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
     font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer}
-  .lrow .mbrm:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
+  .mbx:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
   @media (max-width:640px){ .lrow .lchips{display:none} }
 
   /* queue tab view */
@@ -353,13 +354,13 @@ function ledgerRowHtml(it){
   const drift = isMine ? driftHint(it, (DATA && DATA.placements) || {}) : "";
   const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
     `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
-  const rm = it.added ? `<span class="mbrm" data-id="${escapeHtml(it.id)}" title="remove from My work">✕</span>` : "";
+  const close = isMine ? `<span class="mbx" data-id="${escapeHtml(it.id)}" data-assigned="${it.assigned?1:0}" title="${it.assigned?'move to Backlog':'remove from My work'}">✕</span>` : "";
   const drag = isMine ? ` draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}"` : "";
   return `<a class="lrow"${drag} href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
     <span class="id">${escapeHtml(it.id)}</span>
     <span class="lchips">${chips}</span>
     <span class="ltitle">${escapeHtml(it.title)}</span>
-    <span class="lmeta">${meta}</span>${driftHtml}${rm}</a>`;
+    <span class="lmeta">${meta}</span>${driftHtml}${close}</a>`;
 }
 
 // A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
@@ -417,7 +418,7 @@ function myBugCardHtml(it){
   const drift = driftHint(it, (DATA && DATA.placements) || {});
   const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
     `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
-  const rm = it.added ? `<span class="mbrm" data-id="${escapeHtml(it.id)}" title="remove from My work">✕</span>` : "";
+  const close = `<span class="mbx" data-id="${escapeHtml(it.id)}" data-assigned="${it.assigned?1:0}" title="${it.assigned?'move to Backlog':'remove from My work'}">✕</span>`;
   return `<article class="card ${border}" draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}">
     <div class="mw-card">
       <div class="crow">
@@ -426,7 +427,7 @@ function myBugCardHtml(it){
         <span class="meta">${rc?`<span class="rcount" title="${rc} parts accepted">${rc} r+</span>`:""}<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span></span>
       </div>
       <div class="mw-title">${escapeHtml(it.title)}</div>
-      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}${driftHtml}${rm}</div>
+      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}${driftHtml}${close}</div>
     </div>
   </article>`;
 }
@@ -620,8 +621,11 @@ $('#panels').addEventListener('click', e=>{
   if(rm){ removeFromQueue(rm.closest('.qrow')); return; }  // unqueue
   const mbreset = e.target.closest('.mbreset');            // clear a manual placement
   if(mbreset){ e.preventDefault(); resetBug(mbreset.dataset.id); return; }
-  const mbrm = e.target.closest('.mbrm');                  // unpin a My-work bug
-  if(mbrm){ e.preventDefault(); removeMyBug(mbrm.dataset.id); return; }
+  const mbx = e.target.closest('.mbx');                    // ✕ close a My-work bug
+  if(mbx){ e.preventDefault();
+    if(mbx.dataset.assigned === "1") placeBug(mbx.dataset.id, 'backlog');  // mine → demote to Backlog
+    else dismissBug(mbx.dataset.id);                                       // not mine → remove for good
+    return; }
   if(e.target.closest('a')) return;                     // ledger rows + links open normally
   const btn = e.target.closest('.abtn');
   if(btn){ queueAction(btn); return; }
@@ -673,7 +677,7 @@ function myBugsPost(route, body){
     .then(r=>r.ok?r.json():null).then(()=>refreshData());
 }
 function addMyBug(ref, section){ ref=(ref||'').trim(); if(ref) myBugsPost('/my-bugs/add', {ref, section}); }
-function removeMyBug(id){ myBugsPost('/my-bugs/remove', {id}); }
+function dismissBug(id){ myBugsPost('/my-bugs/dismiss', {id}); }   // remove a non-assigned bug for good
 function placeBug(id, section){ myBugsPost('/my-bugs/place', {id, section}); }
 function resetBug(id){ myBugsPost('/my-bugs/reset', {id}); }
 

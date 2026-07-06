@@ -114,12 +114,14 @@ MYWORK_SECTIONS = ("focus", "next", "backlog")
 def read_overlay_doc() -> dict:
     d = read_json(overlay_path(), {}) or {}
     return {"items": list(d.get("items") or []),
-            "placements": dict(d.get("placements") or {})}
+            "placements": dict(d.get("placements") or {}),
+            "dismissed": list(d.get("dismissed") or [])}
 
 
 def write_overlay_doc(doc: dict) -> None:
     atomic_write_json(overlay_path(),
-                      {"items": doc.get("items") or [], "placements": doc.get("placements") or {}})
+                      {"items": doc.get("items") or [], "placements": doc.get("placements") or {},
+                       "dismissed": doc.get("dismissed") or []})
 
 
 def read_overlay() -> list:
@@ -137,6 +139,12 @@ def write_overlay(items: list) -> None:
 def read_placements() -> dict:
     """{bug_id: section} — the user's manual Focus/Next/Backlog assignments."""
     return read_overlay_doc()["placements"]
+
+
+def read_dismissed() -> list:
+    """Bug ids the user dismissed via ✕ (removed from My work) — a non-assigned bug
+    stays gone even if the collector would re-include it."""
+    return read_overlay_doc()["dismissed"]
 
 
 def read_manifest() -> dict:
@@ -185,6 +193,10 @@ def assemble() -> dict:
     # a closed bug is always removed from My work (never shown in any section),
     # even one that was pinned by hand — a safety net over collector re-vetting.
     sections["my_bugs"] = [b for b in sections["my_bugs"] if b.get("is_open", True) is not False]
+    # bugs the user dismissed via ✕ (non-assigned) stay removed
+    dismissed = set(str(x) for x in read_dismissed())
+    if dismissed:
+        sections["my_bugs"] = [b for b in sections["my_bugs"] if str(b.get("id")) not in dismissed]
     overall = "running" if any(v == "running" for v in section_status.values()) else "ready"
     return {
         "generated_at": manifest.get("generated_at") or newest,

@@ -113,18 +113,20 @@ class TestAssemble(StoreCase):
         self.assertEqual(p["state"], "ready")
         self.assertEqual(p["counts"], {"needinfos": 1, "reviews": 1, "my_bugs": 1})
 
-    def test_assemble_exposes_placements_and_drops_closed(self):
+    def test_assemble_exposes_placements_drops_closed_and_dismissed(self):
         store.atomic_write_json(store.manifest_path(), {"user": "you@example.com"})
         store.write_section("my_bugs",
-                            [{"id": "1", "is_open": True}, {"id": "2", "is_open": False}],
+                            [{"id": "1", "is_open": True}, {"id": "2", "is_open": False},
+                             {"id": "3", "is_open": True}],
                             "ready", "2026-07-06T00:00:00Z")
         store.write_section("needinfos", [], "ready", "2026-07-06T00:00:00Z")
         store.write_section("reviews", [], "ready", "2026-07-06T00:00:00Z")
-        store.write_overlay_doc({"items": [], "placements": {"1": "focus"}})
+        store.write_overlay_doc({"items": [], "placements": {"1": "focus"}, "dismissed": ["3"]})
         data = store.assemble()
         self.assertEqual(data["placements"], {"1": "focus"})
         ids = [b["id"] for b in data["sections"]["my_bugs"]]
-        self.assertEqual(ids, ["1"], "closed bug (2) dropped from My work")
+        self.assertEqual(ids, ["1"], "closed (2) and dismissed (3) both dropped")
+        self.assertEqual(store.read_dismissed(), ["3"])
 
 
 if __name__ == "__main__":
