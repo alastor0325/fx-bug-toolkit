@@ -122,19 +122,30 @@ function actionMeta(action) {
   return ACTION_META[action] || { label: action || "action", accent: "" };
 }
 
-// Split "my work" (open bugs) into four stages by patch_status:
-//   needsMe  — r- (needs-revision) or r+ (accepted): ball in my court → act
-//   waiting  — in-review: ball in the reviewer's court
-//   wip      — drafted, not submitted
-//   backlog  — no patch (assigned, untouched)
+// Days within which a bug counts as actively worked; past this a patch is parked
+// and drops to the backlog no matter its status.
+const ACTIVE_DAYS = 30;
+
+// Split "my work" (open bugs) into ACTIVE zones + a parked BACKLOG. The axis that
+// matters is active-vs-backlog, not raw patch status: an accepted patch just
+// sitting there is backlog (not going to land it), while an in-review patch I'm
+// waiting on is active. So a bug is active only if it has a live patch I've
+// touched within `activeDays`:
+//   revise  — needs-revision, active: ball in my court → act (r-)
+//   waiting — in-review, active: waiting on the reviewer (e.g. a fresh review)
+//   wip     — draft, active: I'm still working it
+//   backlog — everything else: accepted-but-parked (r+), no patch at all, or any
+//             patch gone dormant (untouched > activeDays). Collapsed, low-signal.
 // Pure.
-function myBugsZones(items) {
-  const z = { needsMe: [], waiting: [], wip: [], backlog: [] };
+function myBugsZones(items, activeDays) {
+  const win = Number(activeDays) || ACTIVE_DAYS;
+  const z = { revise: [], waiting: [], wip: [], backlog: [] };
   for (const b of items || []) {
     const s = b && b.patch_status;
-    if (s === "needs-revision" || s === "accepted") z.needsMe.push(b);
-    else if (s === "in-review") z.waiting.push(b);
-    else if (s === "wip") z.wip.push(b);
+    const active = (Number(b.last_activity_days) || 0) <= win;
+    if (active && s === "needs-revision") z.revise.push(b);
+    else if (active && s === "in-review") z.waiting.push(b);
+    else if (active && s === "wip") z.wip.push(b);
     else z.backlog.push(b);
   }
   return z;
@@ -144,6 +155,16 @@ function myBugsZones(items) {
 // the bugs I'm actually moving stay at the top. Pure (new array).
 function byRecency(items) {
   return (items || []).slice().sort((a, b) => (Number(a.last_activity_days) || 0) - (Number(b.last_activity_days) || 0));
+}
+
+// "X/Y" ready-to-land count for a stacked patch — X parts accepted of Y open
+// parts. Only meaningful when there's more than one part (for a single patch the
+// state pill already says it all), so "" for a 1-patch bug. This is the signal
+// that a bug with an accepted part still isn't ready: "1/2" ≠ ready.
+function readyCount(item) {
+  const total = Number(item && item.patch_total) || 0;
+  const acc = Number(item && item.patch_accepted) || 0;
+  return total > 1 ? `${acc}/${total}` : "";
 }
 
 // Case-insensitive substring filter over id + title + tag text — for the
@@ -180,5 +201,6 @@ if (typeof module !== "undefined" && module.exports) {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
     analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
+    readyCount, ACTIVE_DAYS,
   };
 }

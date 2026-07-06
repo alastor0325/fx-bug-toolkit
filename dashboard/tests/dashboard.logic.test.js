@@ -102,21 +102,44 @@ test("filterLedger: matches id/title/tags, case-insensitive; empty query = all",
   assert.deepStrictEqual(L.filterLedger(items, "2").map(i => i.id), ["222"]);
 });
 
-test("myBugsZones: 4-way by patch_status; byRecency recent-first", () => {
+test("myBugsZones: active (revise/waiting/wip) vs parked backlog", () => {
   const z = L.myBugsZones([
-    { id: "1", patch_status: "none" },
-    { id: "2", patch_status: "needs-revision" },
-    { id: "3", patch_status: "accepted" },
-    { id: "4", patch_status: "in-review" },
-    { id: "5", patch_status: "wip" },
-    { id: "6", patch_status: "landed" },
+    { id: "1", patch_status: "none", last_activity_days: 1 },            // no patch → backlog
+    { id: "2", patch_status: "needs-revision", last_activity_days: 2 },  // r-, active → revise
+    { id: "3", patch_status: "accepted", last_activity_days: 2 },        // r+ parked → backlog (even fresh)
+    { id: "4", patch_status: "in-review", last_activity_days: 3 },       // active review → waiting
+    { id: "5", patch_status: "wip", last_activity_days: 4 },             // active draft → wip
   ]);
-  assert.deepStrictEqual(z.needsMe.map(b => b.id).sort(), ["2", "3"]);  // r- + r+ = act
-  assert.deepStrictEqual(z.waiting.map(b => b.id), ["4"]);              // in-review
+  assert.deepStrictEqual(z.revise.map(b => b.id), ["2"]);
+  assert.deepStrictEqual(z.waiting.map(b => b.id), ["4"]);
   assert.deepStrictEqual(z.wip.map(b => b.id), ["5"]);
-  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["1", "6"]);  // none + landed
+  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["1", "3"]);   // accepted + no-patch
+});
+
+test("myBugsZones: a dormant patch (untouched > window) drops to backlog", () => {
+  const items = [
+    { id: "a", patch_status: "in-review", last_activity_days: 400 },  // abandoned review
+    { id: "b", patch_status: "wip", last_activity_days: 500 },        // stale draft
+    { id: "c", patch_status: "in-review", last_activity_days: 3 },    // live review
+  ];
+  const z = L.myBugsZones(items);
+  assert.deepStrictEqual(z.waiting.map(b => b.id), ["c"]);
+  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["a", "b"]);
+  // window is tunable: with a huge window, the old review counts as active again
+  assert.deepStrictEqual(L.myBugsZones(items, 1000).waiting.map(b => b.id).sort(), ["a", "c"]);
+});
+
+test("byRecency: most-recently-active first", () => {
   assert.deepStrictEqual(L.byRecency([{ id: "a", last_activity_days: 9 }, { id: "b", last_activity_days: 1 }]).map(b => b.id), ["b", "a"]);
 });
+
+test("readyCount: X/Y only for a multi-patch stack, blank for a single patch", () => {
+  assert.strictEqual(L.readyCount({ patch_accepted: 1, patch_total: 2 }), "1/2");
+  assert.strictEqual(L.readyCount({ patch_accepted: 3, patch_total: 3 }), "3/3");
+  assert.strictEqual(L.readyCount({ patch_accepted: 1, patch_total: 1 }), "");  // single patch → pill says it
+  assert.strictEqual(L.readyCount({}), "");
+});
+
 
 test("totalItems sums across sections", () => {
   assert.strictEqual(L.totalItems({ sections: { needinfos: [1, 2], reviews: [3], my_bugs: [] } }), 3);

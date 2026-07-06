@@ -53,9 +53,8 @@ PATCH_STATUS = {
     "needs-review": "in-review", "needs-revision": "needs-revision",
     "accepted": "accepted", "published": "landed", "closed": "landed",
 }
-# Which patch status to surface when a bug has several of my revisions: the one
-# that most wants my attention first.
-_PATCH_RANK = {"needs-revision": 5, "accepted": 4, "in-review": 3, "wip": 2, "landed": 1}
+# A bug can carry a whole STACK of my patches; its stage is rolled up across all
+# of them by aggregate_patch(), not read off any single "best" revision.
 
 
 # ------------------------------------------------------------------ pure helpers
@@ -207,15 +206,51 @@ def _rev_bug_id(rev: dict) -> str:
     return str((rev.get("fields") or {}).get("bugzilla.bug-id") or "").strip()
 
 
-def best_patch_status(revs: list) -> str:
-    """Of a bug's several revisions of mine, the status that most wants attention."""
-    statuses = [patch_status(r) for r in revs]
-    return max(statuses, key=lambda s: _PATCH_RANK.get(s, 0)) if statuses else "none"
+def rev_stage(rev: dict) -> str:
+    """One revision's stage, correcting for reviewer presence. Phabricator marks a
+    revision "needs-review" the moment it's published — even with NOBODY on it. A
+    patch with zero reviewers isn't really in review; it's still WIP (I have to
+    request review). So needs-review WITH a reviewer = in-review; WITHOUT = wip."""
+    st = patch_status(rev)
+    if st == "in-review":
+        reviewers = (((rev.get("attachments") or {}).get("reviewers") or {}).get("reviewers")) or []
+        return "in-review" if reviewers else "wip"
+    return st
 
 
-def pick_best_rev(revs: list):
-    """The revision whose status most wants attention (drives the card's pill)."""
-    return max(revs, key=lambda r: _PATCH_RANK.get(patch_status(r), 0)) if revs else None
+def aggregate_patch(revs: list) -> dict:
+    """Roll a bug's whole patch STACK up to one stage + an X/Y ready count.
+
+    A bug is only "r+ land it" when EVERY part is accepted — one un-accepted part
+    (needs-review, needs-revision, or a no-reviewer wip) means it is NOT ready.
+    Precedence, by whose court the ball is in:
+      needs-revision — a part bounced back to me → act (r-)
+      accepted (all) — every open part is r+ → ready to land
+      wip            — a part not yet in review (draft / no reviewer) → my court
+      in-review      — parts out for review, waiting on the reviewer
+      none           — no open patch
+    Landed parts are ignored (done, not pending). Returns {status, accepted,
+    total, primary}; `primary` is the revision that set the stage (its reviewer
+    name + patch link get shown). Pure."""
+    staged = [(r, rev_stage(r)) for r in (revs or [])]
+    staged = [(r, s) for (r, s) in staged if s != "landed"]
+    total = len(staged)
+    accepted = sum(1 for _, s in staged if s == "accepted")
+    first = lambda stage: next((r for r, s in staged if s == stage), None)
+
+    if total == 0:
+        status, primary = "none", None
+    elif any(s == "needs-revision" for _, s in staged):
+        status, primary = "needs-revision", first("needs-revision")
+    elif accepted == total:
+        status, primary = "accepted", first("accepted")
+    elif any(s == "wip" for _, s in staged):
+        status, primary = "wip", first("wip")
+    elif any(s == "in-review" for _, s in staged):
+        status, primary = "in-review", first("in-review")
+    else:
+        status, primary = "wip", staged[0][0]
+    return {"status": status, "accepted": accepted, "total": total, "primary": primary}
 
 
 def rev_reviewer(rev: dict, names: dict) -> str:
@@ -246,16 +281,19 @@ def derive_mybug_tags(bug: dict) -> list:
 
 
 def _mybug_item(bid, title, last_activity_days, revs, tags, names):
-    best = pick_best_rev(revs)
+    agg = aggregate_patch(revs or [])
+    primary = agg["primary"]
     return {
         "type": "mybug",
         "id": bid,
         "url": bmo_url(bid),
         "title": title,
         "last_activity_days": last_activity_days,
-        "patch_status": patch_status(best) if best else "none",
-        "rev_url": phab_url(best["id"]) if best else None,
-        "reviewer": rev_reviewer(best, names) if best else "",
+        "patch_status": agg["status"],
+        "patch_accepted": agg["accepted"],   # X of X/Y (parts accepted)
+        "patch_total": agg["total"],         # Y of X/Y (open parts in the stack)
+        "rev_url": phab_url(primary["id"]) if primary else None,
+        "reviewer": rev_reviewer(primary, names) if primary else "",
         "tags": tags,
         "brief": None,
     }
@@ -263,10 +301,11 @@ def _mybug_item(bid, title, last_activity_days, revs, tags, names):
 
 def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime, names: dict = None) -> list:
     """"My work" = union of OPEN bugs assigned to me and bugs where I have an open
-    revision. patch_status (from my most-attention-worthy revision) drives the
-    stage: needs-revision/accepted = act, in-review = waiting, wip = draft,
-    none = untouched backlog. Assigned bugs carry owned-bug tags; a revision-only
-    bug gets limited info from the revision."""
+    revision. patch_status is rolled up across the bug's whole patch stack by
+    aggregate_patch (r+ only when ALL parts are accepted; a no-reviewer part is
+    wip, not in-review), driving the stage: needs-revision/accepted = act,
+    in-review = waiting, wip = draft, none = untouched backlog. Assigned bugs
+    carry owned-bug tags; a revision-only bug gets limited info from the stack."""
     names = names or {}
     revs_by_bug: dict[str, list] = {}
     for r in my_revisions or []:

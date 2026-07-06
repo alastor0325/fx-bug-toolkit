@@ -128,9 +128,38 @@ class TestPatchStatus(unittest.TestCase):
         self.assertEqual(collect.patch_status(rev(1, "draft")), "wip")
         self.assertEqual(collect.patch_status(rev(1, "published")), "landed")
 
-    def test_best_patch_status_prefers_needs_revision(self):
-        revs = [rev(1, "accepted"), rev(2, "needs-revision"), rev(3, "needs-review")]
-        self.assertEqual(collect.best_patch_status(revs), "needs-revision")
+    def test_rev_stage_needs_review_without_reviewer_is_wip(self):
+        # needs-review WITH a reviewer = in review; WITHOUT = wip (not really out
+        # for review yet — I still have to request it). Bug 1909543 in the wild.
+        self.assertEqual(collect.rev_stage(rev(1, "needs-review", reviewers=["PHID-R"])), "in-review")
+        self.assertEqual(collect.rev_stage(rev(1, "needs-review", reviewers=[])), "wip")
+        self.assertEqual(collect.rev_stage(rev(1, "needs-review")), "wip")   # no attachment at all
+        self.assertEqual(collect.rev_stage(rev(1, "needs-revision", reviewers=[])), "needs-revision")
+
+    def test_aggregate_patch_ready_only_when_all_accepted(self):
+        # Bug 2051326 in the wild: Part 2 accepted, Part 1 still needs-review with
+        # reviewers → NOT ready to land; it's in-review, 1 of 2 accepted.
+        agg = collect.aggregate_patch([rev(1, "accepted", reviewers=["PHID-R"]),
+                                       rev(2, "needs-review", reviewers=["PHID-R"])])
+        self.assertEqual(agg["status"], "in-review")
+        self.assertEqual((agg["accepted"], agg["total"]), (1, 2))
+        # every part accepted → r+ land it
+        allacc = collect.aggregate_patch([rev(1, "accepted"), rev(2, "accepted")])
+        self.assertEqual((allacc["status"], allacc["accepted"], allacc["total"]), ("accepted", 2, 2))
+
+    def test_aggregate_patch_precedence_and_edges(self):
+        # a bounced part outranks an accepted one (ball back in my court)
+        self.assertEqual(collect.aggregate_patch(
+            [rev(1, "accepted"), rev(2, "needs-revision")])["status"], "needs-revision")
+        # accepted + no-reviewer part → wip (I must get the second part reviewed)
+        self.assertEqual(collect.aggregate_patch(
+            [rev(1, "accepted"), rev(2, "needs-review", reviewers=[])])["status"], "wip")
+        # landed parts are ignored; empty stack → none
+        self.assertEqual(collect.aggregate_patch([rev(1, "published")])["status"], "none")
+        self.assertEqual(collect.aggregate_patch([])["status"], "none")
+        # primary revision is the one that set the stage (drives reviewer + link)
+        agg = collect.aggregate_patch([rev(7, "accepted"), rev(8, "needs-revision")])
+        self.assertEqual(agg["primary"]["id"], 8)
 
 
 class TestMyBugs(unittest.TestCase):
@@ -147,6 +176,20 @@ class TestMyBugs(unittest.TestCase):
         self.assertIn("last_activity_days", by_id["10"])
         self.assertEqual(by_id["99"]["patch_status"], "accepted")
         self.assertEqual(by_id["99"]["tags"], [])                # revision-only: limited info
+
+    def test_stacked_bug_rolls_up_and_reports_x_of_y(self):
+        # a bug with a 2-patch stack (one accepted, one still in review) is NOT
+        # ready to land — it's in-review, and carries a 1/2 ready count.
+        my_revs = [rev(1, "accepted", bugid=20, reviewers=["PHID-R"]),
+                   rev(2, "needs-review", bugid=20, reviewers=["PHID-R"])]
+        item = collect.build_my_bugs([bug(id=20)], my_revs, NOW)[0]
+        self.assertEqual(item["patch_status"], "in-review")
+        self.assertEqual((item["patch_accepted"], item["patch_total"]), (1, 2))
+
+    def test_patch_with_no_reviewer_is_wip_not_in_review(self):
+        item = collect.build_my_bugs([bug(id=30)],
+                                     [rev(1, "needs-review", bugid=30, reviewers=[])], NOW)[0]
+        self.assertEqual(item["patch_status"], "wip")
 
     def test_assigned_without_patch(self):
         items = collect.build_my_bugs([bug(id=5)], [], NOW)

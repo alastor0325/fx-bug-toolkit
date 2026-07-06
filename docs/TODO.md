@@ -38,6 +38,11 @@ Skills exist only in the dev repo/branch; released users never receive them.
       semantic class (`chip amber`) and keeping only genuinely-unique bits
       (`.folder` glyph, `.cx-medium` alpha). Deferred — touches shipped JS + node
       tests; low value. (2026-07-03)
+- [ ] **Follow-up (🟢 minor)** — the top-bar "N items need you" sums all three
+      sections, but "My work" is now mostly *backlog* (parked r+ + no-patch), so
+      it overcounts (e.g. 255 when only ~1 my-bug is active). Count only the
+      active my-bugs (revise + waiting + wip), not the parked backlog, in that
+      summary. (2026-07-05)
 
 ---
 
