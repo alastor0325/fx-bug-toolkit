@@ -234,6 +234,10 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       launch *skills* open the URL per-OS (`open`/`xdg-open`/`start`); a detached
       background server shouldn't spawn a browser itself (flaky, and it'd open in
       the wrong session).
+- [ ] **Atrium `dashboard/fx-module.yaml` uses bare `python3`** — its
+      `start: "python3 serve.py --serve"` matches how Atrium (macOS-only today)
+      launches modules; a future Windows Atrium Hub would need a `python`
+      fallback. Revisit if/when the Hub ships on Windows. (2026-07-05)
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
