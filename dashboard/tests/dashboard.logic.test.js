@@ -74,11 +74,23 @@ test("patchStatusMeta: state colors (r- red / r+ green / waiting cyan / wip blue
   assert.strictEqual(L.patchStatusMeta("weird").label, "weird");
 });
 
-test("actionsForItem: NI gets draft+investigate, +bug-start only when solvable", () => {
-  const base = L.actionsForItem({ type: "ni", solvable: false }).map(a => a.action);
-  assert.deepStrictEqual(base, ["draft-reply", "bug-investigate"]);
-  const solvable = L.actionsForItem({ type: "ni", solvable: true }).map(a => a.action);
-  assert.ok(solvable.includes("bug-start"));
+test("actionsForItem: NI matrix by ask_kind + ready; un-enriched falls back", () => {
+  // un-enriched NI (no ask_kind) → basic pair, +bug-start only when solvable
+  assert.deepStrictEqual(L.actionsForItem({ type: "ni", solvable: false }).map(a => a.action),
+                         ["draft-reply", "bug-investigate"]);
+  assert.ok(L.actionsForItem({ type: "ni", solvable: true }).map(a => a.action).includes("bug-start"));
+  // investigate + ready → /bug-start; not ready → request missing info
+  assert.deepStrictEqual(L.actionsForItem({ type: "ni", ask_kind: "investigate", ready: true }).map(a => a.action), ["bug-start"]);
+  assert.deepStrictEqual(L.actionsForItem({ type: "ni", ask_kind: "investigate", ready: false }).map(a => a.action), ["draft-request"]);
+  // easy → just draft a reply
+  assert.deepStrictEqual(L.actionsForItem({ type: "ni", ask_kind: "easy" }).map(a => a.action), ["draft-reply"]);
+});
+
+test("niStateChip: investigate → ready(green)/needs info(amber); else null", () => {
+  assert.deepStrictEqual(L.niStateChip({ type: "ni", ask_kind: "investigate", ready: true }), { label: "ready", cls: "green" });
+  assert.deepStrictEqual(L.niStateChip({ type: "ni", ask_kind: "investigate", ready: false }), { label: "needs info", cls: "amber" });
+  assert.strictEqual(L.niStateChip({ type: "ni", ask_kind: "easy" }), null);
+  assert.strictEqual(L.niStateChip({ type: "mybug" }), null);
 });
 
 test("actionsForItem: review gets /review; my_bugs are display-only (MVP)", () => {

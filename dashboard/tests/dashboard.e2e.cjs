@@ -19,15 +19,17 @@ const DATA = {
   generated_at: "2026-07-04T09:00:00Z", user: "you@example.com", status: "ready",
   sections: {
     needinfos: [
-      // analyzed (brief) → "act" cards
+      // analyzed → "act" cards. 111 = investigate + ready (→ /bug-start + triage fields)
       { type: "ni", id: "111", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=111",
-        title: "Solvable NI", waiting_days: 3, from: "asker@example.com",
+        title: "Investigate NI", waiting_days: 3, from: "asker@example.com",
         tags: [{ text: "Audio/Video", kind: "component" }, { text: "S2", kind: "severity" }],
-        brief: { bug: "what the bug is", ask: "what the ask is" },
-        solvable: true, solvable_reason: "clear STR" },
+        brief: { bug: "what the bug is", ask: "please investigate the seek crash" },
+        ask_kind: "investigate", ready: true, ready_reason: "clear STR + crash id",
+        bug_type: "regression", regressor: "1899123", hypothesis: "likely the seek-resume path" },
+      // 112 = easy ask (→ Draft reply)
       { type: "ni", id: "112", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=112",
-        title: "Analyzed older NI", waiting_days: 20, from: "asker2@example.com",
-        tags: [], brief: { bug: "b", ask: "a" } },
+        title: "Easy NI", waiting_days: 20, from: "asker2@example.com",
+        tags: [], brief: { bug: "b", ask: "is this still repro on 128?" }, ask_kind: "easy" },
       // not analyzed → demoted stale ledger
       { type: "ni", id: "113", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=113",
         title: "Stale NI", waiting_days: 500, from: "old@example.com",
@@ -209,21 +211,30 @@ async function main() {
     assert.ok(row.includes("113") && row.includes("Stale NI"));
   });
 
-  await check("expanding a solvable NI reveals brief + the /bug-start button", async () => {
+  await check("investigate NI: triage fields + ready chip + /bug-start (easy NI → Draft reply)", async () => {
     await page.click('.card[data-id="111"] .chead');
     await page.waitForSelector('.card[data-id="111"].open .cbody');
-    const bodyText = await page.$eval('.card[data-id="111"] .cbody', e => e.innerText);
-    assert.ok(bodyText.includes("what the ask is"), "shows the needinfo ask");
+    const body = await page.$eval('.card[data-id="111"] .cbody', e => e.textContent);  // raw (labels are CSS-uppercased)
+    assert.ok(body.includes("please investigate the seek crash"), "shows the ask");
+    assert.ok(body.includes("regressed by") && body.includes("bug 1899123"), "regressor row (cyan link)");
+    assert.ok(body.includes("hypothesis"), "root-cause hypothesis row");
+    // ready → /bug-start only (no Draft reply), + a green ready chip
     const btns = await page.$$eval('.card[data-id="111"] .abtn', els => els.map(e => e.textContent));
-    assert.ok(btns.some(b => b.includes("Draft reply")), "has Draft reply");
-    assert.ok(btns.some(b => b.includes("/bug-start")), "solvable → offers /bug-start");
+    assert.ok(btns.some(b => b.includes("/bug-start")), "ready → run /bug-start");
+    assert.ok(!btns.some(b => b.includes("Draft reply")), "no Draft reply when ready");
+    assert.ok(await page.$('.card[data-id="111"] .cbody .chip.green'), "ready chip (green)");
+    // easy NI → just Draft reply
+    const easyBtns = await page.$$eval('.card[data-id="112"] .abtn', els => els.map(e => e.textContent));
+    assert.deepStrictEqual(easyBtns, ["Draft reply"], "easy ask → Draft reply only");
   });
 
   await check("clicking an action POSTs it to /queue and the button shows queued", async () => {
-    await page.click('.card[data-id="111"] .abtn[data-action="draft-reply"]');
+    await page.click('.card[data-id="112"] .chead');   // expand so its action button is visible
+    await page.waitForSelector('.card[data-id="112"].open .cbody');
+    await page.click('.card[data-id="112"] .abtn[data-action="draft-reply"]');
     await page.waitForTimeout(200);
-    assert.ok(posted.some(p => p.id === "111" && p.action === "draft-reply"), "POST /queue received");
-    const q = await page.$eval('.card[data-id="111"] .abtn.queued', e => e.textContent).catch(() => "");
+    assert.ok(posted.some(p => p.id === "112" && p.action === "draft-reply"), "POST /queue received");
+    const q = await page.$eval('.card[data-id="112"] .abtn.queued', e => e.textContent).catch(() => "");
     assert.ok(/queued/i.test(q), "button flips to queued");
   });
 
@@ -231,9 +242,9 @@ async function main() {
     assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "1", "queue count bumped on queue");
     await page.click('.tab[data-k="queue"]');
     await page.waitForSelector('.tabpanel[data-k="queue"].active');
-    assert.ok(await page.$('.qrow[data-id="111"][data-action="draft-reply"]'), "queued row present");
-    assert.ok((await page.textContent('.qrow[data-id="111"] .qaction')).includes("Draft reply"));
-    await page.click('.qrow[data-id="111"] .rm');
+    assert.ok(await page.$('.qrow[data-id="112"][data-action="draft-reply"]'), "queued row present");
+    assert.ok((await page.textContent('.qrow[data-id="112"] .qaction')).includes("Draft reply"));
+    await page.click('.qrow[data-id="112"] .rm');
     await page.waitForTimeout(150);
     assert.strictEqual((await page.$$('.qrow')).length, 0, "row removed after ✕");
     assert.strictEqual(await page.textContent('.tab[data-k="queue"] .n'), "0", "count decremented");

@@ -111,15 +111,30 @@ function patchStatusMeta(status) {
 function actionsForItem(item) {
   if (!item) return [];
   if (item.type === "ni") {
-    const a = [
-      { action: "draft-reply", label: "Draft reply" },
-      { action: "bug-investigate", label: "Bug investigate" },
-    ];
+    // matrix by what the NI asks of me + whether the bug is ready to investigate:
+    //   investigate + ready     → run /bug-start (its findings answer the NI)
+    //   investigate + not-ready → draft a reply requesting the missing info
+    //   easy                    → draft a short reply
+    //   un-enriched (no ask_kind)→ the basic pair
+    if (item.ask_kind === "investigate") {
+      return item.ready ? [{ action: "bug-start", label: "run /bug-start" }]
+                        : [{ action: "draft-request", label: "Draft: request missing info" }];
+    }
+    if (item.ask_kind === "easy") return [{ action: "draft-reply", label: "Draft reply" }];
+    const a = [{ action: "draft-reply", label: "Draft reply" },
+               { action: "bug-investigate", label: "Bug investigate" }];
     if (item.solvable) a.push({ action: "bug-start", label: "Looks ready → run /bug-start" });
     return a;
   }
   if (item.type === "review") return [{ action: "review", label: "Run /review" }];
   return [];
+}
+
+// The collapsed NI state chip: for an investigate NI, "ready" (green, ready for
+// /bug-start) or "needs info" (amber, blocked). "" for easy/un-enriched. Pure.
+function niStateChip(item) {
+  if (!item || item.type !== "ni" || item.ask_kind !== "investigate") return null;
+  return item.ready ? { label: "ready", cls: "green" } : { label: "needs info", cls: "amber" };
 }
 
 // Stable key for pairing a queued request / a drain result with a card+action.
@@ -170,6 +185,7 @@ const ACTION_META = {
   "draft-reply":     { label: "Draft reply",    accent: "amber" },
   "bug-investigate": { label: "Bug investigate", accent: "cyan" },
   "bug-start":       { label: "run /bug-start",  accent: "green" },
+  "draft-request":   { label: "Draft: request info", accent: "amber" },
   "review":          { label: "Run /review",     accent: "cyan" },
 };
 function actionMeta(action) {
@@ -266,7 +282,7 @@ function generatedAgo(iso, nowMs) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    SECTIONS, orderedSections, moveKey, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem,
+    SECTIONS, orderedSections, moveKey, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem, niStateChip,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
     analyzedSplit, filterLedger, ACTION_META, actionMeta, byRecency, readyCount,
     MYWORK_SECTIONS, FOCUS_CAP, defaultSection, sectionOf, groupBySection, driftHint,

@@ -294,6 +294,25 @@ class TestBuildBaseAndEnrichment(unittest.TestCase):
             "1": {"extra_tags": [{"text": "ready", "kind": "good"}]}}, NOW)
         self.assertEqual(sum(1 for t in again["sections"]["needinfos"][0]["tags"] if t["text"] == "ready"), 1)
 
+    def test_apply_enrichment_carries_ni_triage_fields(self):
+        base = collect.build_base("you@example.com", [bug(id=7, flags=[ni_flag()])],
+                                  [], {}, [], [], NOW)
+        out = collect.apply_enrichment(base, {"7": {
+            "brief": {"bug": "b", "ask": "please investigate the crash"},
+            "ask_kind": "investigate", "ready": False, "ready_reason": "no STR",
+            "bug_type": "regression", "regressor": "1899123", "duplicate_of": "1902050",
+            "meta": "1888000", "priority": "P2", "severity": "S3",
+            "missing_info": ["no STR", "no about:support"], "hypothesis": "likely the seek path",
+        }}, NOW)
+        it = out["sections"]["needinfos"][0]
+        self.assertEqual(it["ask_kind"], "investigate")
+        self.assertFalse(it["ready"])
+        self.assertEqual(it["bug_type"], "regression")           # not clobbering item["type"]=="ni"
+        self.assertEqual(it["type"], "ni")
+        self.assertEqual(it["regressor"], "1899123")
+        self.assertEqual(it["missing_info"], ["no STR", "no about:support"])
+        self.assertEqual(it["hypothesis"], "likely the seek path")
+
     def test_apply_enrichment_ignores_unknown_ids(self):
         base = collect.build_base("you@example.com", [], [], {}, [], [], NOW)
         out = collect.apply_enrichment(base, {"nope": {"brief": {"x": 1}}}, NOW)

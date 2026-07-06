@@ -374,9 +374,17 @@ def build_base(user_email: str, needinfos: list, reviews: list, review_names: di
     }
 
 
+# NI triage-assessment fields (from /triage --analyze-only) copied through as-is
+# onto the card. `bug_type` (not `type`, which is the item kind: ni/review/mybug).
+_NI_ENRICH_FIELDS = ("ask_kind", "ready", "ready_reason", "bug_type", "regressor",
+                     "duplicate_of", "meta", "priority", "severity", "missing_info",
+                     "hypothesis", "solvable", "solvable_reason")
+
+
 def apply_enrichment(base: dict, enrichment: dict, now: datetime) -> dict:
-    """Merge the skill's per-item enrichment ({id: {brief, solvable, extra_tags,
-    solvable_reason}}) into the base data and flip status to "ready". Pure."""
+    """Merge the skill's per-item enrichment into the base data and flip status to
+    "ready". Carries the brief, extra_tags, and the NI triage-assessment fields
+    (ask_kind, ready, bug_type, regressor, duplicate_of, missing_info, …). Pure."""
     enrichment = enrichment or {}
     for section in (base.get("sections") or {}).values():
         for item in section:
@@ -385,10 +393,9 @@ def apply_enrichment(base: dict, enrichment: dict, now: datetime) -> dict:
                 continue
             if "brief" in e:
                 item["brief"] = e["brief"]
-            if "solvable" in e:
-                item["solvable"] = e["solvable"]
-            if e.get("solvable_reason"):
-                item["solvable_reason"] = e["solvable_reason"]
+            for k in _NI_ENRICH_FIELDS:
+                if k in e:
+                    item[k] = e[k]
             if e.get("extra_tags"):
                 # dedup by (text, kind) so re-running finalize is idempotent
                 existing = item.setdefault("tags", [])

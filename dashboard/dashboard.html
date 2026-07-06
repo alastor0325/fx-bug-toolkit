@@ -86,6 +86,11 @@
   .cbody .title{font-size:14.5px; color:var(--ink); font-weight:600; line-height:1.4; margin-bottom:10px}
   .cbody .brief p{margin:0 0 7px; font-size:13.5px; color:var(--dim); line-height:1.55}
   .cbody .brief .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); margin-right:6px}
+  /* triage-assessment rows: cyan links to other bugs, grey hedge, spaced chips */
+  .cbody .brief .blink{color:var(--cyan); text-decoration:none}
+  .cbody .brief .blink:hover{text-decoration:underline}
+  .cbody .brief .hedge{color:var(--faint); font-size:11px}
+  .cbody .brief p .chip{margin-right:4px; vertical-align:middle}
   .noanalysis{font-family:var(--mono); font-size:11.5px; color:var(--faint); font-style:italic}
 
   .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
@@ -299,14 +304,43 @@ function briefLineText(it){
   if(!b) return "not analyzed yet — run /dashboard-generate";
   return b.ask || b.summary || b.bug || "";
 }
+// collapsed-card state chip for an investigate NI: ready (green) / needs info (amber)
+function niStateChipHtml(it){
+  const st = niStateChip(it);
+  return st ? `<span class="chip ${st.cls}" title="${st.cls==='green'?'ready for /bug-start':'blocked — missing info'}">${escapeHtml(st.label)}</span>` : "";
+}
+// a cyan link to another bug (regressor / duplicate / meta), tolerant of a "bug N" prefix
+function bugLink(id){
+  if(id === undefined || id === null || id === "") return "";
+  const n = String(id).replace(/^\s*bug\s*/i, "").trim();
+  return `<a class="blink" href="https://bugzilla.mozilla.org/show_bug.cgi?id=${encodeURIComponent(n)}" target="_blank" rel="noopener">bug ${escapeHtml(n)}</a>`;
+}
+// the triage-assessment rows on an investigate NI's expanded body (each optional):
+// verdict → regressor/dup/meta links → EITHER missing-info (amber chips) OR a
+// root-cause hypothesis. Color only on the amber blockers + cyan links; rest grey.
+function niTriageRows(it){
+  const rows = [];
+  const ps = [it.priority, it.severity].filter(Boolean).join("/");
+  const verdict = [it.bug_type, ps].filter(Boolean).join(" · ");
+  if(verdict) rows.push(`<p><span class="k">verdict</span>${escapeHtml(verdict)}</p>`);
+  if(it.regressor) rows.push(`<p><span class="k">regressed by</span>${bugLink(it.regressor)}</p>`);
+  if(it.duplicate_of) rows.push(`<p><span class="k">duplicate of</span>${bugLink(it.duplicate_of)} <span class="hedge">(likely)</span></p>`);
+  if(it.meta) rows.push(`<p><span class="k">under meta</span>${bugLink(it.meta)}</p>`);
+  // blocked (missing info) OR analyzed (hypothesis) — never both
+  if((it.missing_info||[]).length)
+    rows.push(`<p><span class="k">missing info</span>${it.missing_info.map(m=>`<span class="chip amber">${escapeHtml(m)}</span>`).join(" ")}</p>`);
+  else if(it.hypothesis)
+    rows.push(`<p><span class="k">hypothesis</span>${escapeHtml(it.hypothesis)}</p>`);
+  return rows;
+}
 function briefBodyHtml(it){
   const b = it.brief;
   if(!b) return `<div class="noanalysis">No analysis yet. Run <b>/dashboard-generate</b> to produce a brief.</div>`;
   const rows = [];
   if(b.bug) rows.push(`<p><span class="k">bug</span>${escapeHtml(b.bug)}</p>`);
-  if(b.ask) rows.push(`<p><span class="k">needinfo</span>${escapeHtml(b.ask)}</p>`);
+  if(b.ask) rows.push(`<p><span class="k">needinfo</span>${escapeHtml(b.ask)} ${niStateChipHtml(it)}</p>`);
   if(b.summary) rows.push(`<p>${escapeHtml(b.summary)}</p>`);
-  if(it.type === "ni" && it.solvable) rows.push(`<p class="k" style="color:var(--green)">✓ looks solvable — ${escapeHtml(it.solvable_reason||"")}</p>`);
+  if(it.type === "ni") rows.push(...niTriageRows(it));
   return `<div class="brief">${rows.join("")}</div>`;
 }
 function actionsHtml(it){
@@ -342,7 +376,7 @@ function cardHtml(it){
     <div class="chead">
       <div class="crow">
         <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
-        ${tagsHtml(it.tags)}${reqChipsHtml(it)}
+        ${tagsHtml(it.tags, 2)}${niStateChipHtml(it)}${reqChipsHtml(it)}
         <span class="meta">${collapsedMeta(it)} <span class="caret">▸</span></span>
       </div>
       <div class="briefline">${escapeHtml(briefLineText(it))}</div>
