@@ -71,13 +71,16 @@ const DATA = {
       // active wip (draft I'm working)
       { type: "mybug", id: "226", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=226",
         title: "Draft bug", last_activity_days: 2, patch_status: "wip", reviewer: "", tags: [], brief: null },
-      // no patch → collapsed backlog
+      // fresh, no patch yet → active "No patch yet" zone (a bug I just filed)
+      { type: "mybug", id: "229", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=229",
+        title: "Just filed, no patch yet", last_activity_days: 0, patch_status: "none", tags: [], brief: null },
+      // stale, no patch → collapsed backlog
       { type: "mybug", id: "224", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=224",
         title: "Old assigned bug", last_activity_days: 200, patch_status: "none", tags: [], brief: null },
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 6 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 7 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -131,7 +134,7 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "My work", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "3", "6", "0"]);  // queue empty at start
+    assert.deepStrictEqual(counts, ["3", "3", "7", "0"]);  // queue empty at start
   });
 
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
@@ -214,6 +217,9 @@ async function main() {
     assert.ok((await page.$eval(`${mp} .card[data-id="222"] a.pl`, e => e.href)).includes("D1222"), "patch link");
     assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .pstatus`, e => e.textContent.trim()), "in review");
     assert.ok(await page.$(`${mp} .lrow[href*="=226"]`), "live wip row present");
+    // a just-filed bug with no patch is active (No patch yet), not backlog
+    assert.ok(await page.isVisible(`${mp} .lrow[href*="=229"]`), "no-patch-yet bug is active, visible");
+    assert.ok((await page.textContent(mp)).includes("No patch yet"), "No patch yet zone shown");
     // X/Y ready count shows only for a multi-patch stack (225 = 1/2)
     assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .rcount`, e => e.textContent.trim()), "1/2 r+");
     // a parked r+ (223) and a dormant review (228) are NOT active — no card, no top ledger

@@ -298,7 +298,9 @@ function ledgerRowHtml(it){
     const m = patchStatusMeta(it.patch_status);
     const who = it.reviewer ? `${escapeHtml(it.reviewer)} · ` : "";
     const rc = readyCount(it);
-    meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> ${rc?`<span class="rcount">${rc} r+</span>`:""}<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
+    // no pill for a no-patch bug — "no patch" is redundant in the No-patch-yet zone
+    const pill = it.patch_status === "none" ? "" : `<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
+    meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> ${rc?`<span class="rcount">${rc} r+</span>`:""}${pill}`;
   }
   else meta = `waiting ${waitingLabel(it.waiting_days)}`;
   return `<a class="lrow" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
@@ -378,7 +380,8 @@ function myBugCardHtml(it){
 // collapsed underneath. Searchable. Display-only.
 function myBugsBody(rows){
   const z = myBugsZones(rows);
-  const revise = byRecency(z.revise), waiting = byRecency(z.waiting), wip = byRecency(z.wip);
+  const revise = byRecency(z.revise), waiting = byRecency(z.waiting),
+        wip = byRecency(z.wip), todo = byRecency(z.todo);
   // backlog: surface patched bugs (r+ / dormant patches) above the no-patch pile
   // so a parked-but-landable r+ is still findable; recent-first within each.
   const backlog = z.backlog.slice().sort((a,b) =>
@@ -388,7 +391,8 @@ function myBugsBody(rows){
   if(revise.length)  h += `<div class="zone-h">Needs me · <b>${revise.length}</b></div><div class="cards">${revise.map(myBugCardHtml).join("")}</div>`;
   if(waiting.length) h += `<div class="zone-h">In review · waiting · <b>${waiting.length}</b></div><div class="ledger">${waiting.map(ledgerRowHtml).join("")}</div>`;
   if(wip.length)     h += `<div class="zone-h">WIP · <b>${wip.length}</b></div><div class="ledger">${wip.map(ledgerRowHtml).join("")}</div>`;
-  if(!revise.length && !waiting.length && !wip.length && backlog.length)
+  if(todo.length)    h += `<div class="zone-h">No patch yet · <b>${todo.length}</b></div><div class="ledger">${todo.map(ledgerRowHtml).join("")}</div>`;
+  if(!revise.length && !waiting.length && !wip.length && !todo.length && backlog.length)
     h += `<div class="emptysec">Nothing active right now — your open bugs are parked in the backlog below.</div>`;
   if(backlog.length){
     const open = staleOpen.has('mybugs-backlog');
