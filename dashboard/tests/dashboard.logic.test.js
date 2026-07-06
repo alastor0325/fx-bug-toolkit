@@ -176,6 +176,40 @@ test("byRecency: most-recently-active first", () => {
   assert.deepStrictEqual(L.byRecency([{ id: "a", last_activity_days: 9 }, { id: "b", last_activity_days: 1 }]).map(b => b.id), ["b", "a"]);
 });
 
+test("defaultSection: patch-in-review → focus, wip → next, else backlog", () => {
+  assert.strictEqual(L.defaultSection({ patch_status: "in-review" }), "focus");
+  assert.strictEqual(L.defaultSection({ patch_status: "needs-revision" }), "focus");
+  assert.strictEqual(L.defaultSection({ patch_status: "wip" }), "next");
+  assert.strictEqual(L.defaultSection({ patch_status: "accepted" }), "backlog");
+  assert.strictEqual(L.defaultSection({ patch_status: "none" }), "backlog");
+});
+
+test("sectionOf: manual placement wins over default; invalid ignored", () => {
+  const bug = { id: "5", patch_status: "wip" };            // default next
+  assert.strictEqual(L.sectionOf(bug, {}), "next");
+  assert.strictEqual(L.sectionOf(bug, { "5": "focus" }), "focus");   // override
+  assert.strictEqual(L.sectionOf(bug, { "5": "bogus" }), "next");    // invalid → default
+});
+
+test("groupBySection: buckets by placement then default", () => {
+  const items = [
+    { id: "1", patch_status: "in-review" },   // focus (default)
+    { id: "2", patch_status: "wip" },          // next (default)
+    { id: "3", patch_status: "none" },         // backlog (default)
+    { id: "4", patch_status: "none" },         // pushed to focus
+  ];
+  const g = L.groupBySection(items, { "4": "focus" });
+  assert.deepStrictEqual(g.focus.map(b => b.id), ["1", "4"]);
+  assert.deepStrictEqual(g.next.map(b => b.id), ["2"]);
+  assert.deepStrictEqual(g.backlog.map(b => b.id), ["3"]);
+});
+
+test("driftHint: set only when placement disagrees with the status default", () => {
+  assert.strictEqual(L.driftHint({ id: "1", patch_status: "wip" }, {}), "");            // unplaced
+  assert.strictEqual(L.driftHint({ id: "1", patch_status: "wip" }, { "1": "next" }), "");  // aligned
+  assert.strictEqual(L.driftHint({ id: "1", patch_status: "in-review" }, { "1": "backlog" }), "focus");  // drift
+});
+
 test("readyCount: X/Y only for a multi-patch stack, blank for a single patch", () => {
   assert.strictEqual(L.readyCount({ patch_accepted: 1, patch_total: 2 }), "1/2");
   assert.strictEqual(L.readyCount({ patch_accepted: 3, patch_total: 3 }), "3/3");

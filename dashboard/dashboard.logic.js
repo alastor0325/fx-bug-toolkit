@@ -208,6 +208,49 @@ function myBugsZones(items, activeDays) {
   return z;
 }
 
+// The three purpose-driven My-work sections the user places bugs into. Focus is
+// deliberately small (soft cap); Next is the queue; Backlog is everything parked.
+const MYWORK_SECTIONS = [
+  { key: "focus",   label: "Focus",   hint: "Working these now." },
+  { key: "next",    label: "Next",    hint: "Queued — pull up when Focus clears." },
+  { key: "backlog", label: "Backlog", hint: "Parked. Not now." },
+];
+const FOCUS_CAP = 5;   // soft cap — if Focus grows past this, its count warns
+
+// Default section for a bug the user hasn't placed, from its patch state alone —
+// deliberately dumb + predictable (no recency magic): a patch in the review
+// process → focus; a patch not yet in review → next; anything else → backlog.
+function defaultSection(bug) {
+  const s = bug && bug.patch_status;
+  if (s === "in-review" || s === "needs-revision") return "focus";
+  if (s === "wip") return "next";
+  return "backlog";
+}
+
+// Where a bug actually sits: the user's manual placement wins (and persists),
+// else the default. Pure.
+function sectionOf(bug, placements) {
+  const p = (placements || {})[String(bug && bug.id)];
+  return (p && MYWORK_SECTIONS.some(s => s.key === p)) ? p : defaultSection(bug);
+}
+
+// Group my_bugs into {focus, next, backlog} by sectionOf. Pure (new arrays).
+function groupBySection(items, placements) {
+  const g = { focus: [], next: [], backlog: [] };
+  for (const b of items || []) g[sectionOf(b, placements)].push(b);
+  return g;
+}
+
+// If a bug's manual placement disagrees with where its status would default it,
+// return that default section (the "↳ suggests X" drift hint + reset affordance);
+// "" when aligned or unplaced. Never auto-moves — just surfaces the mismatch. Pure.
+function driftHint(bug, placements) {
+  const placed = (placements || {})[String(bug && bug.id)];
+  if (!placed) return "";
+  const def = defaultSection(bug);
+  return placed === def ? "" : def;
+}
+
 // Sort bugs most-recently-active first (smallest last_activity_days on top), so
 // the bugs I'm actually moving stay at the top. Pure (new array).
 function byRecency(items) {
@@ -259,5 +302,6 @@ if (typeof module !== "undefined" && module.exports) {
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
     analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
     readyCount, ACTIVE_DAYS,
+    MYWORK_SECTIONS, FOCUS_CAP, defaultSection, sectionOf, groupBySection, driftHint,
   };
 }

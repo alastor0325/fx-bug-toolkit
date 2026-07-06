@@ -105,14 +105,38 @@ def read_section(key: str) -> dict:
                      {"status": "missing", "generated_at": None, "items": []})
 
 
+# The overlay is the user-owned part of My work: `items` = bugs pinned by hand,
+# `placements` = a {bug_id: section} map of manual Focus/Next/Backlog moves (for
+# ANY bug, collected or pinned). One file, one writer (the server, under a lock).
+MYWORK_SECTIONS = ("focus", "next", "backlog")
+
+
+def read_overlay_doc() -> dict:
+    d = read_json(overlay_path(), {}) or {}
+    return {"items": list(d.get("items") or []),
+            "placements": dict(d.get("placements") or {})}
+
+
+def write_overlay_doc(doc: dict) -> None:
+    atomic_write_json(overlay_path(),
+                      {"items": doc.get("items") or [], "placements": doc.get("placements") or {}})
+
+
 def read_overlay() -> list:
     """The user-added my_bugs (bugs you pinned via the dashboard)."""
-    d = read_json(overlay_path(), {"items": []}) or {}
-    return list(d.get("items") or [])
+    return read_overlay_doc()["items"]
 
 
 def write_overlay(items: list) -> None:
-    atomic_write_json(overlay_path(), {"items": items})
+    """Replace the pinned items, preserving the placement map."""
+    doc = read_overlay_doc()
+    doc["items"] = items
+    write_overlay_doc(doc)
+
+
+def read_placements() -> dict:
+    """{bug_id: section} — the user's manual Focus/Next/Backlog assignments."""
+    return read_overlay_doc()["placements"]
 
 
 def read_manifest() -> dict:
@@ -158,6 +182,9 @@ def assemble() -> dict:
     overlay = read_overlay()
     if overlay:
         sections["my_bugs"] = merge_overlay(sections["my_bugs"], overlay)
+    # a closed bug is always removed from My work (never shown in any section),
+    # even one that was pinned by hand — a safety net over collector re-vetting.
+    sections["my_bugs"] = [b for b in sections["my_bugs"] if b.get("is_open", True) is not False]
     overall = "running" if any(v == "running" for v in section_status.values()) else "ready"
     return {
         "generated_at": manifest.get("generated_at") or newest,
@@ -165,6 +192,7 @@ def assemble() -> dict:
         "status": overall,
         "schema": manifest.get("schema", SCHEMA),
         "section_status": section_status,
+        "placements": read_placements(),   # {bug_id: section} manual My-work moves
         "sections": sections,
     }
 

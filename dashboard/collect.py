@@ -302,6 +302,7 @@ def _mybug_item(bid, title, last_activity_days, revs, tags, names):
         "patch_total": agg["total"],         # Y of X/Y (open parts in the stack)
         "rev_url": phab_url(primary["id"]) if primary else None,
         "reviewer": rev_reviewer(primary, names) if primary else "",
+        "is_open": True,                     # collected my_bugs are open by construction
         "tags": tags,
         "brief": None,
     }
@@ -612,9 +613,33 @@ def cmd_base() -> int:
     store.atomic_write_json(store.manifest_path(), {
         "user": user_email, "sections": list(store.SECTIONS),
         "schema": store.SCHEMA, "generated_at": now_iso})
+    revet_overlay(now)   # drop any hand-pinned bug that has since closed
     print(f"wrote base to {store.data_dir()} — {len(secs['needinfos'])} NI, "
           f"{len(secs['reviews'])} reviews, {len(secs['my_bugs'])} my-bugs")
     return 0
+
+
+def revet_overlay(now: datetime) -> None:
+    """Re-check hand-pinned bugs against Bugzilla and drop any that have closed
+    (closed bugs are always removed from My work). Placements are left intact so a
+    reopened bug returns to its chosen section. Never raises."""
+    doc = store.read_overlay_doc()
+    items = doc.get("items") or []
+    if not items:
+        return
+    details = fetch_bugs([i.get("id") for i in items], os.environ.get("BUGZILLA_API_KEY") or "")
+    if not details:
+        return  # couldn't verify (no key / offline) — leave the overlay as-is
+    kept = []
+    for it in items:
+        d = details.get(str(it.get("id")))
+        if d is None:
+            kept.append(it)              # not returned (restricted?) — keep, don't guess
+        elif d.get("is_open"):
+            kept.append(user_mybug_item(it.get("id"), d, now))  # refresh title/tags
+    if len(kept) != len(items):
+        doc["items"] = kept
+        store.write_overlay_doc(doc)
 
 
 def cmd_finalize(enrichment_path: str) -> int:

@@ -64,6 +64,14 @@ class TestSectionsAndOverlay(StoreCase):
         store.write_overlay([{"id": "7", "added": True}])
         self.assertEqual(store.read_overlay(), [{"id": "7", "added": True}])
 
+    def test_overlay_doc_items_and_placements(self):
+        store.write_overlay_doc({"items": [{"id": "7"}], "placements": {"7": "focus"}})
+        self.assertEqual(store.read_placements(), {"7": "focus"})
+        # write_overlay replaces items but preserves the placement map
+        store.write_overlay([{"id": "8"}])
+        self.assertEqual(store.read_overlay(), [{"id": "8"}])
+        self.assertEqual(store.read_placements(), {"7": "focus"})
+
     def test_merge_overlay_dedups_collected_wins_keeps_pin(self):
         collected = [{"id": "1", "title": "real"}]
         overlay = [{"id": "1", "title": "stale"}, {"id": "9", "title": "pinned"}]
@@ -104,6 +112,19 @@ class TestAssemble(StoreCase):
         p = store.status_payload()
         self.assertEqual(p["state"], "ready")
         self.assertEqual(p["counts"], {"needinfos": 1, "reviews": 1, "my_bugs": 1})
+
+    def test_assemble_exposes_placements_and_drops_closed(self):
+        store.atomic_write_json(store.manifest_path(), {"user": "you@example.com"})
+        store.write_section("my_bugs",
+                            [{"id": "1", "is_open": True}, {"id": "2", "is_open": False}],
+                            "ready", "2026-07-06T00:00:00Z")
+        store.write_section("needinfos", [], "ready", "2026-07-06T00:00:00Z")
+        store.write_section("reviews", [], "ready", "2026-07-06T00:00:00Z")
+        store.write_overlay_doc({"items": [], "placements": {"1": "focus"}})
+        data = store.assemble()
+        self.assertEqual(data["placements"], {"1": "focus"})
+        ids = [b["id"] for b in data["sections"]["my_bugs"]]
+        self.assertEqual(ids, ["1"], "closed bug (2) dropped from My work")
 
 
 if __name__ == "__main__":

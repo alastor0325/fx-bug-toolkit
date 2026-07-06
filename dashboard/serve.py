@@ -219,19 +219,45 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
             if not bid:
                 self.send_error(400, "no bug id")
                 return
+            section = body.get("section")
+            if section not in store.MYWORK_SECTIONS:
+                section = "next"   # default: add queues it, promoting to Focus is deliberate
             detail = collect.fetch_bugs([bid], os.environ.get("BUGZILLA_API_KEY") or "").get(bid)
+            if detail is not None and not detail.get("is_open"):
+                return self._send_json({"ok": False, "error": "bug is closed — not added"}, 400)
             item = collect.user_mybug_item(bid, detail, datetime.now(timezone.utc))
             with _overlay_lock:
-                overlay = store.read_overlay()
-                if not any(str(i.get("id")) == bid for i in overlay):
-                    overlay.append(item)
-                    store.write_overlay(overlay)
-            return self._send_json({"ok": True, "item": item})
-        if route == "/my-bugs/remove":
+                doc = store.read_overlay_doc()
+                if not any(str(i.get("id")) == bid for i in doc["items"]):
+                    doc["items"].append(item)
+                doc["placements"][bid] = section
+                store.write_overlay_doc(doc)
+            return self._send_json({"ok": True, "item": item, "section": section})
+        if route == "/my-bugs/place":
+            bid = parse_bug_id(body.get("id"))
+            section = body.get("section")
+            if not bid or section not in store.MYWORK_SECTIONS:
+                self.send_error(400, "need id + valid section")
+                return
+            with _overlay_lock:
+                doc = store.read_overlay_doc()
+                doc["placements"][bid] = section
+                store.write_overlay_doc(doc)
+            return self._send_json({"ok": True})
+        if route == "/my-bugs/reset":            # clear a manual placement → back to default
             bid = parse_bug_id(body.get("id"))
             with _overlay_lock:
-                overlay = [i for i in store.read_overlay() if str(i.get("id")) != bid]
-                store.write_overlay(overlay)
+                doc = store.read_overlay_doc()
+                doc["placements"].pop(bid, None)
+                store.write_overlay_doc(doc)
+            return self._send_json({"ok": True})
+        if route == "/my-bugs/remove":           # unpin a hand-added bug
+            bid = parse_bug_id(body.get("id"))
+            with _overlay_lock:
+                doc = store.read_overlay_doc()
+                doc["items"] = [i for i in doc["items"] if str(i.get("id")) != bid]
+                doc["placements"].pop(bid, None)
+                store.write_overlay_doc(doc)
             return self._send_json({"ok": True})
         self.send_error(404)
 

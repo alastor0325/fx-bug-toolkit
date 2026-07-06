@@ -173,6 +173,7 @@ class TestMyBugs(unittest.TestCase):
         by_id = {i["id"]: i for i in items}
         self.assertEqual(set(by_id), {"10", "99"})               # union
         self.assertEqual(by_id["10"]["patch_status"], "needs-revision")
+        self.assertTrue(by_id["10"]["is_open"])                  # collected bugs are open
         self.assertEqual(by_id["10"]["reviewer"], "padenot")     # resolved from names
         self.assertTrue(by_id["10"]["rev_url"].endswith("/D1"))  # patch link
         self.assertIn("last_activity_days", by_id["10"])
@@ -303,6 +304,36 @@ class TestBuildBaseAndEnrichment(unittest.TestCase):
         self.assertEqual(p["state"], "running")
         self.assertEqual(p["counts"]["needinfos"], 1)
         self.assertEqual(p["counts"]["my_bugs"], 1)
+
+
+class TestRevetOverlay(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self._prev = os.environ.get("FX_DASHBOARD_DIR")
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["FX_DASHBOARD_DIR"] = self.tmp.name
+        self._fetch = collect.fetch_bugs
+
+    def tearDown(self):
+        collect.fetch_bugs = self._fetch
+        if self._prev is None:
+            os.environ.pop("FX_DASHBOARD_DIR", None)
+        else:
+            os.environ["FX_DASHBOARD_DIR"] = self._prev
+        self.tmp.cleanup()
+
+    def test_drops_closed_keeps_open_and_placements(self):
+        import store
+        store.write_overlay_doc({"items": [{"id": "10"}, {"id": "20"}],
+                                 "placements": {"10": "focus", "20": "next"}})
+        collect.fetch_bugs = lambda ids, key: {
+            "10": {"id": 10, "is_open": True, "summary": "still open"},
+            "20": {"id": 20, "is_open": False, "summary": "now fixed"}}
+        collect.revet_overlay(NOW)
+        doc = store.read_overlay_doc()
+        self.assertEqual([i["id"] for i in doc["items"]], ["10"])        # closed 20 dropped
+        self.assertEqual(doc["items"][0]["title"], "still open")         # refreshed from bug
+        self.assertEqual(doc["placements"], {"10": "focus", "20": "next"})  # placements kept (reopen restores)
 
 
 class TestFetchBugs(unittest.TestCase):
