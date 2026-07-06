@@ -48,21 +48,28 @@ const DATA = {
         reviewers: ["#media-playback-reviewers"], tags: [], brief: null },
     ],
     my_bugs: [
-      // active (open patch) → In-progress zone, most-recent first
+      // Needs me: r- (needs-revision) and r+ (accepted)
       { type: "mybug", id: "222", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=222",
         title: "My crash bug", last_activity_days: 1, patch_status: "needs-revision",
-        tags: [{ text: "Playback", kind: "component" }], brief: null },
+        reviewer: "padenot", rev_url: "https://phabricator.services.mozilla.com/D1222",
+        tags: [{ text: "S2", kind: "severity" }, { text: "sec", kind: "security" }], brief: null },
       { type: "mybug", id: "223", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=223",
-        title: "Audio thing", last_activity_days: 5, patch_status: "accepted",
-        tags: [{ text: "Web Audio", kind: "component" }], brief: null },
+        title: "Ready to land thing", last_activity_days: 5, patch_status: "accepted",
+        reviewer: "bryce", rev_url: "https://phabricator.services.mozilla.com/D1223", tags: [], brief: null },
+      // waiting on reviewer
+      { type: "mybug", id: "225", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=225",
+        title: "Waiting review bug", last_activity_days: 3, patch_status: "in-review",
+        reviewer: "kershaw", rev_url: "https://phabricator.services.mozilla.com/D1225", tags: [], brief: null },
+      // wip (draft)
+      { type: "mybug", id: "226", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=226",
+        title: "Draft bug", last_activity_days: 2, patch_status: "wip", reviewer: "", tags: [], brief: null },
       // no patch → collapsed backlog
       { type: "mybug", id: "224", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=224",
-        title: "Old assigned bug", last_activity_days: 200, patch_status: "none",
-        tags: [{ text: "Playback", kind: "component" }], brief: null },
+        title: "Old assigned bug", last_activity_days: 200, patch_status: "none", tags: [], brief: null },
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 3 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 5 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -116,7 +123,7 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "My work", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "3", "3", "0"]);  // queue empty at start
+    assert.deepStrictEqual(counts, ["3", "3", "5", "0"]);  // queue empty at start
   });
 
   await check("needinfos 'act' zone = analyzed cards; stale NI is NOT a card", async () => {
@@ -189,24 +196,29 @@ async function main() {
     assert.ok((await page.textContent(`${rp} .ledger`)).includes("Old group review"), "shows the un-analyzed group review inline");
   });
 
-  await check("my work: In-progress focus (recent first) + collapsed backlog; searchable", async () => {
+  await check("my work: Needs-me cards (r-/r+) on top, waiting/wip ledgers, backlog collapsed", async () => {
     await page.click('.tab[data-k="my_bugs"]');
     await page.waitForSelector('.tabpanel[data-k="my_bugs"].active');
     const mp = '.tabpanel[data-k="my_bugs"]';
-    assert.strictEqual((await page.$$(`${mp} .cards .card`)).length, 0, "display-only, no cards");
-    assert.ok((await page.textContent(`${mp} .zone-h`)).includes("In progress"), "In-progress zone");
-    // active bugs (open patch) listed most-recent first (222 @1d before 223 @5d)
-    const active = await page.$$eval(`${mp} .ledger .lrow`, els => els.map(r => r.getAttribute('href')));
-    assert.ok(active[0].includes("=222") && active.some(h => h.includes("=223")), "active bugs, recent first");
-    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=222"] .pstatus`, e => e.textContent.trim()), "needs revision");
-    // backlog (no patch) is collapsed
+    // Needs-me = cards, colored by state; r- (red) before r+ (green)
+    assert.ok(await page.$(`${mp} .card.mw-red[data-id="222"]`), "r- card has red edge");
+    assert.ok(await page.$(`${mp} .card.mw-green[data-id="223"]`), "r+ card has green edge");
+    assert.strictEqual(await page.$eval(`${mp} .card[data-id="222"] .pstatus`, e => e.textContent.trim()), "r- revise");
+    assert.ok((await page.textContent(`${mp} .card[data-id="222"]`)).includes("padenot"), "shows who bounced it");
+    assert.ok((await page.$eval(`${mp} .card[data-id="222"] a.pl`, e => e.href)).includes("D1222"), "patch link");
+    // waiting + wip zones as ledgers
+    const txt = await page.textContent(mp);
+    assert.ok(txt.includes("In review") && txt.includes("WIP"), "waiting + wip zones");
+    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .pstatus`, e => e.textContent.trim()), "in review");
+    assert.ok(await page.$(`${mp} .lrow[href*="=226"]`), "wip row present");
+    // backlog (no patch) collapsed
     assert.ok(!(await page.isVisible(`${mp} .stale-list .lrow`)), "backlog collapsed");
     await page.click(`${mp} .stale-divider`);
     assert.ok((await page.textContent(`${mp} .stale-list`)).includes("224"), "backlog reveals 224");
     // search filters the whole section
-    await page.fill('#mbq', 'audio');
+    await page.fill('#mbq', 'crash');
     await page.waitForTimeout(120);
-    assert.ok((await page.textContent('#mb-body')).includes("223"), "search matches the Audio bug");
+    assert.ok((await page.textContent('#mb-body')).includes("222"), "search matches the crash bug");
   });
 
   await check("id link points at the bug and opens in a new tab", async () => {

@@ -213,11 +213,61 @@ def best_patch_status(revs: list) -> str:
     return max(statuses, key=lambda s: _PATCH_RANK.get(s, 0)) if statuses else "none"
 
 
-def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime) -> list:
-    """The "bugs I'm working on" section = union of bugs assigned to me and bugs
-    where I have an open revision. Assigned bugs carry full field tags; a bug that
-    only shows up via a revision gets limited info from the revision. Each item
-    gets its patch_status from my most-attention-worthy revision on it."""
+def pick_best_rev(revs: list):
+    """The revision whose status most wants attention (drives the card's pill)."""
+    return max(revs, key=lambda r: _PATCH_RANK.get(patch_status(r), 0)) if revs else None
+
+
+def rev_reviewer(rev: dict, names: dict) -> str:
+    """A display name for who the revision is on (to show 'r- from :X' / 'waiting
+    :X'). First resolvable reviewer; '' if none."""
+    for r in (((rev.get("attachments") or {}).get("reviewers") or {}).get("reviewers")) or []:
+        nm = (names or {}).get(r.get("reviewerPHID"))
+        if nm:
+            return nm
+    return ""
+
+
+def derive_mybug_tags(bug: dict) -> list:
+    """Tags for a bug I OWN — only what changes what I do. Drops the component
+    (everything I own is A/V — no signal) and low severities (S3/S4 are the
+    default; absence is the signal): keep sec, S1/S2, regression, crash."""
+    tags = []
+    if is_security(bug):
+        tags.append({"text": "sec", "kind": "security"})
+    if extract_severity(bug) in ("S1", "S2"):
+        tags.append({"text": extract_severity(bug), "kind": "severity"})
+    kws = bug.get("keywords") or []
+    if "regression" in kws:
+        tags.append({"text": "regression", "kind": "regression"})
+    if "crash" in kws:
+        tags.append({"text": "crash", "kind": "warn"})
+    return tags
+
+
+def _mybug_item(bid, title, last_activity_days, revs, tags, names):
+    best = pick_best_rev(revs)
+    return {
+        "type": "mybug",
+        "id": bid,
+        "url": bmo_url(bid),
+        "title": title,
+        "last_activity_days": last_activity_days,
+        "patch_status": patch_status(best) if best else "none",
+        "rev_url": phab_url(best["id"]) if best else None,
+        "reviewer": rev_reviewer(best, names) if best else "",
+        "tags": tags,
+        "brief": None,
+    }
+
+
+def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime, names: dict = None) -> list:
+    """"My work" = union of OPEN bugs assigned to me and bugs where I have an open
+    revision. patch_status (from my most-attention-worthy revision) drives the
+    stage: needs-revision/accepted = act, in-review = waiting, wip = draft,
+    none = untouched backlog. Assigned bugs carry owned-bug tags; a revision-only
+    bug gets limited info from the revision."""
+    names = names or {}
     revs_by_bug: dict[str, list] = {}
     for r in my_revisions or []:
         bid = _rev_bug_id(r)
@@ -228,34 +278,17 @@ def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime) -> lis
     for b in assigned_bugs or []:
         bid = str(b["id"])
         seen.add(bid)
-        revs = revs_by_bug.get(bid)
-        items.append({
-            "type": "mybug",
-            "id": bid,
-            "url": bmo_url(bid),
-            "title": b.get("summary") or "",
-            "age_days": age_days(b.get("last_change_time"), now),
-            "patch_status": best_patch_status(revs) if revs else "none",
-            "tags": derive_tags(b),
-            "brief": None,
-        })
-    # union: bugs I have a revision on but that aren't assigned to me (limited
-    # info — no BMO fields fetched here; the brief/tags come from enrichment)
+        items.append(_mybug_item(bid, b.get("summary") or "",
+                                 age_days(b.get("last_change_time"), now),
+                                 revs_by_bug.get(bid), derive_mybug_tags(b), names))
+    # union: bugs I have an open revision on but that aren't assigned to me
     for bid, revs in revs_by_bug.items():
         if bid in seen:
             continue
         title = (revs[0].get("fields") or {}).get("title") or ""
-        items.append({
-            "type": "mybug",
-            "id": bid,
-            "url": bmo_url(bid),
-            "title": title,
-            "age_days": min((age_days_epoch((r.get("fields") or {}).get("dateModified"), now)
-                             for r in revs), default=0),
-            "patch_status": best_patch_status(revs),
-            "tags": [],
-            "brief": None,
-        })
+        last = min((age_days_epoch((r.get("fields") or {}).get("dateModified"), now)
+                    for r in revs), default=0)
+        items.append(_mybug_item(bid, title, last, revs, [], names))
     return items
 
 
@@ -275,7 +308,7 @@ def build_base(user_email: str, needinfos: list, reviews: list, review_names: di
             "reviews": [review_base_item(r, review_names or {}, now, review_mine_phids, review_my_phid)
                         for r in (reviews or [])
                         if not (review_my_phid and (r.get("fields") or {}).get("authorPHID") == review_my_phid)],
-            "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now),
+            "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now, review_names),
         },
     }
 
@@ -392,12 +425,23 @@ def fetch_phabricator(token: str):
                            {"constraints": {"authorPHIDs": [phid],
                                             "statuses": ["draft", "needs-review",
                                                          "needs-revision", "accepted",
-                                                         "changes-planned"]}}, token)
+                                                         "changes-planned"]},
+                            "attachments": {"reviewers": 1}}, token)
                    .get("data") or [])
-        author_phids = sorted({(r.get("fields") or {}).get("authorPHID")
-                               for r in reviews if (r.get("fields") or {}).get("authorPHID")})
-        if author_phids:
-            users = conduit("user.search", {"constraints": {"phids": author_phids}}, token)
+        # resolve user names for review authors + all reviewer users (reviews +
+        # my_revs) — so cards can say "r- from :padenot" / "waiting :bryce"
+        user_phids = set()
+        for r in reviews:
+            ap = (r.get("fields") or {}).get("authorPHID")
+            if ap:
+                user_phids.add(ap)
+        for r in list(reviews) + list(my_revs):
+            for rv in (((r.get("attachments") or {}).get("reviewers") or {}).get("reviewers")) or []:
+                ph = rv.get("reviewerPHID")
+                if ph and ph.startswith("PHID-USER-"):
+                    user_phids.add(ph)
+        if user_phids:
+            users = conduit("user.search", {"constraints": {"phids": sorted(user_phids)}}, token)
             for u in users.get("data") or []:
                 f = u.get("fields") or {}
                 names[u.get("phid")] = f.get("username") or f.get("realName") or ""

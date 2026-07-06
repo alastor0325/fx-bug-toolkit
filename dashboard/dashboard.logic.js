@@ -13,9 +13,6 @@ const SECTIONS = [
   { key: "my_bugs",   label: "My work",              accent: "blue",  empty: "Nothing in progress." },
 ];
 
-// A "my work" bug is actively in progress when it has an open patch in one of
-// these states; anything else (no patch, or already landed) is backlog.
-const ACTIVE_PATCH = ["wip", "in-review", "needs-revision", "accepted"];
 
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
@@ -39,15 +36,17 @@ function waitingLabel(days) {
   return Math.floor(d / 30) + "mo";
 }
 
-// Patch-status pill for a "my bug" card: {label, cls}.
+// Patch-status pill for a "my work" item: {label, cls}. Color carries the state —
+// red = ball in MY court (r-), green = ready to land (r+), cyan = waiting on the
+// reviewer, blue = drafted (wip).
 function patchStatusMeta(status) {
   return ({
-    wip:               { label: "WIP",            cls: "blue" },
-    "in-review":       { label: "in review",      cls: "cyan" },
-    "needs-revision":  { label: "needs revision", cls: "amber" },
-    accepted:          { label: "accepted · land", cls: "green" },
-    landed:            { label: "landed",         cls: "" },
-    none:              { label: "no patch",       cls: "" },
+    "needs-revision":  { label: "r- revise",  cls: "red" },
+    accepted:          { label: "r+ land it", cls: "green" },
+    "in-review":       { label: "in review",  cls: "cyan" },
+    wip:               { label: "wip",        cls: "blue" },
+    landed:            { label: "landed",     cls: "" },
+    none:              { label: "no patch",   cls: "" },
   })[status] || { label: status || "unknown", cls: "" };
 }
 
@@ -123,12 +122,22 @@ function actionMeta(action) {
   return ACTION_META[action] || { label: action || "action", accent: "" };
 }
 
-// Split "my work" into actively-in-progress (has an open patch) vs backlog
-// (assigned, no active patch). Pure.
-function myBugsSplit(items) {
-  const active = [], backlog = [];
-  for (const b of items || []) (ACTIVE_PATCH.includes(b && b.patch_status) ? active : backlog).push(b);
-  return { active, backlog };
+// Split "my work" (open bugs) into four stages by patch_status:
+//   needsMe  — r- (needs-revision) or r+ (accepted): ball in my court → act
+//   waiting  — in-review: ball in the reviewer's court
+//   wip      — drafted, not submitted
+//   backlog  — no patch (assigned, untouched)
+// Pure.
+function myBugsZones(items) {
+  const z = { needsMe: [], waiting: [], wip: [], backlog: [] };
+  for (const b of items || []) {
+    const s = b && b.patch_status;
+    if (s === "needs-revision" || s === "accepted") z.needsMe.push(b);
+    else if (s === "in-review") z.waiting.push(b);
+    else if (s === "wip") z.wip.push(b);
+    else z.backlog.push(b);
+  }
+  return z;
 }
 
 // Sort bugs most-recently-active first (smallest last_activity_days on top), so
@@ -170,6 +179,6 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
-    analyzedSplit, filterLedger, ACTION_META, actionMeta, ACTIVE_PATCH, myBugsSplit, byRecency,
+    analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
   };
 }

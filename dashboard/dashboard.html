@@ -98,6 +98,17 @@
   .pstatus.cyan{color:var(--cyan); border-color:rgba(106,215,198,.28)}
   .pstatus.amber{color:var(--amber); border-color:rgba(255,180,84,.30)}
   .pstatus.green{color:var(--green); border-color:rgba(134,210,140,.30)}
+  .pstatus.red{color:var(--red); border-color:rgba(255,123,114,.35)}
+
+  /* "Needs me" cards — left edge red (r-) / green (r+ ready to land) */
+  .card.mw-red{border-left-color:var(--red)}
+  .card.mw-green{border-left-color:var(--green)}
+  .mw-card{padding:11px 13px}
+  .mw-title{margin-top:5px; font-size:13.5px; color:var(--ink); line-height:1.4}
+  .mw-sub{margin-top:8px; display:flex; align-items:center; gap:12px;
+    font-family:var(--mono); font-size:10.5px; color:var(--faint)}
+  .mw-sub a.pl{color:var(--cyan); text-decoration:none}
+  .mw-sub a.pl:hover{text-decoration:underline}
 
   .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
     border:1px dashed var(--line); border-radius:10px}
@@ -281,7 +292,11 @@ function cardHtml(it){
 function ledgerRowHtml(it){
   const chips = (it.tags||[]).slice(0,2).map(t=>`<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
   let meta;
-  if(it.type === "mybug"){ const m = patchStatusMeta(it.patch_status); meta = `<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`; }
+  if(it.type === "mybug"){
+    const m = patchStatusMeta(it.patch_status);
+    const who = it.reviewer ? `${escapeHtml(it.reviewer)} · ` : "";
+    meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> <span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
+  }
   else meta = `waiting ${waitingLabel(it.waiting_days)}`;
   return `<a class="lrow" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
     <span class="id">${escapeHtml(it.id)}</span>
@@ -333,18 +348,44 @@ function reviewsPanel(){
   return html;
 }
 
-// My work: an "In progress" focus zone (bugs with an open patch, most-recent
-// first) always on top, + a collapsed "assigned · no active patch" backlog.
-// Searchable. Display-only (a reference, not an action feed).
+// A "Needs me" card (r- / r+): the act-now set — shows the state pill, who it's
+// on, and a direct patch link. Display-only (no expand).
+function myBugCardHtml(it){
+  const m = patchStatusMeta(it.patch_status);
+  const border = it.patch_status === "accepted" ? "mw-green" : "mw-red";
+  const prefix = it.patch_status === "accepted" ? "r+" : "r-";
+  const who = it.reviewer ? `${prefix} :${escapeHtml(it.reviewer)}` : m.label;
+  const patch = it.rev_url ? `<a class="pl" href="${escapeHtml(it.rev_url)}" target="_blank" rel="noopener">patch ↗</a>` : "";
+  return `<article class="card ${border}" data-id="${escapeHtml(it.id)}">
+    <div class="mw-card">
+      <div class="crow">
+        <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
+        ${tagsHtml(it.tags)}
+        <span class="meta"><span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span></span>
+      </div>
+      <div class="mw-title">${escapeHtml(it.title)}</div>
+      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}</div>
+    </div>
+  </article>`;
+}
+
+// My work (open bugs): Needs-me cards (act) on top, then In-review·waiting and
+// WIP ledgers, then the untouched backlog collapsed. Searchable. Display-only.
 function myBugsBody(rows){
-  const { active, backlog } = myBugsSplit(rows);
-  const a = byRecency(active), bk = byRecency(backlog);
+  const z = myBugsZones(rows);
+  // needs-me: r- (needs-revision) above r+ (accepted), then oldest-first
+  const rrank = b => (b.patch_status === "needs-revision" ? 1 : 0);
+  const needsMe = z.needsMe.slice().sort((a,b) =>
+    rrank(b) - rrank(a) || (Number(b.last_activity_days)||0) - (Number(a.last_activity_days)||0));
   let h = "";
-  if(a.length) h += `<div class="zone-h">In progress · <b>${a.length}</b></div><div class="ledger">${a.map(ledgerRowHtml).join("")}</div>`;
-  if(bk.length){
+  if(needsMe.length) h += `<div class="zone-h">Needs me · <b>${needsMe.length}</b></div><div class="cards">${needsMe.map(myBugCardHtml).join("")}</div>`;
+  const waiting = byRecency(z.waiting), wip = byRecency(z.wip), backlog = byRecency(z.backlog);
+  if(waiting.length) h += `<div class="zone-h">In review · waiting · <b>${waiting.length}</b></div><div class="ledger">${waiting.map(ledgerRowHtml).join("")}</div>`;
+  if(wip.length) h += `<div class="zone-h">WIP · <b>${wip.length}</b></div><div class="ledger">${wip.map(ledgerRowHtml).join("")}</div>`;
+  if(backlog.length){
     const open = staleOpen.has('mybugs-backlog');
-    h += `<div class="stale-divider${open?' open':''}" data-stale="mybugs-backlog">${bk.length} assigned · no active patch <span class="caret">▸</span></div>
-      <div class="stale-list${open?' open':''}">${bk.map(ledgerRowHtml).join("")}</div>`;
+    h += `<div class="stale-divider${open?' open':''}" data-stale="mybugs-backlog">${backlog.length} assigned · no active patch <span class="caret">▸</span></div>
+      <div class="stale-list${open?' open':''}">${backlog.map(ledgerRowHtml).join("")}</div>`;
   }
   return h || `<div class="emptysec">no matches</div>`;
 }

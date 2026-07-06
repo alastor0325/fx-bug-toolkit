@@ -24,9 +24,11 @@ test("waitingLabel: today / days / weeks / months", () => {
   assert.strictEqual(L.waitingLabel(40), "1mo");
 });
 
-test("patchStatusMeta covers the patch lifecycle", () => {
-  assert.strictEqual(L.patchStatusMeta("needs-revision").label, "needs revision");
-  assert.strictEqual(L.patchStatusMeta("accepted").cls, "green");
+test("patchStatusMeta: state colors (r- red / r+ green / waiting cyan / wip blue)", () => {
+  assert.deepStrictEqual(L.patchStatusMeta("needs-revision"), { label: "r- revise", cls: "red" });
+  assert.deepStrictEqual(L.patchStatusMeta("accepted"), { label: "r+ land it", cls: "green" });
+  assert.strictEqual(L.patchStatusMeta("in-review").cls, "cyan");
+  assert.strictEqual(L.patchStatusMeta("wip").cls, "blue");
   assert.strictEqual(L.patchStatusMeta("none").label, "no patch");
   assert.strictEqual(L.patchStatusMeta("weird").label, "weird");
 });
@@ -100,17 +102,20 @@ test("filterLedger: matches id/title/tags, case-insensitive; empty query = all",
   assert.deepStrictEqual(L.filterLedger(items, "2").map(i => i.id), ["222"]);
 });
 
-test("myBugsSplit: active (open patch) vs backlog; byRecency puts recent on top", () => {
-  const items = [
-    { id: "1", patch_status: "none", last_activity_days: 3 },
-    { id: "2", patch_status: "needs-revision", last_activity_days: 9 },
-    { id: "3", patch_status: "accepted", last_activity_days: 1 },
-    { id: "4", patch_status: "landed", last_activity_days: 2 },
-  ];
-  const { active, backlog } = L.myBugsSplit(items);
-  assert.deepStrictEqual(active.map(b => b.id).sort(), ["2", "3"]);   // open patches
-  assert.deepStrictEqual(backlog.map(b => b.id).sort(), ["1", "4"]);  // none + landed
-  assert.deepStrictEqual(L.byRecency(active).map(b => b.id), ["3", "2"]);  // 1d before 9d
+test("myBugsZones: 4-way by patch_status; byRecency recent-first", () => {
+  const z = L.myBugsZones([
+    { id: "1", patch_status: "none" },
+    { id: "2", patch_status: "needs-revision" },
+    { id: "3", patch_status: "accepted" },
+    { id: "4", patch_status: "in-review" },
+    { id: "5", patch_status: "wip" },
+    { id: "6", patch_status: "landed" },
+  ]);
+  assert.deepStrictEqual(z.needsMe.map(b => b.id).sort(), ["2", "3"]);  // r- + r+ = act
+  assert.deepStrictEqual(z.waiting.map(b => b.id), ["4"]);              // in-review
+  assert.deepStrictEqual(z.wip.map(b => b.id), ["5"]);
+  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["1", "6"]);  // none + landed
+  assert.deepStrictEqual(L.byRecency([{ id: "a", last_activity_days: 9 }, { id: "b", last_activity_days: 1 }]).map(b => b.id), ["b", "a"]);
 });
 
 test("totalItems sums across sections", () => {

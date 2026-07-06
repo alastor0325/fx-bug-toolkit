@@ -136,19 +136,33 @@ class TestPatchStatus(unittest.TestCase):
 class TestMyBugs(unittest.TestCase):
     def test_union_assigned_and_revision_only(self):
         assigned = [bug(id=10, summary="assigned one")]
-        my_revs = [rev(1, "needs-revision", bugid=10),      # patch on an assigned bug
+        my_revs = [rev(1, "needs-revision", bugid=10, reviewers=["PHID-USER-p"]),  # patch on assigned bug
                    rev(2, "accepted", bugid=99, title="Bug 99 - rev only")]  # revision-only bug
-        items = collect.build_my_bugs(assigned, my_revs, NOW)
+        items = collect.build_my_bugs(assigned, my_revs, NOW, {"PHID-USER-p": "padenot"})
         by_id = {i["id"]: i for i in items}
         self.assertEqual(set(by_id), {"10", "99"})               # union
         self.assertEqual(by_id["10"]["patch_status"], "needs-revision")
-        self.assertTrue(by_id["10"]["tags"])                     # assigned bug has field tags
+        self.assertEqual(by_id["10"]["reviewer"], "padenot")     # resolved from names
+        self.assertTrue(by_id["10"]["rev_url"].endswith("/D1"))  # patch link
+        self.assertIn("last_activity_days", by_id["10"])
         self.assertEqual(by_id["99"]["patch_status"], "accepted")
         self.assertEqual(by_id["99"]["tags"], [])                # revision-only: limited info
 
     def test_assigned_without_patch(self):
         items = collect.build_my_bugs([bug(id=5)], [], NOW)
         self.assertEqual(items[0]["patch_status"], "none")
+
+    def test_derive_mybug_tags_drops_component_and_low_severity(self):
+        tags = collect.derive_mybug_tags(bug(component="Audio/Video: Playback", severity="S2",
+                                             keywords=["regression", "crash"], groups=["core-security"]))
+        kinds = {(t["kind"], t["text"]) for t in tags}
+        self.assertIn(("security", "sec"), kinds)
+        self.assertIn(("severity", "S2"), kinds)
+        self.assertIn(("regression", "regression"), kinds)
+        self.assertIn(("warn", "crash"), kinds)
+        self.assertFalse(any(t["kind"] == "component" for t in tags), "component dropped")
+        # S3/S4 are the default → dropped
+        self.assertEqual(collect.derive_mybug_tags(bug(severity="S3", keywords=[], groups=[])), [])
 
 
 class TestBuildBaseAndEnrichment(unittest.TestCase):
