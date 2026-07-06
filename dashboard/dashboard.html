@@ -116,6 +116,13 @@
     font-family:var(--mono); font-size:11.5px; color:var(--dim)}
   .mw-sub a.pl{color:var(--cyan); text-decoration:none}
   .mw-sub a.pl:hover{text-decoration:underline}
+  /* Focus cards are display-only, so make each row's cards equal height (unlike
+     the expandable needinfos/reviews cards, which stay align-start) and pin the
+     meta line to the bottom so short and tall cards line up. */
+  .tabpanel[data-k="my_bugs"] .cards{align-items:stretch}
+  .tabpanel[data-k="my_bugs"] .card{display:flex}
+  .tabpanel[data-k="my_bugs"] .mw-card{flex:1; display:flex; flex-direction:column}
+  .tabpanel[data-k="my_bugs"] .mw-sub{margin-top:auto}
 
   .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
     border:1px dashed var(--line); border-radius:10px}
