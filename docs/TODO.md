@@ -63,6 +63,12 @@ Skills exist only in the dev repo/branch; released users never receive them.
       disagrees with status (never auto-moves). Closed bugs always removed
       (collector re-vets the overlay on `base`; assemble filters). Focus = cards,
       Next = visible ledger, Backlog = collapsed ledger.
+- [ ] **Follow-up (🟢 minor)** — inline "removed — undo" for the ✕ *dismiss*
+      (not-assigned) branch. The ✕ is now hover/focus-revealed + isolated far-right
+      + keyboard `x`, so accidental dismiss is unlikely; a 6s inline undo (defer the
+      dismiss POST, offer restore via /my-bugs/add with the prior section) would
+      still be a nice safety net. Deferred — needs an un-dismiss that also clears
+      the id from the overlay `dismissed` list. (2026-07-06)
 
 ---
 

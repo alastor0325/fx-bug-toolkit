@@ -297,15 +297,17 @@ async function main() {
     await page.click(`${mp} .lrow[data-id="228"] .mbreset`);
     await page.waitForTimeout(200);
     assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] [data-id="228"]`), "228 reset back to Focus");
-    // ✕ on an ASSIGNED Focus bug (222) → demoted to Backlog (not removed). Backlog
-    // is already expanded (staleOpen persists), so the row shows without re-toggling.
-    await page.click(`${mp} .card[data-id="222"] .mbx`);
+    // close via keyboard x (mirrors the ✕): assigned 222 → Backlog (not removed).
+    // Backlog is already expanded (staleOpen persists), so the row shows.
+    await page.focus(`${mp} .card[data-id="222"]`);
+    await page.keyboard.press('x');
     await page.waitForTimeout(200);
-    assert.ok(await page.isVisible(`${mp} .stale-list [data-id="222"]`), "assigned bug ✕ → Backlog");
-    // ✕ on a NON-assigned Focus bug (225) → removed from My work entirely
-    await page.click(`${mp} .secdrop[data-section="focus"] [data-id="225"] .mbx`);
+    assert.ok(await page.isVisible(`${mp} .stale-list [data-id="222"]`), "assigned bug close → Backlog");
+    // non-assigned 225 → removed from My work entirely
+    await page.focus(`${mp} .secdrop[data-section="focus"] .card[data-id="225"]`);
+    await page.keyboard.press('x');
     await page.waitForTimeout(200);
-    assert.ok(!(await page.$(`${mp} [data-id="225"]`)), "non-assigned bug ✕ → gone");
+    assert.ok(!(await page.$(`${mp} [data-id="225"]`)), "non-assigned bug close → gone");
     // search still filters
     await page.fill('#mbq', 'crash');
     await page.waitForTimeout(120);

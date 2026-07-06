@@ -192,10 +192,23 @@
   .mb-add input::placeholder{color:var(--faint)}
   /* a bug you pinned by hand: subtle amber chip + an ✕ to unpin */
   .chip.pin{color:var(--amber-dim); border-color:rgba(255,180,84,.30)}
-  /* ✕ close on any My-work bug: demote to Backlog if it's assigned to me, else remove */
-  .mbx{flex:none; margin-left:2px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
-    font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer}
+  /* ✕ close on any My-work bug: demote to Backlog if assigned to me, else remove.
+     Destructive, so keep it OUT of the scan path + away from patch↗/reset: it sits
+     at the far right with a clear gap, and is hidden (non-interactive) until you
+     hover/focus the row — you can't mis-hit it while just scanning or opening a bug. */
+  .mbx{flex:none; margin-left:14px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+    font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer;
+    opacity:0; pointer-events:none}
+  .mw-sub .mbx{margin-left:auto}   /* card: opposite (bottom-right) corner from patch↗ */
   .mbx:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
+  @media (prefers-reduced-motion:no-preference){ .mbx{transition:opacity .12s,color .12s,border-color .12s} }
+  @media (hover:hover){                          /* reveal on hover/focus (mouse) */
+    .lrow:hover .mbx,.lrow:focus-within .mbx,.card:hover .mbx,.card:focus-within .mbx{opacity:1; pointer-events:auto}
+  }
+  @media (hover:none){ .mbx{opacity:1; pointer-events:auto} }   /* touch: always reachable */
+  /* keyboard focus on a My-work row/card (also reveals ✕ via :focus-within; press x to close) */
+  .tabpanel[data-k="my_bugs"] .lrow:focus-visible,
+  .tabpanel[data-k="my_bugs"] .card:focus-visible{outline:none; box-shadow:0 0 0 2px var(--amber-wash); border-radius:8px}
   @media (max-width:640px){ .lrow .lchips{display:none} }
 
   /* queue tab view */
@@ -668,12 +681,16 @@ $('#panels').addEventListener('keydown', e=>{
     const sec = (document.getElementById('addsec')||{}).value || 'next';
     addMyBug(e.target.value, sec); e.target.value = ''; return;
   }
-  if(e.key !== '[' && e.key !== ']') return;
+  if(e.key !== '[' && e.key !== ']' && e.key !== 'x' && e.key !== 'Delete') return;
   const el = e.target.closest('.tabpanel[data-k="my_bugs"] .lrow[data-id], .tabpanel[data-k="my_bugs"] .card[data-id]');
   if(!el) return;
   const item = ((DATA.sections&&DATA.sections.my_bugs)||[]).find(b=>String(b.id)===String(el.dataset.id));
   if(!item) return;
   e.preventDefault();
+  if(e.key === 'x' || e.key === 'Delete'){                 // keyboard equivalent of ✕
+    if(item.assigned) placeBug(el.dataset.id, 'backlog'); else dismissBug(el.dataset.id);
+    return;
+  }
   const cur = sectionOf(item, (DATA&&DATA.placements)||{});
   let i = MYWORK_ORDER.indexOf(cur);
   i = e.key === '[' ? Math.max(0,i-1) : Math.min(MYWORK_ORDER.length-1,i+1);
