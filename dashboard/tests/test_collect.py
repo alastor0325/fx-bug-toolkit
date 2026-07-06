@@ -217,6 +217,21 @@ class TestMyBugs(unittest.TestCase):
         self.assertTrue(collect.is_meta(bug(keywords=["meta", "regression"])))
         self.assertFalse(collect.is_meta(bug(keywords=["regression"])))
 
+    def test_user_mybug_item(self):
+        # a hand-added bug: real summary + tags, no patch (→ "No patch yet"), marked added
+        it = collect.user_mybug_item("555", {"summary": "Pinned bug", "severity": "S2",
+                                             "keywords": ["regression"], "is_open": True,
+                                             "last_change_time": "2026-07-01T00:00:00Z"}, NOW)
+        self.assertEqual((it["id"], it["type"], it["title"]), ("555", "mybug", "Pinned bug"))
+        self.assertEqual(it["patch_status"], "none")
+        self.assertTrue(it["added"])
+        self.assertIn({"text": "S2", "kind": "severity"}, it["tags"])
+        self.assertTrue(it["url"].endswith("id=555"))
+        # unknown bug (fetch failed) → fallback title, still added
+        fb = collect.user_mybug_item("777", None, NOW)
+        self.assertEqual(fb["title"], "bug 777")
+        self.assertTrue(fb["added"])
+
     def test_derive_mybug_tags_drops_component_and_low_severity(self):
         tags = collect.derive_mybug_tags(bug(component="Audio/Video: Playback", severity="S2",
                                              keywords=["regression", "crash"], groups=["core-security"]))

@@ -155,7 +155,20 @@
   .lrow .lmeta{font-family:var(--mono); font-size:11.5px; color:var(--dim); flex:none; white-space:nowrap}
   .lrow .lmeta .pstatus{font-size:10px}
 
-  .mb-search{flex:1 1 auto; max-width:none; margin-bottom:10px}
+  /* My work toolbar: search + "add a bug" side by side */
+  .mb-tools{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap}
+  .mb-tools .mb-search{flex:1 1 320px; max-width:none; margin-bottom:0}
+  .mb-add{flex:0 1 360px; position:relative}
+  .mb-add input{width:100%; height:34px; padding:0 12px; border-radius:7px; background:var(--raised);
+    border:1px solid var(--line); color:var(--ink); font-family:var(--mono); font-size:12.5px; outline:none;
+    transition:border-color .15s, box-shadow .15s}
+  .mb-add input:focus{border-color:var(--amber-dim); box-shadow:0 0 0 3px var(--amber-wash)}
+  .mb-add input::placeholder{color:var(--faint)}
+  /* a bug you pinned by hand: subtle amber chip + an ✕ to unpin */
+  .chip.pin{color:var(--amber-dim); border-color:rgba(255,180,84,.30)}
+  .lrow .mbrm{flex:none; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+    font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer}
+  .lrow .mbrm:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
   @media (max-width:640px){ .lrow .lchips{display:none} }
 
   /* queue tab view */
@@ -303,7 +316,8 @@ function cardHtml(it){
 }
 // compact one-line reference row (stale needinfos, my-bugs backlog)
 function ledgerRowHtml(it){
-  const chips = tagsHtml(it.tags, 2);
+  const pin = it.added ? `<span class="chip pin" title="you added this bug">pinned</span>` : "";
+  const chips = pin + tagsHtml(it.tags, 2);
   let meta;
   if(it.type === "mybug"){
     const m = patchStatusMeta(it.patch_status);
@@ -314,11 +328,14 @@ function ledgerRowHtml(it){
     meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> ${rc?`<span class="rcount">${rc} r+</span>`:""}${pill}`;
   }
   else meta = `waiting ${waitingLabel(it.waiting_days)}`;
+  // a span (not a button) so it's valid inside the row's <a>; the click handler
+  // catches .mbrm before the anchor navigates.
+  const rm = it.added ? `<span class="mbrm" data-id="${escapeHtml(it.id)}" title="remove from My work">✕</span>` : "";
   return `<a class="lrow" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
     <span class="id">${escapeHtml(it.id)}</span>
     <span class="lchips">${chips}</span>
     <span class="ltitle">${escapeHtml(it.title)}</span>
-    <span class="lmeta">${meta}</span></a>`;
+    <span class="lmeta">${meta}</span>${rm}</a>`;
 }
 
 // A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
@@ -377,7 +394,7 @@ function myBugCardHtml(it){
     <div class="mw-card">
       <div class="crow">
         <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
-        ${tagsHtml(it.tags)}
+        ${it.added?`<span class="chip pin" title="you added this bug">pinned</span>`:""}${tagsHtml(it.tags)}
         <span class="meta">${rc?`<span class="rcount" title="${rc} parts accepted">${rc} r+</span>`:""}<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span></span>
       </div>
       <div class="mw-title">${escapeHtml(it.title)}</div>
@@ -414,8 +431,12 @@ function myBugsBody(rows){
 }
 function myBugsPanel(){
   const items = (DATA.sections && DATA.sections.my_bugs) || [];
-  return `<div class="search mb-search"><input id="mbq" type="text" spellcheck="false" autocomplete="off"
-      placeholder="search ${items.length} bugs — id, title, component" value="${escapeHtml(myBugsQuery)}"></div>
+  return `<div class="mb-tools">
+      <div class="search mb-search"><input id="mbq" type="text" spellcheck="false" autocomplete="off"
+        placeholder="search ${items.length} bugs — id, title, component" value="${escapeHtml(myBugsQuery)}"></div>
+      <div class="mb-add"><input id="addbug" type="text" spellcheck="false" autocomplete="off"
+        placeholder="+ add a bug — id or URL, then Enter"></div>
+    </div>
     <div id="mb-body">${myBugsBody(filterLedger(items, myBugsQuery))}</div>`;
 }
 
@@ -554,6 +575,8 @@ $('#panels').addEventListener('click', e=>{
   }
   const rm = e.target.closest('.rm');
   if(rm){ removeFromQueue(rm.closest('.qrow')); return; }  // unqueue
+  const mbrm = e.target.closest('.mbrm');                  // unpin a My-work bug
+  if(mbrm){ e.preventDefault(); removeMyBug(mbrm.dataset.id); return; }
   if(e.target.closest('a')) return;                     // ledger rows + links open normally
   const btn = e.target.closest('.abtn');
   if(btn){ queueAction(btn); return; }
@@ -581,6 +604,19 @@ $('#panels').addEventListener('input', e=>{
   if(!body) return;
   body.innerHTML = myBugsBody(filterLedger((DATA.sections && DATA.sections.my_bugs) || [], myBugsQuery));
 });
+// add a bug to My work: type an id or BMO URL in the add box, press Enter
+$('#panels').addEventListener('keydown', e=>{
+  if(e.target.id === 'addbug' && e.key === 'Enter'){ addMyBug(e.target.value); e.target.value = ''; }
+});
+function addMyBug(ref){
+  ref = (ref||'').trim(); if(!ref) return;
+  fetch('/my-bugs/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ref})})
+    .then(r=>r.ok?r.json():null).then(()=>refreshData());
+}
+function removeMyBug(id){
+  fetch('/my-bugs/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})})
+    .then(r=>r.ok?r.json():null).then(()=>refreshData());
+}
 function queueAction(btn){
   const card = btn.closest('.card');
   const it = findItem(card.dataset.id);

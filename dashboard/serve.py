@@ -22,19 +22,26 @@ from __future__ import annotations
 import http.server
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
-DIR = Path(__file__).resolve().parent
+import store    # storage layer: data dir, atomic writes, assemble/overlay
+import collect  # fetch_bugs + user_mybug_item for user-added My work bugs
+
+DIR = Path(__file__).resolve().parent            # the package (code) dir
 # Shared theme lives one level up (assets/), same relative layout in-repo and in
 # the installed plugin cache — so both the dashboard and viewer serve /theme.css.
 ASSETS_DIR = DIR.parent / "assets"
-RUN = DIR / ".run"
+# Runtime state lives under FX_DASHBOARD_DIR (~/.fx-bug-toolkit/dashboard), NOT
+# the package — same convention as the rest of the toolkit.
+RUN = store.run_dir()
 PIDFILE = RUN / "dashboard.pid"
 PORTFILE = RUN / "dashboard.port"
 LOGFILE = RUN / "dashboard.log"
@@ -43,10 +50,6 @@ DEFAULT_PORT = 9010   # fixed default; FX_DASHBOARD_PORT overrides, busy → fre
 
 # URLs served from the shared assets/ dir rather than the dashboard's own dir.
 SHARED_ASSETS = frozenset({"/theme.css"})
-
-# Card buttons POST here; the drain skill reads it. Serving never runs Claude —
-# it only appends the request to this file.
-QUEUE_FILE = DIR / "queue.json"
 
 
 def queue_append(entries: list, entry: dict) -> list:
@@ -65,7 +68,15 @@ def queue_remove(entries: list, item_id, action) -> list:
             if not (str(e.get("id")) == str(item_id) and e.get("action") == action)]
 
 
-_queue_lock = threading.Lock()   # serialize concurrent POST /queue appends
+_queue_lock = threading.Lock()     # serialize concurrent POST /queue appends
+_overlay_lock = threading.Lock()   # serialize concurrent My-work add/remove
+
+
+def parse_bug_id(ref: str):
+    """Pull a bug id out of a bare id or a BMO URL (…show_bug.cgi?id=NNN). Returns
+    the digits, or None if there's no plausible id."""
+    m = re.search(r"(\d{3,})", str(ref or ""))
+    return m.group(1) if m else None
 
 
 def env_port() -> int | None:
@@ -161,31 +172,68 @@ class _DashboardHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store, must-revalidate")
         super().end_headers()
 
-    def do_POST(self):
-        # The only write paths: append (/queue) or remove (/unqueue) a card
-        # action. No Claude call — the drain skill processes the queue separately.
+    def _send_json(self, obj, code=200):
+        body = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        # Data endpoints are assembled live from the per-section files + user
+        # overlay (see store.assemble); everything else is a static file (the page,
+        # its JS, /theme.css). Before the first generate there are no files, so the
+        # data endpoints 404 and the page shows its processing state.
         route = self.path.split("?", 1)[0].rstrip("/")
-        if route not in ("/queue", "/unqueue"):
-            self.send_error(404)
-            return
+        if route == "/data.json":
+            return self._send_json(store.assemble()) if store.generated() else self.send_error(404)
+        if route == "/status.json":
+            return self._send_json(store.status_payload()) if store.generated() else self.send_error(404)
+        if route == "/queue.json":
+            return self._send_json(store.read_json(store.queue_path(), []))
+        if route == "/results.json":
+            return self._send_json(store.read_json(store.results_path(), {}))
+        return super().do_GET()
+
+    def do_POST(self):
+        # Write paths (never call Claude): queue a card action (/queue, /unqueue —
+        # the drain skill processes it later) or pin/unpin a My-work bug
+        # (/my-bugs/add, /my-bugs/remove — into the user overlay).
+        route = self.path.split("?", 1)[0].rstrip("/")
         length = int(self.headers.get("Content-Length") or 0)
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
         except ValueError:
             self.send_error(400, "invalid JSON")
             return
-        with _queue_lock:
-            try:
-                existing = json.loads(QUEUE_FILE.read_text())
-            except (OSError, ValueError):
-                existing = []
-            updated = (queue_append(existing, body) if route == "/queue"
-                       else queue_remove(existing, body.get("id"), body.get("action")))
-            QUEUE_FILE.write_text(json.dumps(updated, indent=2))
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"ok":true}')
+        if route in ("/queue", "/unqueue"):
+            with _queue_lock:
+                existing = store.read_json(store.queue_path(), [])
+                updated = (queue_append(existing, body) if route == "/queue"
+                           else queue_remove(existing, body.get("id"), body.get("action")))
+                store.atomic_write_json(store.queue_path(), updated)
+            return self._send_json({"ok": True})
+        if route == "/my-bugs/add":
+            bid = parse_bug_id(body.get("id") or body.get("ref"))
+            if not bid:
+                self.send_error(400, "no bug id")
+                return
+            detail = collect.fetch_bugs([bid], os.environ.get("BUGZILLA_API_KEY") or "").get(bid)
+            item = collect.user_mybug_item(bid, detail, datetime.now(timezone.utc))
+            with _overlay_lock:
+                overlay = store.read_overlay()
+                if not any(str(i.get("id")) == bid for i in overlay):
+                    overlay.append(item)
+                    store.write_overlay(overlay)
+            return self._send_json({"ok": True, "item": item})
+        if route == "/my-bugs/remove":
+            bid = parse_bug_id(body.get("id"))
+            with _overlay_lock:
+                overlay = [i for i in store.read_overlay() if str(i.get("id")) != bid]
+                store.write_overlay(overlay)
+            return self._send_json({"ok": True})
+        self.send_error(404)
 
     def log_message(self, *args):
         pass  # quiet — the detached child's stdout/stderr go to the logfile
@@ -201,7 +249,7 @@ def start() -> int:
     # Serve-only: generation is a separate, explicit step (the dashboard-generate
     # skill). Opening the board never triggers the heavy pass — it just serves the
     # last generated data.json (or the page's processing state if none exists yet).
-    RUN.mkdir(exist_ok=True)
+    RUN.mkdir(parents=True, exist_ok=True)
     pid = running_pid()
     port, reuse = resolve_port(env_port(), pid is not None, read_port())
     if reuse:

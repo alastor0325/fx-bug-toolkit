@@ -17,11 +17,10 @@ import urllib.request
 from pathlib import Path
 
 DASH = Path(__file__).resolve().parents[1]  # dashboard/tests -> dashboard/
-# data.json is git-ignored (private) — the test writes its own fixture instead of
-# copying the live file, so it works in a clean checkout / CI.
-LAUNCHER_FILES = ["dashboard.html", "dashboard.logic.js", "favicon.svg", "serve.py"]
-SAMPLE_DATA = '{"status":"ready","user":"you@example.com","generated_at":"2026-07-04T00:00:00Z",' \
-              '"sections":{"needinfos":[],"reviews":[],"my_bugs":[]}}'
+# serve.py imports store + collect, so the isolated copy needs them too. Data no
+# longer lives beside the code — it's under FX_DASHBOARD_DIR (a temp dir here).
+LAUNCHER_FILES = ["dashboard.html", "dashboard.logic.js", "favicon.svg",
+                  "serve.py", "store.py", "collect.py"]
 
 sys.path.insert(0, str(DASH))
 import serve  # noqa: E402
@@ -94,19 +93,34 @@ class TestPortAndRouteHelpers(unittest.TestCase):
 
 
 class TestServeLauncher(unittest.TestCase):
+    def _post(self, url, obj):
+        req = urllib.request.Request(url, data=json.dumps(obj).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status, json.loads(r.read())
+
     def test_start_serves_then_stops(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
             root = Path(d)
             web = root / "web"; web.mkdir()
             for f in LAUNCHER_FILES:
                 shutil.copy(DASH / f, web / f)
-            (web / "data.json").write_text(SAMPLE_DATA)   # private file → inline fixture
             # serve.py routes /theme.css to ../assets — stage it as a sibling of web/
             assets = root / "assets"; assets.mkdir()
             shutil.copy(DASH.parent / "assets" / "theme.css", assets / "theme.css")
+            # data lives under FX_DASHBOARD_DIR (per-section files + manifest), not
+            # beside the code — seed a ready board there.
+            ddir = root / "data"; ddir.mkdir()
+            (ddir / "manifest.json").write_text(
+                '{"user":"you@example.com","sections":["needinfos","reviews","my_bugs"],'
+                '"schema":2,"generated_at":"2026-07-04T00:00:00Z"}')
+            for k in ("needinfos", "reviews", "my_bugs"):
+                (ddir / f"{k}.json").write_text(
+                    '{"status":"ready","generated_at":"2026-07-04T00:00:00Z","items":[]}')
 
             port = free_port()
-            env = dict(os.environ, FX_DASHBOARD_PORT=str(port))
+            env = dict(os.environ, FX_DASHBOARD_PORT=str(port), FX_DASHBOARD_DIR=str(ddir),
+                       FX_BUGZILLA_BASE="http://127.0.0.1:1")   # add: fail fast, no real network
             serve_py = str(web / "serve.py")
             base = f"http://127.0.0.1:{port}"
             try:
@@ -128,7 +142,7 @@ class TestServeLauncher(unittest.TestCase):
                 st, css = get(base + "/theme.css")
                 self.assertEqual(st, 200)
                 self.assertIn(b"--amber", css)
-                # data.json served + valid (v3 schema: sections)
+                # /data.json is assembled live from the per-section files
                 _, raw = get(base + "/data.json")
                 self.assertIn("sections", json.loads(raw))
 
@@ -136,17 +150,24 @@ class TestServeLauncher(unittest.TestCase):
                                     capture_output=True, text=True, timeout=10)
                 self.assertIn("running", st.stdout)
 
-                # POST /queue appends a card action to queue.json (no Claude)
-                body = json.dumps({"id": "1912033", "action": "draft-reply",
-                                   "type": "ni", "status": "queued"}).encode()
-                req = urllib.request.Request(base + "/queue", data=body,
-                                             headers={"Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=5) as r:
-                    self.assertEqual(r.status, 200)
-                _, qraw = get(base + "/queue.json")
-                q = json.loads(qraw)
-                self.assertEqual(q[0]["id"], "1912033")
-                self.assertEqual(q[0]["action"], "draft-reply")
+                # POST /queue appends a card action to queue.json in the data dir
+                self.assertEqual(self._post(base + "/queue",
+                    {"id": "1912033", "action": "draft-reply", "type": "ni", "status": "queued"})[0], 200)
+                q = json.loads(get(base + "/queue.json")[1])
+                self.assertEqual((q[0]["id"], q[0]["action"]), ("1912033", "draft-reply"))
+                self.assertTrue((ddir / "queue.json").exists(), "queue written to the data dir, not the pkg")
+
+                # POST /my-bugs/add pins a bug into My work (network unreachable →
+                # fetch_bugs degrades, item added with a fallback title)
+                self.assertEqual(self._post(base + "/my-bugs/add", {"ref": "998877"})[0], 200)
+                data = json.loads(get(base + "/data.json")[1])
+                added = [b for b in data["sections"]["my_bugs"] if str(b["id"]) == "998877"]
+                self.assertEqual(len(added), 1, "added bug appears in my_bugs")
+                self.assertTrue(added[0]["added"], "carries the added marker")
+                # POST /my-bugs/remove unpins it
+                self.assertEqual(self._post(base + "/my-bugs/remove", {"id": "998877"})[0], 200)
+                data = json.loads(get(base + "/data.json")[1])
+                self.assertFalse(any(str(b["id"]) == "998877" for b in data["sections"]["my_bugs"]))
             finally:
                 subprocess.run([sys.executable, serve_py, "stop"], env=env,
                                capture_output=True, text=True, timeout=10)

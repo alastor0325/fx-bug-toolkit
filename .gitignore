@@ -6,11 +6,11 @@ __pycache__/
 viewer/index.json
 viewer/.run/
 
-# dashboard: collected locally from Bugzilla/Phabricator — private, never commit
-dashboard/data.json
-dashboard/status.json
-dashboard/queue.json
-dashboard/results.json
+# dashboard runtime data (collected locally, private) now lives OUTSIDE the repo,
+# under $FX_DASHBOARD_DIR (default ~/.fx-bug-toolkit/dashboard) — nothing to ignore
+# in the package. These stale-path guards remain only in case a dev points
+# FX_DASHBOARD_DIR back at the package dir.
+dashboard/*.json
 dashboard/.run/
 
 # test deps (one node package at the repo root serves tests/ and viewer/tests/)

@@ -43,6 +43,24 @@ Skills exist only in the dev repo/branch; released users never receive them.
       it overcounts (e.g. 255 when only ~1 my-bug is active). Count only the
       active my-bugs (revise + waiting + wip), not the parked backlog, in that
       summary. (2026-07-05)
+- [x] **Storage refactor — data out of the package, split + race-safe.** (2026-07-06)
+      Runtime data now lives under `$FX_DASHBOARD_DIR` (default
+      `~/.fx-bug-toolkit/dashboard/`), never `dashboard/`. New `store.py`: atomic
+      writes (temp + os.replace), per-section files (`needinfos/reviews/my_bugs.json`,
+      each `{status, generated_at, items}`) + `manifest.json`, a user overlay
+      (`my_bugs.user.json`) the collector never touches, and `assemble()` (server
+      merges sections + overlay into `/data.json`, derives `/status.json`). No
+      cross-process locks (atomic + one-writer-per-file); in-proc lock for the
+      server's own appends. serve.py adds `/my-bugs/add` + `/my-bugs/remove`; the
+      page has a "+ add a bug" box + pin/remove on added rows.
+- [ ] **Queued: three purpose-driven My-work sections (Focus / Next / Backlog).**
+      (2026-07-06) Replace the patch_status/recency zones with 3 sections a bug is
+      *assigned* to. Default placement by the old rules (patch+in-review→Focus;
+      patch+no-review→Next; else→Backlog); user can add a bug into a chosen section
+      and **drag bugs between sections** (override persisted in the overlay). Closed
+      bugs always removed from every section. Collector emits general/flexible
+      per-bug signals so the dashboard can place + re-place bugs. Discuss layout
+      with a fresh UX review first. Each part follows the dev loop.
 
 ---
 

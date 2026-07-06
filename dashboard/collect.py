@@ -38,9 +38,9 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+import store   # dashboard storage layer (paths, atomic writes, per-section files)
+
 DIR = Path(__file__).resolve().parent
-OUT = Path(os.environ.get("FX_DASHBOARD_DATA_OUT") or (DIR / "data.json"))
-STATUS_OUT = Path(os.environ.get("FX_DASHBOARD_STATUS_OUT") or (DIR / "status.json"))
 PHAB_BASE = os.environ.get("FX_PHABRICATOR_BASE") or "https://phabricator.services.mozilla.com"
 
 BMO_REST = os.environ.get("FX_BUGZILLA_BASE") or "https://bugzilla.mozilla.org"
@@ -535,9 +535,28 @@ def fetch_phabricator(token: str):
         return [], {}, [], set(), None
 
 
-def write_json(path: Path, data: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+def write_json(path: Path, data) -> None:
+    """Atomic JSON write (temp + os.replace) so a polling reader never sees a torn
+    file. Thin wrapper over the storage layer."""
+    store.atomic_write_json(Path(path), data)
+
+
+def user_mybug_item(bid, detail: dict, now: datetime) -> dict:
+    """A minimal "my work" item for a bug the USER pinned by hand. No Phabricator
+    lookup (patch_status "none" → it shows under "No patch yet"); a later collector
+    run fills in real patch status if the bug turns out to be mine. The add is
+    honored even for a meta/closed bug — the user asked for it on purpose."""
+    detail = detail or {}
+    return {
+        "type": "mybug", "id": str(bid), "url": bmo_url(bid),
+        "title": detail.get("summary") or f"bug {bid}",
+        "last_activity_days": age_days(detail.get("last_change_time"), now),
+        "patch_status": "none", "patch_accepted": 0, "patch_total": 0,
+        "rev_url": None, "reviewer": "",
+        "tags": derive_mybug_tags(detail),
+        "is_open": detail.get("is_open", True),
+        "added": True, "brief": None,
+    }
 
 
 def resolve_user_email(whoami_run=None) -> str:
@@ -582,22 +601,38 @@ def cmd_base() -> int:
 
     base = build_base(user_email, needinfos, reviews, names, assigned, my_revs, now,
                       mine_phids, my_phid, rev_bug_details)
-    write_json(OUT, base)
-    write_json(STATUS_OUT, status_payload(base, "running"))
-    print(f"wrote base {OUT} — {len(base['sections']['needinfos'])} NI, "
-          f"{len(base['sections']['reviews'])} reviews, "
-          f"{len(base['sections']['my_bugs'])} my-bugs (status: running)")
+    now_iso = iso_utc(now)
+    secs = base["sections"]
+    # Split per section: my_bugs is display-only (no LLM) → ready immediately;
+    # needinfos/reviews still need the brief pass → running until finalize. Each
+    # is its own atomic file, so a later regen can touch one without the others.
+    store.write_section("needinfos", secs["needinfos"], "running", now_iso)
+    store.write_section("reviews", secs["reviews"], "running", now_iso)
+    store.write_section("my_bugs", secs["my_bugs"], "ready", now_iso)
+    store.atomic_write_json(store.manifest_path(), {
+        "user": user_email, "sections": list(store.SECTIONS),
+        "schema": store.SCHEMA, "generated_at": now_iso})
+    print(f"wrote base to {store.data_dir()} — {len(secs['needinfos'])} NI, "
+          f"{len(secs['reviews'])} reviews, {len(secs['my_bugs'])} my-bugs")
     return 0
 
 
 def cmd_finalize(enrichment_path: str) -> int:
     now = datetime.now(timezone.utc)
-    base = json.loads(OUT.read_text(encoding="utf-8"))
     enrichment = json.loads(Path(enrichment_path).read_text(encoding="utf-8")) if enrichment_path else {}
+    # rebuild the combined shape from the per-section files, merge the enrichment,
+    # then write each section back as ready.
+    base = {"sections": {k: store.read_section(k).get("items") or [] for k in store.SECTIONS},
+            "generated_at": None, "status": "running"}
     data = apply_enrichment(base, enrichment, now)
-    write_json(OUT, data)
-    write_json(STATUS_OUT, status_payload(data, "ready"))
-    print(f"finalized {OUT} (status: ready)")
+    now_iso = data["generated_at"]
+    for k in store.SECTIONS:
+        store.write_section(k, data["sections"][k], "ready", now_iso)
+    m = store.read_manifest()
+    m["generated_at"] = now_iso
+    m.setdefault("schema", store.SCHEMA)
+    store.atomic_write_json(store.manifest_path(), m)
+    print(f"finalized {store.data_dir()} (status: ready)")
     return 0
 
 

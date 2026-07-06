@@ -17,10 +17,13 @@ Two halves, like `/triage`: fast field-gathering in `collect.py` (no LLM), then
 an enrichment file; `collect.py finalize` merges it and flips the board to ready.
 The page never calls Claude — it only displays what this produces.
 
-Data + status live in the dashboard dir: `data.json` (the board) and
-`status.json` (running/ready, polled by the page). Both are git-ignored — they
-hold your private queue. **Never** put a real email or any API key into them,
-into the enrichment file, or into logs (identity comes from env at runtime).
+Data lives **outside the package**, under `$FX_DASHBOARD_DIR` (default
+`~/.fx-bug-toolkit/dashboard/`), split per section — `needinfos.json`,
+`reviews.json`, `my_bugs.json` (each `{status, generated_at, items}`) — plus a
+small `manifest.json`. The server merges them (with your hand-pinned
+`my_bugs.user.json`) into the `/data.json` the page fetches, and derives
+`/status.json`. All private — **never** put a real email or API key into them,
+the enrichment file, or logs (identity comes from env at runtime).
 
 ## Step 1 — Locate `collect.py` and check identity
 
@@ -53,6 +56,8 @@ PYEOF
 )"
 [ -z "$COLLECT" ] && { echo "Could not locate dashboard/collect.py — is the plugin installed? (try /update)"; exit 1; }
 echo "collect: $COLLECT"
+DATADIR="${FX_DASHBOARD_DIR:-$HOME/.fx-bug-toolkit/dashboard}"   # where the section files land
+echo "data dir: $DATADIR"
 bugzilla-cli whoami 2>/dev/null | head -1
 echo "FX_DASHBOARD_USER=${FX_DASHBOARD_USER:-<unset>}"
 ```
@@ -72,14 +77,17 @@ it they're skipped, which is fine.)
 "$PY" "$COLLECT" base
 ```
 
-This fetches the field data and writes `data.json` with each item's Core tags
-(component · severity · security · regression) and `brief`/`solvable` **null**,
-and sets `status.json` to **running** — so an already-open page shows "analyzing…".
-Sections: `needinfos`, `reviews`, `my_bugs`.
+This fetches the field data and writes the per-section files under `$DATADIR`,
+each item carrying its Core tags (component · severity · security · regression)
+with `brief`/`solvable` **null**. `my_bugs.json` is display-only, so it's marked
+**ready** immediately; `needinfos.json`/`reviews.json` are **running** until you
+finalize — an already-open page shows my_bugs live plus "analyzing…" on the other
+two (each section has its own status now, so they don't block each other).
 
 ## Step 3 — Enrich each item (your reasoning — the LLM half)
 
-Read the base `data.json`. **Scope the enrichment — do NOT analyze everything**
+Read the base section files (`$DATADIR/needinfos.json`, `$DATADIR/reviews.json` —
+each `{status, generated_at, items}`). **Scope the enrichment — do NOT analyze everything**
 (real accounts have hundreds of items; enriching all is impractical/expensive):
 
 - **Needinfos AND review requests: only those with `waiting_days <= 7`** (recent).
@@ -140,8 +148,8 @@ enrichment.
 "$PY" "$COLLECT" finalize /path/to/enrichment.json
 ```
 
-Merges the briefs/tags/solvability into `data.json` and flips `status.json` to
-**ready** with a fresh `generated_at`.
+Merges the briefs/tags/solvability into the `needinfos.json`/`reviews.json`
+section files and flips them to **ready** with a fresh `generated_at`.
 
 ## Step 5 — Hand off
 

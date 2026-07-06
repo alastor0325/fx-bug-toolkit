@@ -20,9 +20,10 @@ import os
 import sys
 from pathlib import Path
 
-DIR = Path(__file__).resolve().parent
-QUEUE = Path(os.environ.get("FX_DASHBOARD_QUEUE") or (DIR / "queue.json"))
-RESULTS = Path(os.environ.get("FX_DASHBOARD_RESULTS") or (DIR / "results.json"))
+import store   # queue/results live under FX_DASHBOARD_DIR (~/.fx-bug-toolkit/dashboard)
+
+QUEUE = Path(os.environ.get("FX_DASHBOARD_QUEUE") or store.queue_path())
+RESULTS = Path(os.environ.get("FX_DASHBOARD_RESULTS") or store.results_path())
 
 
 def action_key(item_id, action) -> str:
@@ -67,8 +68,7 @@ def _load(path: Path):
 
 
 def _write(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    store.atomic_write_json(path, data)
 
 
 def cmd_list() -> int:

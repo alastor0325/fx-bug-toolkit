@@ -74,13 +74,16 @@ const DATA = {
       // fresh, no patch yet → active "No patch yet" zone (a bug I just filed)
       { type: "mybug", id: "229", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=229",
         title: "Just filed, no patch yet", last_activity_days: 0, patch_status: "none", tags: [], brief: null },
+      // a bug the user pinned by hand → active, marked added (pin + remove control)
+      { type: "mybug", id: "230", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=230",
+        title: "Pinned by hand", last_activity_days: 0, patch_status: "none", added: true, tags: [], brief: null },
       // stale, no patch → collapsed backlog
       { type: "mybug", id: "224", url: "https://bugzilla.mozilla.org/show_bug.cgi?id=224",
         title: "Old assigned bug", last_activity_days: 200, patch_status: "none", tags: [], brief: null },
     ],
   },
 };
-const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 7 } };
+const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 8 } };
 
 let posted = [];   // POST /queue payloads captured
 
@@ -134,7 +137,7 @@ async function main() {
     const labels = await page.$$eval(".tab", els => els.map(e => e.textContent.replace(/\d+$/, "").trim()));
     assert.deepStrictEqual(labels, ["Needinfos", "Review requests", "My work", "Queue"]);
     const counts = await page.$$eval(".tab .n", els => els.map(e => e.textContent));
-    assert.deepStrictEqual(counts, ["3", "3", "7", "0"]);  // queue empty at start
+    assert.deepStrictEqual(counts, ["3", "3", "8", "0"]);  // queue empty at start
   });
 
   await check("section tabs drag-reorder and persist", async () => {
@@ -247,6 +250,12 @@ async function main() {
     // a just-filed bug with no patch is active (No patch yet), not backlog
     assert.ok(await page.isVisible(`${mp} .lrow[href*="=229"]`), "no-patch-yet bug is active, visible");
     assert.ok((await page.textContent(mp)).includes("No patch yet"), "No patch yet zone shown");
+    // add-a-bug control + a user-pinned row (pin marker + remove ✕)
+    assert.ok(await page.$(`${mp} #addbug`), "add-a-bug input present");
+    const pinned = `${mp} .lrow[href*="=230"]`;
+    assert.ok(await page.isVisible(pinned), "pinned bug is active");
+    assert.ok(await page.$(`${pinned} .chip.pin`), "pinned bug shows the pin chip");
+    assert.ok(await page.$(`${pinned} .mbrm`), "pinned bug shows the remove control");
     // X/Y ready count shows only for a multi-patch stack (225 = 1/2)
     assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .rcount`, e => e.textContent.trim()), "1/2 r+");
     // a parked r+ (223) and a dormant review (228) are NOT active — no card, no top ledger
