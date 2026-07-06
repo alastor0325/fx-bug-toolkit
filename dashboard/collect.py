@@ -109,6 +109,13 @@ def extract_severity(bug: dict):
     return s if s in SEV_KEYS else None
 
 
+def is_meta(bug: dict) -> bool:
+    """A tracking/meta bug — we don't work these directly, so they're excluded
+    from "My work". Identified by the Bugzilla `meta` keyword (authoritative; the
+    "[meta]" title convention isn't relied on)."""
+    return "meta" in (bug.get("keywords") or [])
+
+
 def is_security(bug: dict) -> bool:
     if any(k in SEC_KEYWORDS for k in (bug.get("keywords") or [])):
         return True
@@ -323,18 +330,20 @@ def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime,
     items, seen = [], set()
     for b in assigned_bugs or []:
         bid = str(b["id"])
-        seen.add(bid)
+        seen.add(bid)               # mark seen even if skipped, so revision-only won't re-add
+        if is_meta(b):
+            continue                 # tracking bug — not worked directly
         items.append(_mybug_item(bid, b.get("summary") or "",
                                  age_days(b.get("last_change_time"), now),
                                  revs_by_bug.get(bid), derive_mybug_tags(b), names))
     # union: bugs I have an open revision on but that aren't assigned to me —
-    # only if confirmed still open, with the real bug summary (not the rev title).
+    # only if confirmed still open (and not a meta bug), with the real bug summary.
     for bid, revs in revs_by_bug.items():
         if bid in seen:
             continue
         detail = details.get(bid)
-        if not detail or not detail.get("is_open"):
-            continue  # fixed/closed, or unverifiable → not active work
+        if not detail or not detail.get("is_open") or is_meta(detail):
+            continue  # fixed/closed, meta, or unverifiable → not active work
         last = min((age_days_epoch((r.get("fields") or {}).get("dateModified"), now)
                     for r in revs), default=0)
         items.append(_mybug_item(bid, detail.get("summary") or "", last, revs,

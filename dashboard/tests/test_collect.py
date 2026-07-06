@@ -205,6 +205,18 @@ class TestMyBugs(unittest.TestCase):
         items = collect.build_my_bugs([bug(id=5)], [], NOW)
         self.assertEqual(items[0]["patch_status"], "none")
 
+    def test_meta_bugs_are_excluded(self):
+        # a meta/tracking bug is never "my work", assigned or revision-only
+        assigned = [bug(id=5, keywords=["meta"]), bug(id=6, keywords=[])]
+        my_revs = [rev(1, "accepted", bugid=88)]  # revision on a meta bug
+        details = {"88": {"id": 88, "is_open": True, "summary": "Meta thing", "keywords": ["meta"]}}
+        ids = {i["id"] for i in collect.build_my_bugs(assigned, my_revs, NOW, {}, details)}
+        self.assertEqual(ids, {"6"})   # 5 (meta) + 88 (meta revision-only) both dropped
+
+    def test_is_meta(self):
+        self.assertTrue(collect.is_meta(bug(keywords=["meta", "regression"])))
+        self.assertFalse(collect.is_meta(bug(keywords=["regression"])))
+
     def test_derive_mybug_tags_drops_component_and_low_severity(self):
         tags = collect.derive_mybug_tags(bug(component="Audio/Video: Playback", severity="S2",
                                              keywords=["regression", "crash"], groups=["core-security"]))
