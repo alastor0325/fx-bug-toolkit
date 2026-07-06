@@ -43,6 +43,7 @@ OUT = Path(os.environ.get("FX_DASHBOARD_DATA_OUT") or (DIR / "data.json"))
 STATUS_OUT = Path(os.environ.get("FX_DASHBOARD_STATUS_OUT") or (DIR / "status.json"))
 PHAB_BASE = os.environ.get("FX_PHABRICATOR_BASE") or "https://phabricator.services.mozilla.com"
 
+BMO_REST = os.environ.get("FX_BUGZILLA_BASE") or "https://bugzilla.mozilla.org"
 BMO_SHOW = "https://bugzilla.mozilla.org/show_bug.cgi?id="
 SEV_KEYS = frozenset({"S1", "S2", "S3", "S4"})
 SEC_KEYWORDS = frozenset({"sec-crit", "sec-high", "sec-moderate", "sec-low"})
@@ -299,14 +300,20 @@ def _mybug_item(bid, title, last_activity_days, revs, tags, names):
     }
 
 
-def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime, names: dict = None) -> list:
-    """"My work" = union of OPEN bugs assigned to me and bugs where I have an open
-    revision. patch_status is rolled up across the bug's whole patch stack by
+def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime,
+                  names: dict = None, rev_bug_details: dict = None) -> list:
+    """"My work" = union of OPEN bugs assigned to me and OPEN bugs where I have an
+    open revision. patch_status is rolled up across the bug's whole patch stack by
     aggregate_patch (r+ only when ALL parts are accepted; a no-reviewer part is
     wip, not in-review), driving the stage: needs-revision/accepted = act,
-    in-review = waiting, wip = draft, none = untouched backlog. Assigned bugs
-    carry owned-bug tags; a revision-only bug gets limited info from the stack."""
+    in-review = waiting, wip = draft, none = untouched backlog.
+
+    Both halves show the bug's real Bugzilla summary and owned-bug tags. A
+    revision-only bug is included ONLY when `rev_bug_details` confirms it's still
+    open — a fixed/closed bug (or one we couldn't fetch) is dropped, never shown
+    with a stale Phabricator revision title."""
     names = names or {}
+    details = rev_bug_details or {}
     revs_by_bug: dict[str, list] = {}
     for r in my_revisions or []:
         bid = _rev_bug_id(r)
@@ -320,20 +327,24 @@ def build_my_bugs(assigned_bugs: list, my_revisions: list, now: datetime, names:
         items.append(_mybug_item(bid, b.get("summary") or "",
                                  age_days(b.get("last_change_time"), now),
                                  revs_by_bug.get(bid), derive_mybug_tags(b), names))
-    # union: bugs I have an open revision on but that aren't assigned to me
+    # union: bugs I have an open revision on but that aren't assigned to me —
+    # only if confirmed still open, with the real bug summary (not the rev title).
     for bid, revs in revs_by_bug.items():
         if bid in seen:
             continue
-        title = (revs[0].get("fields") or {}).get("title") or ""
+        detail = details.get(bid)
+        if not detail or not detail.get("is_open"):
+            continue  # fixed/closed, or unverifiable → not active work
         last = min((age_days_epoch((r.get("fields") or {}).get("dateModified"), now)
                     for r in revs), default=0)
-        items.append(_mybug_item(bid, title, last, revs, [], names))
+        items.append(_mybug_item(bid, detail.get("summary") or "", last, revs,
+                                 derive_mybug_tags(detail), names))
     return items
 
 
 def build_base(user_email: str, needinfos: list, reviews: list, review_names: dict,
                assigned: list, my_revisions: list, now: datetime,
-               review_mine_phids=None, review_my_phid=None) -> dict:
+               review_mine_phids=None, review_my_phid=None, rev_bug_details=None) -> dict:
     """Assemble the base data file (status "running" — enrichment not done yet).
     Pure; the collector's heart, fully unit-tested against mock backends."""
     return {
@@ -347,7 +358,7 @@ def build_base(user_email: str, needinfos: list, reviews: list, review_names: di
             "reviews": [review_base_item(r, review_names or {}, now, review_mine_phids, review_my_phid)
                         for r in (reviews or [])
                         if not (review_my_phid and (r.get("fields") or {}).get("authorPHID") == review_my_phid)],
-            "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now, review_names),
+            "my_bugs": build_my_bugs(assigned or [], my_revisions or [], now, review_names, rev_bug_details),
         },
     }
 
@@ -416,6 +427,31 @@ def run_bugzilla_cli(args: list) -> list:
     if r.returncode != 0:
         raise RuntimeError(f"bugzilla-cli {' '.join(args)} failed: {r.stderr.strip()}")
     return json.loads(r.stdout or "[]")
+
+
+def fetch_bugs(ids, api_key: str) -> dict:
+    """Batch-fetch canonical bug fields (summary, open/closed, severity, keywords,
+    groups) for the given bug IDs from the BMO REST API — bugzilla-cli's `get` has
+    no --json/batch. Used to vet revision-only bugs: we only surface ones we can
+    confirm are still open, with the bug's real summary (never a Phabricator
+    revision title, never a fixed bug). Returns {str(id): bug}; {} on any error
+    (callers treat a missing bug as 'don't show it'). Never raises."""
+    ids = [str(i) for i in (ids or []) if str(i).strip()]
+    if not ids:
+        return {}
+    try:
+        q = urllib.parse.urlencode({
+            "id": ",".join(ids),
+            "include_fields": "id,summary,is_open,severity,keywords,groups,last_change_time",
+        })
+        req = urllib.request.Request(f"{BMO_REST}/rest/bug?{q}",
+                                     headers={"X-BUGZILLA-API-KEY": api_key or ""})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            payload = json.loads(resp.read())
+        return {str(b.get("id")): b for b in (payload.get("bugs") or [])}
+    except Exception as e:  # noqa: BLE001 — degrade gracefully, never crash generation
+        print(f"warning: bug detail fetch skipped ({e})", file=sys.stderr)
+        return {}
 
 
 def conduit(method: str, params: dict, token: str) -> dict:
@@ -528,7 +564,15 @@ def cmd_base() -> int:
               "(reviews + patch status).", file=sys.stderr)
         reviews, names, my_revs, mine_phids, my_phid = [], {}, [], set(), None
 
-    base = build_base(user_email, needinfos, reviews, names, assigned, my_revs, now, mine_phids, my_phid)
+    # revision-only bugs (I have a patch, not assigned to me) need a Bugzilla
+    # lookup for their real summary + open/closed state — otherwise a fixed bug
+    # would leak in under its Phabricator revision title.
+    assigned_ids = {str(b.get("id")) for b in assigned}
+    rev_only_ids = {_rev_bug_id(r) for r in my_revs} - assigned_ids - {""}
+    rev_bug_details = fetch_bugs(sorted(rev_only_ids), os.environ.get("BUGZILLA_API_KEY") or "")
+
+    base = build_base(user_email, needinfos, reviews, names, assigned, my_revs, now,
+                      mine_phids, my_phid, rev_bug_details)
     write_json(OUT, base)
     write_json(STATUS_OUT, status_payload(base, "running"))
     print(f"wrote base {OUT} — {len(base['sections']['needinfos'])} NI, "

@@ -166,8 +166,10 @@ class TestMyBugs(unittest.TestCase):
     def test_union_assigned_and_revision_only(self):
         assigned = [bug(id=10, summary="assigned one")]
         my_revs = [rev(1, "needs-revision", bugid=10, reviewers=["PHID-USER-p"]),  # patch on assigned bug
-                   rev(2, "accepted", bugid=99, title="Bug 99 - rev only")]  # revision-only bug
-        items = collect.build_my_bugs(assigned, my_revs, NOW, {"PHID-USER-p": "padenot"})
+                   rev(2, "accepted", bugid=99, title="Bug 99 - Part 1: rev title")]  # revision-only bug
+        details = {"99": {"id": 99, "is_open": True, "summary": "The real bug summary",
+                          "severity": "S2", "keywords": ["regression"]}}
+        items = collect.build_my_bugs(assigned, my_revs, NOW, {"PHID-USER-p": "padenot"}, details)
         by_id = {i["id"]: i for i in items}
         self.assertEqual(set(by_id), {"10", "99"})               # union
         self.assertEqual(by_id["10"]["patch_status"], "needs-revision")
@@ -175,7 +177,15 @@ class TestMyBugs(unittest.TestCase):
         self.assertTrue(by_id["10"]["rev_url"].endswith("/D1"))  # patch link
         self.assertIn("last_activity_days", by_id["10"])
         self.assertEqual(by_id["99"]["patch_status"], "accepted")
-        self.assertEqual(by_id["99"]["tags"], [])                # revision-only: limited info
+        self.assertEqual(by_id["99"]["title"], "The real bug summary")  # bug summary, NOT the rev title
+        self.assertIn({"text": "S2", "kind": "severity"}, by_id["99"]["tags"])  # tags from the real bug
+
+    def test_revision_only_fixed_bug_is_dropped(self):
+        # a patch on a now-FIXED bug (or one we couldn't look up) must never show.
+        my_revs = [rev(1, "accepted", bugid=777, title="Bug 777 - landed gtest")]
+        fixed = {"777": {"id": 777, "is_open": False, "summary": "Fixed thing"}}
+        self.assertEqual(collect.build_my_bugs([], my_revs, NOW, {}, fixed), [])   # closed → dropped
+        self.assertEqual(collect.build_my_bugs([], my_revs, NOW, {}, {}), [])      # unverifiable → dropped
 
     def test_stacked_bug_rolls_up_and_reports_x_of_y(self):
         # a bug with a 2-patch stack (one accepted, one still in review) is NOT
@@ -266,6 +276,43 @@ class TestBuildBaseAndEnrichment(unittest.TestCase):
         self.assertEqual(p["state"], "running")
         self.assertEqual(p["counts"]["needinfos"], 1)
         self.assertEqual(p["counts"]["my_bugs"], 1)
+
+
+class TestFetchBugs(unittest.TestCase):
+    class _Resp:
+        def __init__(self, body): self._b = body
+        def read(self): return self._b
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    def test_batches_ids_keys_by_str_and_sends_key(self):
+        captured = {}
+
+        def fake_urlopen(req, timeout=None):
+            captured["url"] = req.full_url
+            captured["key"] = req.get_header("X-bugzilla-api-key")
+            return self._Resp(json.dumps({"bugs": [{"id": 42, "summary": "S", "is_open": True}]}).encode())
+
+        orig = collect.urllib.request.urlopen
+        collect.urllib.request.urlopen = fake_urlopen
+        try:
+            out = collect.fetch_bugs([42, "43"], "KEY")
+        finally:
+            collect.urllib.request.urlopen = orig
+        self.assertEqual(set(out), {"42"})               # keyed by str id
+        self.assertEqual(out["42"]["summary"], "S")
+        self.assertIn("id=42%2C43", captured["url"])      # both ids in one batched call
+        self.assertEqual(captured["key"], "KEY")
+
+    def test_empty_and_errors_degrade_to_empty(self):
+        self.assertEqual(collect.fetch_bugs([], "K"), {})  # nothing to fetch, no call
+        def boom(*a, **k): raise RuntimeError("network down")
+        orig = collect.urllib.request.urlopen
+        collect.urllib.request.urlopen = boom
+        try:
+            self.assertEqual(collect.fetch_bugs([1], "K"), {})   # never raises
+        finally:
+            collect.urllib.request.urlopen = orig
 
 
 class TestConduitForm(unittest.TestCase):
