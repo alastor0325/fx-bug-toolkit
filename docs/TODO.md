@@ -53,14 +53,16 @@ Skills exist only in the dev repo/branch; released users never receive them.
       cross-process locks (atomic + one-writer-per-file); in-proc lock for the
       server's own appends. serve.py adds `/my-bugs/add` + `/my-bugs/remove`; the
       page has a "+ add a bug" box + pin/remove on added rows.
-- [ ] **Queued: three purpose-driven My-work sections (Focus / Next / Backlog).**
-      (2026-07-06) Replace the patch_status/recency zones with 3 sections a bug is
-      *assigned* to. Default placement by the old rules (patch+in-review→Focus;
-      patch+no-review→Next; else→Backlog); user can add a bug into a chosen section
-      and **drag bugs between sections** (override persisted in the overlay). Closed
-      bugs always removed from every section. Collector emits general/flexible
-      per-bug signals so the dashboard can place + re-place bugs. Discuss layout
-      with a fresh UX review first. Each part follows the dev loop.
+- [x] **Three purpose-driven My-work sections (Focus / Next / Backlog).** (2026-07-06)
+      Shipped over two dev-loop commits after a fresh UX review. Sections a bug is
+      *assigned* to: default = patch-in-review→Focus, wip→Next, else→Backlog
+      (dumb/predictable, no recency magic); manual placement always wins + persists
+      in the overlay. Add-into-a-picked-section (default Next), drag between
+      sections (cyan drop cue; amber reserved for a capped Focus count) + keyboard
+      `[`/`]` move; a `↳ suggests X` drift hint + one-click reset when a placement
+      disagrees with status (never auto-moves). Closed bugs always removed
+      (collector re-vets the overlay on `base`; assemble filters). Focus = cards,
+      Next = visible ledger, Backlog = collapsed ledger.
 
 ---
 

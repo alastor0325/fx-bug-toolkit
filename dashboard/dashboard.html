@@ -127,6 +127,25 @@
     color:var(--amber-dim); margin:20px 2px 10px}
   .tabpanel .zone-h:first-child{margin-top:2px}   /* first zone hugs the top */
   .zone-h b{color:var(--amber); font-weight:600}
+  .zone-h.neutral{color:var(--faint)} .zone-h.neutral b{color:var(--dim)}   /* Next/Backlog: no amber */
+  .zone-h.over b{color:var(--red)}                                          /* Focus over its soft cap */
+  .zone-h .cap{color:var(--red); font-weight:400; letter-spacing:.08em}
+  /* a section as a drag drop-target: cyan ring + lifted surface on hover-over
+     (no fill wash — amber stays reserved for the Focus count) */
+  .secdrop{border:1px solid transparent; border-radius:11px; padding:2px; transition:border-color .12s, background .12s}
+  .secdrop.dragover{border-color:var(--cyan); background:var(--raised)}
+  .secdrop .emptysec{margin:0}
+  .lrow[draggable="true"],.card[draggable="true"]{cursor:grab}
+  .lrow.dragging,.card.dragging{opacity:.4}
+  /* drift: a placement that disagrees with the bug's status → dim hint + reset */
+  .drift{font-family:var(--mono); font-size:10px; color:var(--faint); margin-left:8px}
+  .mbreset{margin-left:6px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+    font-family:var(--mono); font-size:10px; line-height:1; padding:2px 6px; cursor:pointer}
+  .mbreset:hover{color:var(--amber); border-color:var(--amber-dim)}
+  /* add-a-bug: input + section picker */
+  .mb-add{display:flex; gap:6px}
+  .mb-add select{height:34px; padding:0 8px; border-radius:7px; background:var(--raised);
+    border:1px solid var(--line); color:var(--dim); font-family:var(--mono); font-size:12px; cursor:pointer}
 
   /* collapsed "N earlier · not analyzed" divider → reveals a compact ledger */
   .stale-divider{display:flex; align-items:center; gap:12px; margin:18px 0 8px; cursor:pointer;
@@ -158,8 +177,8 @@
   /* My work toolbar: search + "add a bug" side by side */
   .mb-tools{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap}
   .mb-tools .mb-search{flex:1 1 320px; max-width:none; margin-bottom:0}
-  .mb-add{flex:0 1 360px; position:relative}
-  .mb-add input{width:100%; height:34px; padding:0 12px; border-radius:7px; background:var(--raised);
+  .mb-add{flex:0 1 400px}
+  .mb-add input{flex:1; min-width:0; height:34px; padding:0 12px; border-radius:7px; background:var(--raised);
     border:1px solid var(--line); color:var(--ink); font-family:var(--mono); font-size:12.5px; outline:none;
     transition:border-color .15s, box-shadow .15s}
   .mb-add input:focus{border-color:var(--amber-dim); box-shadow:0 0 0 3px var(--amber-wash)}
@@ -328,14 +347,19 @@ function ledgerRowHtml(it){
     meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> ${rc?`<span class="rcount">${rc} r+</span>`:""}${pill}`;
   }
   else meta = `waiting ${waitingLabel(it.waiting_days)}`;
-  // a span (not a button) so it's valid inside the row's <a>; the click handler
-  // catches .mbrm before the anchor navigates.
+  // spans (not buttons) so they're valid inside the row's <a>; the click handler
+  // catches them before the anchor navigates.
+  const isMine = it.type === "mybug";
+  const drift = isMine ? driftHint(it, (DATA && DATA.placements) || {}) : "";
+  const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
+    `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
   const rm = it.added ? `<span class="mbrm" data-id="${escapeHtml(it.id)}" title="remove from My work">✕</span>` : "";
-  return `<a class="lrow" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
+  const drag = isMine ? ` draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}"` : "";
+  return `<a class="lrow"${drag} href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
     <span class="id">${escapeHtml(it.id)}</span>
     <span class="lchips">${chips}</span>
     <span class="ltitle">${escapeHtml(it.title)}</span>
-    <span class="lmeta">${meta}</span>${rm}</a>`;
+    <span class="lmeta">${meta}</span>${driftHtml}${rm}</a>`;
 }
 
 // A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
@@ -390,7 +414,11 @@ function myBugCardHtml(it){
   const who = it.reviewer ? `${prefix} :${escapeHtml(it.reviewer)}` : m.label;
   const patch = it.rev_url ? `<a class="pl" href="${escapeHtml(it.rev_url)}" target="_blank" rel="noopener">patch ↗</a>` : "";
   const rc = readyCount(it);   // "X/Y" only when the bug has a multi-patch stack
-  return `<article class="card ${border}" data-id="${escapeHtml(it.id)}">
+  const drift = driftHint(it, (DATA && DATA.placements) || {});
+  const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
+    `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
+  const rm = it.added ? `<span class="mbrm" data-id="${escapeHtml(it.id)}" title="remove from My work">✕</span>` : "";
+  return `<article class="card ${border}" draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}">
     <div class="mw-card">
       <div class="crow">
         <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
@@ -398,44 +426,59 @@ function myBugCardHtml(it){
         <span class="meta">${rc?`<span class="rcount" title="${rc} parts accepted">${rc} r+</span>`:""}<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span></span>
       </div>
       <div class="mw-title">${escapeHtml(it.title)}</div>
-      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}</div>
+      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}${driftHtml}${rm}</div>
     </div>
   </article>`;
 }
 
-// My work (open bugs): the ACTIVE work up top — r- to revise (cards), then the
-// reviews I'm waiting on and my live WIP (ledgers) — and the parked BACKLOG
-// collapsed underneath. Searchable. Display-only.
+// My work: three purpose sections the user curates — Focus (cards) and Next
+// (ledger) always visible, Backlog (ledger) collapsed. A bug's section is its
+// manual placement, else the default from its patch status. Each section is a
+// drop target; bugs drag between them. Searchable.
+const MYWORK_EMPTY = { focus: "Nothing in focus — drag a bug here to work it now.",
+                       next: "Nothing queued.", backlog: "Backlog empty." };
+function myWorkHeader(key, n){
+  const sec = MYWORK_SECTIONS.find(s => s.key === key);
+  const over = key === "focus" && n > FOCUS_CAP;
+  const cls = key === "focus" ? (over ? " over" : "") : " neutral";
+  return `<div class="zone-h${cls}" title="${escapeHtml(sec.hint)}">${escapeHtml(sec.label)} · <b>${n}</b>${over?' <span class="cap">over cap</span>':''}</div>`;
+}
+function emptyDrop(key){ return `<div class="emptysec">${escapeHtml(MYWORK_EMPTY[key])}</div>`; }
+
 function myBugsBody(rows){
-  const z = myBugsZones(rows);
-  const revise = byRecency(z.revise), waiting = byRecency(z.waiting),
-        wip = byRecency(z.wip), todo = byRecency(z.todo);
-  // backlog: surface patched bugs (r+ / dormant patches) above the no-patch pile
-  // so a parked-but-landable r+ is still findable; recent-first within each.
-  const backlog = z.backlog.slice().sort((a,b) =>
-    ((b.patch_status!=="none") - (a.patch_status!=="none")) ||
-    (Number(a.last_activity_days)||0) - (Number(b.last_activity_days)||0));
+  const placements = (DATA && DATA.placements) || {};
+  const g = groupBySection(rows, placements);
+  const focus = byRecency(g.focus), next = byRecency(g.next), backlog = byRecency(g.backlog);
   let h = "";
-  if(revise.length)  h += `<div class="zone-h">Needs me · <b>${revise.length}</b></div><div class="cards">${revise.map(myBugCardHtml).join("")}</div>`;
-  if(waiting.length) h += `<div class="zone-h">In review · waiting · <b>${waiting.length}</b></div><div class="ledger">${waiting.map(ledgerRowHtml).join("")}</div>`;
-  if(wip.length)     h += `<div class="zone-h">WIP · <b>${wip.length}</b></div><div class="ledger">${wip.map(ledgerRowHtml).join("")}</div>`;
-  if(todo.length)    h += `<div class="zone-h">No patch yet · <b>${todo.length}</b></div><div class="ledger">${todo.map(ledgerRowHtml).join("")}</div>`;
-  if(!revise.length && !waiting.length && !wip.length && !todo.length && backlog.length)
-    h += `<div class="emptysec">Nothing active right now — your open bugs are parked in the backlog below.</div>`;
-  if(backlog.length){
-    const open = staleOpen.has('mybugs-backlog');
-    h += `<div class="stale-divider${open?' open':''}" data-stale="mybugs-backlog">${backlog.length} backlog · parked or no active patch <span class="caret">▸</span></div>
-      <div class="stale-list${open?' open':''}">${backlog.map(ledgerRowHtml).join("")}</div>`;
-  }
-  return h || `<div class="emptysec">no matches</div>`;
+  // Focus — prominent cards (the act-on set); count is the one amber thing here
+  h += myWorkHeader("focus", focus.length);
+  h += `<div class="secdrop" data-section="focus">${focus.length
+      ? `<div class="cards">${focus.map(myBugCardHtml).join("")}</div>` : emptyDrop("focus")}</div>`;
+  // Next — visible ledger
+  h += myWorkHeader("next", next.length);
+  h += `<div class="secdrop" data-section="next">${next.length
+      ? `<div class="ledger">${next.map(ledgerRowHtml).join("")}</div>` : emptyDrop("next")}</div>`;
+  // Backlog — collapsed ledger; the divider itself is the drop target
+  const open = staleOpen.has('mybugs-backlog');
+  h += `<div class="stale-divider secdrop${open?' open':''}" data-section="backlog" data-stale="mybugs-backlog">Backlog · <b>${backlog.length}</b> <span class="caret">▸</span></div>
+    <div class="stale-list${open?' open':''}">${backlog.length
+      ? backlog.map(ledgerRowHtml).join("") : emptyDrop("backlog")}</div>`;
+  return h;
 }
 function myBugsPanel(){
   const items = (DATA.sections && DATA.sections.my_bugs) || [];
   return `<div class="mb-tools">
       <div class="search mb-search"><input id="mbq" type="text" spellcheck="false" autocomplete="off"
         placeholder="search ${items.length} bugs — id, title, component" value="${escapeHtml(myBugsQuery)}"></div>
-      <div class="mb-add"><input id="addbug" type="text" spellcheck="false" autocomplete="off"
-        placeholder="+ add a bug — id or URL, then Enter"></div>
+      <div class="mb-add">
+        <input id="addbug" type="text" spellcheck="false" autocomplete="off"
+          placeholder="+ add a bug — id or URL, then Enter">
+        <select id="addsec" title="which section to add into">
+          <option value="focus">Focus</option>
+          <option value="next" selected>Next</option>
+          <option value="backlog">Backlog</option>
+        </select>
+      </div>
     </div>
     <div id="mb-body">${myBugsBody(filterLedger(items, myBugsQuery))}</div>`;
 }
@@ -575,6 +618,8 @@ $('#panels').addEventListener('click', e=>{
   }
   const rm = e.target.closest('.rm');
   if(rm){ removeFromQueue(rm.closest('.qrow')); return; }  // unqueue
+  const mbreset = e.target.closest('.mbreset');            // clear a manual placement
+  if(mbreset){ e.preventDefault(); resetBug(mbreset.dataset.id); return; }
   const mbrm = e.target.closest('.mbrm');                  // unpin a My-work bug
   if(mbrm){ e.preventDefault(); removeMyBug(mbrm.dataset.id); return; }
   if(e.target.closest('a')) return;                     // ledger rows + links open normally
@@ -604,19 +649,59 @@ $('#panels').addEventListener('input', e=>{
   if(!body) return;
   body.innerHTML = myBugsBody(filterLedger((DATA.sections && DATA.sections.my_bugs) || [], myBugsQuery));
 });
-// add a bug to My work: type an id or BMO URL in the add box, press Enter
+const MYWORK_ORDER = ['focus','next','backlog'];
+// add a bug into the picked section (Enter in the add box); or, on a focused
+// My-work row/card, [ / ] move it toward Focus / Backlog (keyboard, no mouse).
 $('#panels').addEventListener('keydown', e=>{
-  if(e.target.id === 'addbug' && e.key === 'Enter'){ addMyBug(e.target.value); e.target.value = ''; }
+  if(e.target.id === 'addbug' && e.key === 'Enter'){
+    const sec = (document.getElementById('addsec')||{}).value || 'next';
+    addMyBug(e.target.value, sec); e.target.value = ''; return;
+  }
+  if(e.key !== '[' && e.key !== ']') return;
+  const el = e.target.closest('.tabpanel[data-k="my_bugs"] .lrow[data-id], .tabpanel[data-k="my_bugs"] .card[data-id]');
+  if(!el) return;
+  const item = ((DATA.sections&&DATA.sections.my_bugs)||[]).find(b=>String(b.id)===String(el.dataset.id));
+  if(!item) return;
+  e.preventDefault();
+  const cur = sectionOf(item, (DATA&&DATA.placements)||{});
+  let i = MYWORK_ORDER.indexOf(cur);
+  i = e.key === '[' ? Math.max(0,i-1) : Math.min(MYWORK_ORDER.length-1,i+1);
+  if(MYWORK_ORDER[i] !== cur) placeBug(el.dataset.id, MYWORK_ORDER[i]);
 });
-function addMyBug(ref){
-  ref = (ref||'').trim(); if(!ref) return;
-  fetch('/my-bugs/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ref})})
+function myBugsPost(route, body){
+  return fetch(route, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
     .then(r=>r.ok?r.json():null).then(()=>refreshData());
 }
-function removeMyBug(id){
-  fetch('/my-bugs/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})})
-    .then(r=>r.ok?r.json():null).then(()=>refreshData());
-}
+function addMyBug(ref, section){ ref=(ref||'').trim(); if(ref) myBugsPost('/my-bugs/add', {ref, section}); }
+function removeMyBug(id){ myBugsPost('/my-bugs/remove', {id}); }
+function placeBug(id, section){ myBugsPost('/my-bugs/place', {id, section}); }
+function resetBug(id){ myBugsPost('/my-bugs/reset', {id}); }
+
+// drag a My-work bug between sections (delegated on #panels; survives re-render).
+let dragBugId = null;
+const clearSecCues = () => document.querySelectorAll('.secdrop.dragover').forEach(x=>x.classList.remove('dragover'));
+$('#panels').addEventListener('dragstart', e=>{
+  const el = e.target.closest('.tabpanel[data-k="my_bugs"] .lrow[draggable="true"], .tabpanel[data-k="my_bugs"] .card[draggable="true"]');
+  if(!el) return;
+  dragBugId = el.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', dragBugId); } catch(_){}
+  el.classList.add('dragging');
+});
+$('#panels').addEventListener('dragover', e=>{
+  if(!dragBugId) return;
+  const drop = e.target.closest('.secdrop'); if(!drop) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearSecCues(); drop.classList.add('dragover');
+});
+$('#panels').addEventListener('drop', e=>{
+  if(!dragBugId) return;
+  const drop = e.target.closest('.secdrop');
+  const id = dragBugId; dragBugId = null; clearSecCues();
+  if(drop){ e.preventDefault(); if(drop.dataset.section) placeBug(id, drop.dataset.section); }
+});
+$('#panels').addEventListener('dragend', ()=>{ dragBugId = null; clearSecCues();
+  document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); });
 function queueAction(btn){
   const card = btn.closest('.card');
   const it = findItem(card.dataset.id);

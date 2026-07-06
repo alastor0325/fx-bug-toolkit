@@ -85,6 +85,9 @@ const DATA = {
 };
 const STATUS = { state: "ready", generated_at: DATA.generated_at, counts: { needinfos: 3, reviews: 3, my_bugs: 8 } };
 
+// manual section placements (like the real overlay): 230 pinned into Next; 228
+// (an in-review bug, default Focus) shoved to Backlog → exercises the drift hint.
+let placements = { "230": "next", "228": "backlog" };
 let posted = [];   // POST /queue payloads captured
 
 function startServer() {
@@ -93,23 +96,33 @@ function startServer() {
     "/dashboard.logic.js": fs.readFileSync(path.join(DASH, "dashboard.logic.js")),
     "/theme.css": fs.readFileSync(path.join(DASH, "..", "assets", "theme.css")),
     "/favicon.svg": fs.readFileSync(path.join(DASH, "favicon.svg")),
-    "/data.json": Buffer.from(JSON.stringify(DATA)),
     "/status.json": Buffer.from(JSON.stringify(STATUS)),
   };
+  const bugId = ref => (String(ref || "").match(/\d+/) || [])[0];
   const srv = http.createServer((req, res) => {
     const url = req.url.split("?")[0];
-    if (req.method === "POST" && (url === "/queue" || url === "/unqueue")) {
-      let body = "";
-      req.on("data", c => (body += c));
+    const ok = () => { res.writeHead(200, { "content-type": "application/json" }); res.end('{"ok":true}'); };
+    if (req.method === "POST") {
+      let body = ""; req.on("data", c => (body += c));
       req.on("end", () => {
         const e = JSON.parse(body || "{}");
-        if (url === "/queue") posted.push(e);
-        else posted = posted.filter(p => !(String(p.id) === String(e.id) && p.action === e.action));
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end('{"ok":true}');
+        if (url === "/queue") { posted.push(e); return ok(); }
+        if (url === "/unqueue") { posted = posted.filter(p => !(String(p.id) === String(e.id) && p.action === e.action)); return ok(); }
+        if (url === "/my-bugs/place") { placements[bugId(e.id)] = e.section; return ok(); }
+        if (url === "/my-bugs/reset") { delete placements[bugId(e.id)]; return ok(); }
+        if (url === "/my-bugs/remove") { const id = bugId(e.id); DATA.sections.my_bugs = DATA.sections.my_bugs.filter(b => String(b.id) !== id); delete placements[id]; return ok(); }
+        if (url === "/my-bugs/add") {
+          const id = bugId(e.ref || e.id);
+          if (!DATA.sections.my_bugs.some(b => String(b.id) === id))
+            DATA.sections.my_bugs.push({ type: "mybug", id, url: "https://bugzilla.mozilla.org/show_bug.cgi?id=" + id,
+              title: "bug " + id, last_activity_days: 0, patch_status: "none", added: true, tags: [], brief: null });
+          placements[id] = e.section || "next"; return ok();
+        }
+        res.writeHead(404); res.end();
       });
       return;
     }
+    if (url === "/data.json") { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ ...DATA, placements })); return; }
     if (url === "/queue.json") { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(posted)); return; }
     const buf = files[url];
     if (!buf) { res.writeHead(404); res.end(); return; }
@@ -237,38 +250,49 @@ async function main() {
     assert.ok((await page.textContent(`${rp} .ledger`)).includes("Old group review"), "shows the un-analyzed group review inline");
   });
 
-  await check("my work: active zones (revise/waiting/wip) on top, parked backlog collapsed", async () => {
+  await check("my work: Focus/Next/Backlog by placement; add-picker; drift+reset", async () => {
     await page.click('.tab[data-k="my_bugs"]');
     await page.waitForSelector('.tabpanel[data-k="my_bugs"].active');
     const mp = '.tabpanel[data-k="my_bugs"]';
-    // ACTIVE: r- to revise is a card; the live review + live wip are ledger rows
-    assert.ok(await page.$(`${mp} .card.mw-red[data-id="222"]`), "r- card, my court");
-    assert.strictEqual(await page.$eval(`${mp} .card[data-id="222"] .pstatus`, e => e.textContent.trim()), "r- revise");
-    assert.ok((await page.$eval(`${mp} .card[data-id="222"] a.pl`, e => e.href)).includes("D1222"), "patch link");
-    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .pstatus`, e => e.textContent.trim()), "in review");
-    assert.ok(await page.$(`${mp} .lrow[href*="=226"]`), "live wip row present");
-    // a just-filed bug with no patch is active (No patch yet), not backlog
-    assert.ok(await page.isVisible(`${mp} .lrow[href*="=229"]`), "no-patch-yet bug is active, visible");
-    assert.ok((await page.textContent(mp)).includes("No patch yet"), "No patch yet zone shown");
-    // add-a-bug control + a user-pinned row (pin marker + remove ✕)
-    assert.ok(await page.$(`${mp} #addbug`), "add-a-bug input present");
-    const pinned = `${mp} .lrow[href*="=230"]`;
-    assert.ok(await page.isVisible(pinned), "pinned bug is active");
-    assert.ok(await page.$(`${pinned} .chip.pin`), "pinned bug shows the pin chip");
-    assert.ok(await page.$(`${pinned} .mbrm`), "pinned bug shows the remove control");
-    // X/Y ready count shows only for a multi-patch stack (225 = 1/2)
-    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=225"] .rcount`, e => e.textContent.trim()), "1/2 r+");
-    // a parked r+ (223) and a dormant review (228) are NOT active — no card, no top ledger
-    assert.ok(!(await page.$(`${mp} .card[data-id="223"]`)), "parked r+ is not an active card");
-    assert.ok(!(await page.isVisible(`${mp} [data-stale="mybugs-backlog"] + .stale-list .lrow`)), "backlog collapsed");
-    // reveal backlog: it holds the parked r+ (with its 'r+ land it' pill), the
-    // dormant review, and the no-patch assigned bug
-    await page.click(`${mp} .stale-divider[data-stale="mybugs-backlog"]`);
-    assert.ok(await page.isVisible(`${mp} .stale-list .lrow[href*="=223"]`), "backlog holds the parked r+");
-    assert.strictEqual(await page.$eval(`${mp} .lrow[href*="=223"] .pstatus`, e => e.textContent.trim()), "r+ land it");
-    assert.ok(await page.$(`${mp} .lrow[href*="=228"]`), "backlog holds the dormant review");
-    assert.ok(await page.$(`${mp} .lrow[href*="=224"]`), "backlog holds the no-patch bug");
-    // search filters the whole section
+    const headers = () => page.$$eval(`${mp} .zone-h, ${mp} .stale-divider`, els => els.map(e => e.textContent.replace(/\s+/g, " ").trim()));
+    const h = await headers();
+    assert.ok(h[0].startsWith("Focus"), "Focus section first");
+    assert.ok(h.some(x => x.startsWith("Next")), "Next section present");
+    assert.ok(h.some(x => x.startsWith("Backlog")), "Backlog section present");
+    // Focus = default in-review/needs-revision: 222 (card) + 225; 228 was moved out
+    assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] .card[data-id="222"]`), "222 is a Focus card");
+    assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] .lrow[data-id="225"], ${mp} .secdrop[data-section="focus"] .card[data-id="225"]`), "225 in Focus");
+    // Next = wip 226 + pinned 230
+    assert.ok(await page.$(`${mp} .secdrop[data-section="next"] .lrow[data-id="226"]`), "226 (wip) in Next");
+    const pinned = `${mp} .secdrop[data-section="next"] .lrow[data-id="230"]`;
+    assert.ok(await page.$(`${pinned} .chip.pin`), "pinned 230 in Next shows pin");
+    assert.ok(await page.$(`${pinned} .mbrm`), "pinned row has remove ✕");
+    // 228 placed in Backlog though its status defaults to Focus → drift hint + reset
+    await page.click(`${mp} .stale-divider[data-section="backlog"]`);   // expand backlog
+    const b228 = `${mp} .lrow[data-id="228"]`;
+    assert.ok(await page.isVisible(b228), "228 in Backlog");
+    assert.strictEqual((await page.textContent(`${b228} .drift`)).trim(), "↳ focus", "drift hint → focus");
+    assert.ok(await page.$(`${b228} .mbreset`), "drift row offers reset");
+    // add-a-bug: input + section picker
+    assert.ok(await page.$(`${mp} #addbug`) && await page.$(`${mp} #addsec`), "add input + section picker present");
+    // DRAG 226 from Next into Focus → POST /my-bugs/place → it moves
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      const from = document.querySelector('.secdrop[data-section="next"] .lrow[data-id="226"]');
+      const to = document.querySelector('.secdrop[data-section="focus"]');
+      from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
+      to.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+      to.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+      from.dispatchEvent(new DragEvent("dragend", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    });
+    await page.waitForTimeout(200);
+    assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] [data-id="226"]`), "226 dragged into Focus");
+    // reset 228 → back to its default (Focus). Backlog stays expanded across the
+    // re-render (staleOpen persists), so 228's reset control is still visible.
+    await page.click(`${mp} .lrow[data-id="228"] .mbreset`);
+    await page.waitForTimeout(200);
+    assert.ok(await page.$(`${mp} .secdrop[data-section="focus"] [data-id="228"]`), "228 reset back to Focus");
+    // search still filters
     await page.fill('#mbq', 'crash');
     await page.waitForTimeout(120);
     assert.ok((await page.textContent('#mb-body')).includes("222"), "search matches the crash bug");

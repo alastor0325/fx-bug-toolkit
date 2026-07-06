@@ -176,38 +176,6 @@ function actionMeta(action) {
   return ACTION_META[action] || { label: action || "action", accent: "" };
 }
 
-// Days within which a bug counts as actively worked; past this a patch is parked
-// and drops to the backlog no matter its status.
-const ACTIVE_DAYS = 30;
-
-// Split "my work" (open bugs) into ACTIVE zones + a parked BACKLOG. The axis that
-// matters is active-vs-backlog, not raw patch status: a bug I've touched within
-// `activeDays` is active work (even a just-filed bug with no patch yet), while an
-// accepted patch just sitting is backlog (not going to land it) and a long-idle
-// bug is backlog no matter its status.
-//   revise  — needs-revision, active: ball in my court → act (r-)
-//   waiting — in-review, active: waiting on the reviewer
-//   wip     — draft, active: I'm still working it
-//   todo    — no patch yet, active: assigned + recently touched, not started
-//   backlog — accepted-but-parked (r+, any age), or anything gone dormant
-//             (untouched > activeDays). Collapsed, low-signal.
-// Pure.
-function myBugsZones(items, activeDays) {
-  const win = Number(activeDays) || ACTIVE_DAYS;
-  const z = { revise: [], waiting: [], wip: [], todo: [], backlog: [] };
-  for (const b of items || []) {
-    const s = b && b.patch_status;
-    const active = (Number(b.last_activity_days) || 0) <= win;
-    if (s === "accepted") z.backlog.push(b);                 // parked r+ — not landing it
-    else if (active && s === "needs-revision") z.revise.push(b);
-    else if (active && s === "in-review") z.waiting.push(b);
-    else if (active && s === "wip") z.wip.push(b);
-    else if (active && (s === "none" || !s)) z.todo.push(b);
-    else z.backlog.push(b);                                  // dormant / landed / unknown
-  }
-  return z;
-}
-
 // The three purpose-driven My-work sections the user places bugs into. Focus is
 // deliberately small (soft cap); Next is the queue; Backlog is everything parked.
 const MYWORK_SECTIONS = [
@@ -300,8 +268,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SECTIONS, orderedSections, moveKey, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
-    analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
-    readyCount, ACTIVE_DAYS,
+    analyzedSplit, filterLedger, ACTION_META, actionMeta, byRecency, readyCount,
     MYWORK_SECTIONS, FOCUS_CAP, defaultSection, sectionOf, groupBySection, driftHint,
   };
 }

@@ -143,35 +143,6 @@ test("filterLedger: matches id/title/tags, case-insensitive; empty query = all",
   assert.deepStrictEqual(L.filterLedger(items, "2").map(i => i.id), ["222"]);
 });
 
-test("myBugsZones: active (revise/waiting/wip/todo) vs parked backlog", () => {
-  const z = L.myBugsZones([
-    { id: "1", patch_status: "none", last_activity_days: 1 },            // fresh, no patch → todo (active)
-    { id: "2", patch_status: "needs-revision", last_activity_days: 2 },  // r-, active → revise
-    { id: "3", patch_status: "accepted", last_activity_days: 2 },        // r+ parked → backlog (even fresh)
-    { id: "4", patch_status: "in-review", last_activity_days: 3 },       // active review → waiting
-    { id: "5", patch_status: "wip", last_activity_days: 4 },             // active draft → wip
-    { id: "6", patch_status: "none", last_activity_days: 200 },          // stale, no patch → backlog
-  ]);
-  assert.deepStrictEqual(z.revise.map(b => b.id), ["2"]);
-  assert.deepStrictEqual(z.waiting.map(b => b.id), ["4"]);
-  assert.deepStrictEqual(z.wip.map(b => b.id), ["5"]);
-  assert.deepStrictEqual(z.todo.map(b => b.id), ["1"]);                  // just-filed bug, no patch
-  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["3", "6"]);   // parked r+ + stale no-patch
-});
-
-test("myBugsZones: a dormant patch (untouched > window) drops to backlog", () => {
-  const items = [
-    { id: "a", patch_status: "in-review", last_activity_days: 400 },  // abandoned review
-    { id: "b", patch_status: "wip", last_activity_days: 500 },        // stale draft
-    { id: "c", patch_status: "in-review", last_activity_days: 3 },    // live review
-  ];
-  const z = L.myBugsZones(items);
-  assert.deepStrictEqual(z.waiting.map(b => b.id), ["c"]);
-  assert.deepStrictEqual(z.backlog.map(b => b.id).sort(), ["a", "b"]);
-  // window is tunable: with a huge window, the old review counts as active again
-  assert.deepStrictEqual(L.myBugsZones(items, 1000).waiting.map(b => b.id).sort(), ["a", "c"]);
-});
-
 test("byRecency: most-recently-active first", () => {
   assert.deepStrictEqual(L.byRecency([{ id: "a", last_activity_days: 9 }, { id: "b", last_activity_days: 1 }]).map(b => b.id), ["b", "a"]);
 });
