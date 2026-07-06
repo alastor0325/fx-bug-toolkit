@@ -112,35 +112,36 @@ enrichment JSON. Collect the results into the enrichment map (keyed by id).
 Run them in parallel/batches so the main context stays small. Do the enrichment
 this way — don't inline it into this (possibly Opus) session.
 
-Produce, per item, keyed by its `id` (the bug number or `D…` id):
+The `dashboard-enrich` agent returns the per-item JSON (see its spec for the full
+shape). In brief, keyed by `id`:
 
-- **`brief`** — a small object the page shows on the card:
-  - needinfo → `{ "bug": "1–2 sentences: what the bug is about",
-    "ask": "1 sentence: what THIS needinfo is asking of you" }`
-  - review → `{ "summary": "1–2 sentences: what the patch does / what to focus a review on" }`
-  - my_bug → `{ "summary": "1–2 sentences: current state + the next step" }`
-- **`extra_tags`** — optional deeper labels beyond the field tags, each
-  `{ "text": "...", "kind": "warn"|"good"|"info" }` — e.g. `needs-STR`,
-  `dup-suspect`, `ready`, `waiting-on-reporter`. Keep to what's decision-useful.
-- **`solvable`** *(needinfos only)* — `true` only if the bug **already contains
-  everything needed to solve it** (clear STR / evident root cause / small scope)
-  so `/bug-start` could plausibly produce a fix; else `false`. Add a one-line
-  **`solvable_reason`**. This gate decides whether the card offers a
-  "looks ready → run /bug-start?" button. Be conservative: default `false` when
-  unsure.
+- **reviews** → `{ brief: {summary}, extra_tags? }`.
+- **needinfos** → a triage-style assessment (mirrors `/triage --analyze-only`):
+  - `brief: {bug, ask}` + **`ask_kind`** (`investigate` = the NI asks me to look
+    into/diagnose the bug; `easy` = a quick/procedural ask). For `easy`, that's all.
+  - For `investigate`: **`ready`** (bug has enough to run `/bug-start`) +
+    `ready_reason`; when not ready, **`missing_info`** (concrete gaps as short
+    chips); when a root cause is already determinable from artifacts,
+    **`hypothesis`** (missing_info OR hypothesis, not both). Optional when evident:
+    `bug_type`, `regressor`, `duplicate_of`, `meta`, `priority`, `severity`.
+  - This drives the card's button: investigate+ready → **run /bug-start**;
+    investigate+not-ready → **draft: request info**; easy → **Draft reply**.
 
-Write the merged map to an enrichment file (a temp path is fine), shaped:
+Write the merged map to an enrichment file (a temp path is fine), e.g.:
 
 ```json
 {
-  "1911204": { "brief": {"bug": "...", "ask": "..."}, "solvable": false,
-               "solvable_reason": "needs a repro on 128", "extra_tags": [{"text":"needs-STR","kind":"warn"}] },
+  "1911204": { "brief": {"bug": "...", "ask": "please check why seek crashes"},
+               "ask_kind": "investigate", "ready": false, "ready_reason": "no STR",
+               "bug_type": "regression", "regressor": "1899123",
+               "missing_info": ["no STR", "no about:support"] },
+  "1922000": { "brief": {"bug": "...", "ask": "is this still repro on 128?"}, "ask_kind": "easy" },
   "D221450": { "brief": {"summary": "..."}, "extra_tags": [{"text":"large","kind":"info"}] }
 }
 ```
 
-Do **not** invent data you didn't read, and never write an email/API key into the
-enrichment.
+Do **not** invent data you didn't read (omit unsupported fields), and never write
+an email/API key into the enrichment.
 
 ## Step 4 — Finalize
 

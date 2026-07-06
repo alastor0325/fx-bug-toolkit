@@ -37,6 +37,7 @@ choice (see Setup check → Resolve `$TRIAGE_COMPONENTS`). Unset = the default s
 - `/triage` — **full session**: poll all watched bugs + fetch new bugs from the last 14 days + triage all
 - `/triage <bug-id>` — **single-bug mode**: triage exactly one bug; MUST NOT touch any other bug or any other pending/watch/log state
 - `/triage <bugzilla-url>` — **batch mode**: parse all bug IDs from the URL; run single-bug mode for each ID independently
+- `/triage <bug-id> --analyze-only` — **analysis-only mode**: run the Step 1–6 assessment for one bug and **emit the assessment as JSON only** — draft NOTHING, dispatch NOTHING, write NOTHING. See "Analyze-only mode" below. Used by the personal dashboard's needinfo enrichment.
 
 ### Mode isolation rules
 
@@ -53,6 +54,38 @@ To check for a reply on a specific watched bug in single-bug mode, fetch it dire
 bugzilla-cli get <id>
 ```
 Then inspect comments and flags manually against the watch entry — do not invoke `watch-poll`.
+
+### Analyze-only mode (`--analyze-only`)
+
+Run the per-bug **Step 1–6 assessment** (fetch + extract + classify + duplicate/meta
++ info-gaps + §1a/§1b decision) for exactly one bug, then **stop and print a JSON
+object — nothing else**. This mode separates *analysis* from *acting*:
+
+- **No side effects at all**: do NOT draft a comment/NI, do NOT dispatch
+  `/bug-start`, do NOT write `pending/`, `triage-log.json`, or the watch list, do
+  NOT post to Bugzilla. It's read-only regardless of the configured mode.
+- **Reuse existing analysis**: if an investigation file (`$FX_BUG_INVESTIGATION_DIR/bug-<id>-investigation.md`)
+  or a pending triage draft already exists for this bug, base the assessment on it.
+- **Emit** (omit any field you can't support from what you read):
+
+```json
+{
+  "ready": false,                 // §1b Fixable=Yes → enough to start /bug-start
+  "ready_reason": "missing STR",
+  "bug_type": "regression",
+  "regressor": "1899123",          // "regressed by" (§ Step 3)
+  "duplicate_of": "1902050",       // likely dup (§ Step 4)
+  "meta": "1888000",               // blocks/under this meta (§ Step 4b)
+  "priority": "P2", "severity": "S3",
+  "missing_info": ["no STR", "no about:support"],   // the §1a gaps, if not ready
+  "hypothesis": "1–2 sentences: root cause from artifacts (§ Step 2c), if determinable"
+}
+```
+
+`missing_info` (blocked) and `hypothesis` (analyzed) are mutually exclusive. This
+is the structured form of §1a-vs-§1b: `ready:true` ⇢ §1b (would dispatch
+`/bug-start` in normal mode); `ready:false` + `missing_info` ⇢ §1a (would draft a
+needs-info in normal mode).
 
 ---
 

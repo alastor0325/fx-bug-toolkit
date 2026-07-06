@@ -61,19 +61,27 @@ pending one by its `action`. For several entries, **fan out** with the Agent too
 sources with `mcp__moz__get_bugzilla_bug(id)` (fall back to `bmo-to-md` for
 security bugs) and `mcp__moz__get_phabricator_revision` for `D…` ids.
 
-- **`draft-reply`** (needinfo) — read the bug + the specific needinfo question and
-  **draft a reply** that answers it (or asks the right follow-up). Follow the
-  `/triage` needinfo-drafting style. Draft only — do not post.
+- **`draft-reply`** (needinfo, an *easy* ask) — read the bug + the specific
+  needinfo question and **draft a reply** that answers it. Follow the `/triage`
+  needinfo-drafting style. Draft only — do not post. *Light — a Sonnet subagent.*
+- **`draft-request`** (needinfo, *investigate* but not ready) — draft a reply that
+  **requests the missing info** the enrichment listed (`missing_info`), so the bug
+  becomes investigable. Draft only. *Light — a Sonnet subagent.*
 - **`bug-investigate`** (needinfo) — do a focused investigation of the bug (what's
   going on, likely area, what's still unknown). A `gecko-navigator` subagent is a
   good fit. Produce a short findings summary.
-- **`bug-start`** (needinfo, offered only when generation marked it solvable) —
-  run the `/bug-start` investigation flow to produce a **proposed solution**
-  (root cause + fix direction). Summarize it; note where any investigation file
-  was written.
+- **`bug-start`** (needinfo, offered when the NI is *investigate* and the bug is
+  *ready*) — run the `/bug-start` investigation flow to produce a **proposed
+  solution** (root cause + fix direction); its findings *are* the answer to the
+  NI. Summarize it; note where the investigation file was written. *Deep — this is
+  the heavy pass; run it on the strong model (Opus), not a cheap subagent.*
 - **`review`** — run the `/review` flow on the revision (it writes a structured
   review doc to `$FX_REVIEW_DIR`). Summarize the verdict + top findings and point
   to the doc.
+
+**Model tiers** — match cost to depth: the drafts (`draft-reply`, `draft-request`)
+are light Sonnet work; `bug-start`/`review` are the deep passes (strong model). Run
+the light ones as cheap subagents and reserve Opus for the investigations.
 
 Keep the user's data private: never write an email/API key into results.
 
