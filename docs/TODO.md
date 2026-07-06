@@ -63,6 +63,16 @@ Skills exist only in the dev repo/branch; released users never receive them.
       disagrees with status (never auto-moves). Closed bugs always removed
       (collector re-vets the overlay on `base`; assemble filters). Focus = cards,
       Next = visible ledger, Backlog = collapsed ledger.
+- [x] **Needinfo cards reuse the `/triage` assessment.** (2026-07-06) NIs split
+      easy-vs-investigate; investigate NIs get a triage-style card (verdict ·
+      regressor · dup · meta · P/S · missing-info **or** root-cause hypothesis) and
+      a state chip (ready green / needs-info amber). Button matrix:
+      investigate+ready → run /bug-start (its findings answer the NI),
+      investigate+not-ready → draft: request missing info, easy → draft reply.
+      New `/triage --analyze-only` mode emits the §1a/§1b assessment as JSON (no
+      draft/dispatch/writes); `dashboard-enrich` reuses it (Sonnet, reuses an
+      existing investigation/triage draft if present); drain routes drafts to
+      Sonnet, /bug-start + /review to Opus. Strict ≤7d cap on the enrichment pass.
 - [ ] **Follow-up (🟢 minor)** — inline "removed — undo" for the ✕ *dismiss*
       (not-assigned) branch. The ✕ is now hover/focus-revealed + isolated far-right
       + keyboard `x`, so accidental dismiss is unlikely; a 6s inline undo (defer the
