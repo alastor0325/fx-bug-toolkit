@@ -20,11 +20,39 @@ function escapeHtml(s) {
   ));
 }
 
-// Map a tag's `kind` to a shared chip color class ("" = neutral chip). Keeps the
-// page's tag palette consistent with /theme.css.
+// Map a tag's `kind` to a chip color class ("" = neutral). Color is reserved for
+// SIGNAL so it actually means something: red = danger (security filled + crash +
+// memory-safety), amber = attention (regression, high severity). Component and
+// every descriptive/enrichment tag stay neutral grey — context, not noise.
 function tagClass(kind) {
-  return ({ component: "cyan", severity: "amber", security: "security",
-            regression: "red", warn: "amber", good: "green" })[kind] || "";
+  return ({
+    security: "security",       // filled red — highest attention
+    warn: "red",               // crash → danger
+    danger: "red", "memory-safety": "red",
+    regression: "amber",       // attention
+    severity: "amber",
+  })[kind] || "";
+}
+
+// Rank a tag by how much it wants attention (filled danger > danger > attention >
+// neutral) — used to keep the important chips when we cap the count.
+function tagRank(kind) {
+  const c = tagClass(kind);
+  return c === "security" ? 3 : c === "red" ? 2 : c ? 1 : 0;
+}
+
+// The chips a card actually shows: dedup by text (kills the "REGRESSION ×2"
+// dupes), signal-first so a cap never drops a security/regression chip, then
+// capped so a card stays scannable. Pure (new array).
+function displayTags(tags, cap) {
+  const seen = new Set(), out = [];
+  for (const t of tags || []) {
+    const key = String((t && t.text) || "").toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key); out.push(t);
+  }
+  out.sort((a, b) => tagRank(b.kind) - tagRank(a.kind));
+  return out.slice(0, Number(cap) || 3);
 }
 
 // Coarse human age from a day count.
@@ -201,7 +229,7 @@ function generatedAgo(iso, nowMs) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    SECTIONS, escapeHtml, tagClass, waitingLabel, patchStatusMeta, actionsForItem,
+    SECTIONS, escapeHtml, tagClass, tagRank, displayTags, waitingLabel, patchStatusMeta, actionsForItem,
     actionKey, buildQueueEntry, viewMode, totalItems, generatedAgo, sortForSection,
     analyzedSplit, filterLedger, ACTION_META, actionMeta, myBugsZones, byRecency,
     readyCount, ACTIVE_DAYS,

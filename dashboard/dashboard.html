@@ -67,10 +67,10 @@
   .chead{padding:11px 13px; cursor:pointer}
   .chead:hover{background:#17171c}
   .crow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .card a.id{font-family:var(--mono); font-size:12px; color:var(--accent); text-decoration:none; font-weight:500; flex:none}
-  .card a.id:hover{text-decoration:underline}
-  .meta{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--faint); white-space:nowrap; flex:none}
-  .briefline{margin-top:6px; font-size:13px; color:var(--dim); line-height:1.4;
+  .card a.id{font-family:var(--mono); font-size:12.5px; color:var(--dim); text-decoration:none; font-weight:600; flex:none}
+  .card a.id:hover{color:var(--cyan); text-decoration:underline}
+  .meta{margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--dim); white-space:nowrap; flex:none}
+  .briefline{margin-top:7px; font-size:14px; color:var(--ink); line-height:1.5;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
   .card.open .briefline{display:none}
   .caret{font-family:var(--mono); color:var(--faint); font-size:11px; transition:transform .15s}
@@ -78,37 +78,37 @@
 
   .cbody{border-top:1px solid var(--line-soft); padding:12px 13px; display:none}
   .card.open .cbody{display:block}
-  .cbody .title{font-size:13.5px; color:var(--ink); font-weight:500; line-height:1.4; margin-bottom:10px}
-  .cbody .brief p{margin:0 0 6px; font-size:13px; color:var(--dim); line-height:1.5}
+  .cbody .title{font-size:14.5px; color:var(--ink); font-weight:600; line-height:1.4; margin-bottom:10px}
+  .cbody .brief p{margin:0 0 7px; font-size:13.5px; color:var(--dim); line-height:1.55}
   .cbody .brief .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); margin-right:6px}
   .noanalysis{font-family:var(--mono); font-size:11.5px; color:var(--faint); font-style:italic}
 
   .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
-  .abtn{height:30px; padding:0 12px; border-radius:7px; background:var(--raised); border:1px solid var(--line);
-    color:var(--dim); font-family:var(--mono); font-size:11.5px; cursor:pointer; transition:.12s}
-  .abtn:hover{color:var(--ink); border-color:#37373f}
+  .abtn{height:32px; padding:0 14px; border-radius:7px; background:var(--raised); border:1px solid var(--line);
+    color:var(--ink); font-family:var(--mono); font-size:12.5px; cursor:pointer; transition:.12s}
+  .abtn:hover{border-color:var(--amber-dim); background:var(--amber-wash); color:var(--amber)}
   .abtn.primary{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-wash)}
   .abtn.queued{color:var(--green); border-color:rgba(134,210,140,.35); cursor:default}
   .result{margin-top:10px; padding:9px 11px; border-radius:8px; background:#101015; border:1px solid var(--line-soft);
     font-size:12.5px; color:var(--dim); line-height:1.45}
   .result .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--green)}
 
-  .pstatus{font-family:var(--mono); font-size:10px; padding:1px 7px; border-radius:5px; border:1px solid var(--line); flex:none}
+  .pstatus{font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:5px; border:1px solid var(--line); flex:none}
   .pstatus.blue{color:var(--blue); border-color:rgba(124,194,255,.30)}
   .pstatus.cyan{color:var(--cyan); border-color:rgba(106,215,198,.28)}
   .pstatus.amber{color:var(--amber); border-color:rgba(255,180,84,.30)}
   .pstatus.green{color:var(--green); border-color:rgba(134,210,140,.30)}
   .pstatus.red{color:var(--red); border-color:rgba(255,123,114,.35)}
   /* X/Y ready count for a multi-patch stack — sits just left of the state pill */
-  .rcount{font-family:var(--mono); font-size:10px; color:var(--faint); margin-right:7px; flex:none}
+  .rcount{font-family:var(--mono); font-size:10.5px; color:var(--dim); margin-right:7px; flex:none}
 
   /* "Needs me" cards — left edge red (r-) / green (r+ ready to land) */
   .card.mw-red{border-left-color:var(--red)}
   .card.mw-green{border-left-color:var(--green)}
   .mw-card{padding:11px 13px}
-  .mw-title{margin-top:5px; font-size:13.5px; color:var(--ink); line-height:1.4}
-  .mw-sub{margin-top:8px; display:flex; align-items:center; gap:12px;
-    font-family:var(--mono); font-size:10.5px; color:var(--faint)}
+  .mw-title{margin-top:6px; font-size:14px; color:var(--ink); line-height:1.45}
+  .mw-sub{margin-top:9px; display:flex; align-items:center; gap:12px;
+    font-family:var(--mono); font-size:11.5px; color:var(--dim)}
   .mw-sub a.pl{color:var(--cyan); text-decoration:none}
   .mw-sub a.pl:hover{text-decoration:underline}
 
@@ -140,14 +140,15 @@
   .lrow:last-child{border-bottom:none}
   .lrow:hover{background:#17171c}
   .stale-list .lrow:last-child{border-bottom:none}
-  .lrow .id{font-family:var(--mono); font-size:11.5px; color:var(--dim); flex:none; width:66px}
-  .lrow:hover .id{color:var(--amber)}
+  .lrow .id{font-family:var(--mono); font-size:12px; color:var(--dim); flex:none; width:68px}
+  .lrow:hover .id{color:var(--cyan)}
   .lrow .lchips{display:flex; gap:5px; flex:none}
-  .lrow .lchips .chip{font-size:9.5px; padding:1px 6px}
-  .lrow .ltitle{flex:1; min-width:0; font-size:12.5px; color:var(--dim);
+  .lrow .lchips .chip{font-size:10px; padding:1px 6px}
+  .lrow .ltitle{flex:1; min-width:0; font-size:13px; color:var(--dim);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lrow .lmeta{font-family:var(--mono); font-size:10.5px; color:var(--faint); flex:none; white-space:nowrap}
-  .lrow .lmeta .pstatus{font-size:9.5px}
+  .lrow:hover .ltitle{color:var(--ink)}
+  .lrow .lmeta{font-family:var(--mono); font-size:11px; color:var(--dim); flex:none; white-space:nowrap}
+  .lrow .lmeta .pstatus{font-size:10px}
 
   .mb-search{flex:1 1 auto; max-width:none; margin-bottom:10px}
   @media (max-width:640px){ .lrow .lchips{display:none} }
@@ -220,8 +221,8 @@ let staleOpen = (()=>{ try { return new Set(JSON.parse(localStorage.getItem(STAL
 function saveStale(){ try { localStorage.setItem(STALE_KEY, JSON.stringify([...staleOpen])); } catch(e){} }
 let myBugsQuery = '';
 
-function tagsHtml(tags){
-  return (tags||[]).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
+function tagsHtml(tags, cap){
+  return displayTags(tags, cap).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
 }
 function collapsedMeta(it){
   if(it.type === "mybug"){
@@ -266,11 +267,12 @@ function actionsHtml(it){
 }
 // review cards: show which review GROUP it's requested on (e.g. #media-playback-
 // reviewers). A direct-to-you reviewer is implied by the Direct zone, so only
-// group reviewers (names starting "#") get a chip.
+// group reviewers (names starting "#") get a chip. Neutral (not cyan): it repeats
+// on nearly every card, so it's quiet context — the section color is on the border.
 function reqChipsHtml(it){
   if(it.type !== "review") return "";
   return (it.reviewers || []).filter(r => r && r.charAt(0) === "#")
-    .map(r => `<span class="chip cyan" title="requested reviewer group">→ ${escapeHtml(r)}</span>`).join("");
+    .map(r => `<span class="chip" title="requested reviewer group">→ ${escapeHtml(r)}</span>`).join("");
 }
 function cardHtml(it){
   const open = openCards.has(String(it.id)) ? " open" : "";
@@ -292,7 +294,7 @@ function cardHtml(it){
 }
 // compact one-line reference row (stale needinfos, my-bugs backlog)
 function ledgerRowHtml(it){
-  const chips = (it.tags||[]).slice(0,2).map(t=>`<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
+  const chips = tagsHtml(it.tags, 2);
   let meta;
   if(it.type === "mybug"){
     const m = patchStatusMeta(it.patch_status);

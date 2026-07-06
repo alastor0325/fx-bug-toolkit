@@ -8,13 +8,37 @@ test("SECTIONS are the three v3 buckets in order", () => {
   assert.deepStrictEqual(L.SECTIONS.map(s => s.key), ["needinfos", "reviews", "my_bugs"]);
 });
 
-test("tagClass maps kinds to theme chip colors, neutral for unknown/info", () => {
-  assert.strictEqual(L.tagClass("component"), "cyan");
-  assert.strictEqual(L.tagClass("security"), "security");
-  assert.strictEqual(L.tagClass("regression"), "red");
-  assert.strictEqual(L.tagClass("good"), "green");
+test("tagClass: color is signal only — danger red, attention amber, rest neutral", () => {
+  assert.strictEqual(L.tagClass("security"), "security");   // filled red
+  assert.strictEqual(L.tagClass("warn"), "red");            // crash → danger
+  assert.strictEqual(L.tagClass("memory-safety"), "red");
+  assert.strictEqual(L.tagClass("regression"), "amber");    // attention
+  assert.strictEqual(L.tagClass("severity"), "amber");
+  assert.strictEqual(L.tagClass("component"), "");          // context → neutral (was cyan)
+  assert.strictEqual(L.tagClass("good"), "");               // descriptive → neutral (was green)
   assert.strictEqual(L.tagClass("info"), "");
   assert.strictEqual(L.tagClass("nope"), "");
+});
+
+test("tagRank orders filled-danger > danger > attention > neutral", () => {
+  assert.ok(L.tagRank("security") > L.tagRank("warn"));
+  assert.ok(L.tagRank("warn") > L.tagRank("regression"));
+  assert.ok(L.tagRank("regression") > L.tagRank("component"));
+  assert.strictEqual(L.tagRank("component"), 0);
+});
+
+test("displayTags: dedup by text, signal-first, capped", () => {
+  const tags = [
+    { text: "Audio/Video", kind: "component" },
+    { text: "REGRESSION", kind: "regression" },
+    { text: "regression", kind: "info" },      // dup of REGRESSION (case-insensitive)
+    { text: "sec", kind: "security" },
+    { text: "has-profile", kind: "info" },
+  ];
+  const out = L.displayTags(tags, 3);
+  assert.strictEqual(out.length, 3);                          // capped
+  assert.deepStrictEqual(out.map(t => t.text), ["sec", "REGRESSION", "Audio/Video"]); // security > regression > neutral; dup dropped
+  assert.deepStrictEqual(L.displayTags([], 3), []);
 });
 
 test("waitingLabel: today / days / weeks / months", () => {
