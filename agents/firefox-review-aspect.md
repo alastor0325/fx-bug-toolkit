@@ -223,11 +223,19 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
       "file": "dom/media/Foo.cpp:142",
       "title": "mMutex released before mState read",
       "evidence": "<short code excerpt + why it is wrong, with spec/searchfox cite if relevant>",
-      "fix": "<concrete suggested fix>"
+      "fix": "<concrete suggested fix>",
+      "snippet": "<the exact source line `file` points at, copied verbatim from diff.patch; null only for a file-level finding>"
     }
   ]
 }
 ```
+
+<!-- phab-review-bridge: worker snippet -->
+`snippet` is required on every finding: the exact text of the line `file` points
+at (the first line of the range), copied verbatim from `diff.patch`, not
+paraphrased, not re-indented, not trimmed. Tooling cross-checks it against the
+diff to validate your line number, so a paraphrase costs the finding its anchor.
+Use `null` only for a finding about a whole file.
 
 If the dimension turns up nothing, return `"findings": []`. If you determine the
 dimension does not apply to this patch at all, return `"ran": false` with an
@@ -253,6 +261,7 @@ until the real code proves it right.** Read the actual code at `base_revision`
 {
   "verdict": "confirmed",
   "file": "dom/media/Foo.cpp:142",
+  "title": "<the title of the finding you were given, copied unchanged>",
   "reasoning": "<why, citing the code/spec you actually read>"
 }
 ```

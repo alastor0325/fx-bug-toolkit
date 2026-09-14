@@ -8,6 +8,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 ## [Unreleased]
 
 ### Added
+- **`/review` cooperates with phab-review-bridge.** Three blocks, each inert
+  unless the matching environment variable is set, so an interactive `/review`
+  is unchanged. `PHAB_REVIEW_BRIDGE_WORKER_DIR` makes the run persist its
+  per-aspect worker JSON and write `overview.md`, a brief explainer of the
+  patch itself for a reviewer who has not read it, with a small diagram only
+  when the change is structural. `PHAB_REVIEW_BRIDGE_DIMENSIONS` names the
+  permitted dimensions for one run: it permits rather than forces, so all eight
+  is exactly the routing table's own behaviour, unlisted dimensions do not run
+  even `security` or `threading`, and the document says which were excluded by
+  request so a narrowed review cannot be mistaken for a full one.
 - **Shared visual theme (`assets/theme.css`).** The investigation viewer's
   design tokens and base components (palette, IBM Plex type, page backdrop, form
   controls, the `.chip` primitive, scrollbars, `<kbd>`, brand mark) are now a
