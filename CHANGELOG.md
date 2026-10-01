@@ -7,6 +7,10 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.6.4] — 2026-10-01
+
 ### Changed
 - **`profiler-cli` now installs from npm.** `/init` and `/update` install the
   Firefox Profiler team's published package with
@@ -775,7 +779,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...HEAD
+[0.6.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...fx-bug-toolkit--v0.6.4
 [0.6.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...fx-bug-toolkit--v0.6.3
 [0.6.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.1...fx-bug-toolkit--v0.6.2
 [0.6.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...fx-bug-toolkit--v0.6.1
