@@ -32,7 +32,7 @@ only the CSS shell with no profile data.
 
 `profiler-cli` is on your `PATH` (the `init` skill installs it).
 
-**Command shape (verified against profiler-cli 0.9.0).** It is a **subcommand** CLI and
+**Command shape (verified against profiler-cli 0.10.0).** It is a **subcommand** CLI and
 is *stateful*: you `load` once to create a session, then query that session. The old
 single-shot forms `profiler-cli <url> --calltree N`, `--top-markers N` and
 `--log-markers` **no longer exist** and will fail.
@@ -65,7 +65,7 @@ whole analysis rests on, so a failed read is never a caveat to note and move pas
 |---|---|
 | `This profile is version N, but this profiler-cli only supports up to version M` | The tool is stale. `npm install -g @firefox-devtools/profiler-cli@latest`, then retry. |
 | `Unable to extract profile URL` | The link is a `profiler.firefox.com/from-browser/...` local-session URL and contains **no profile data**. Ask for a `share.firefox.dev` URL produced by **Upload Local Profile**. |
-| `browserType.launch: Executable doesn't exist` | Playwright's Firefox is missing: `npx playwright install firefox`, or re-run `/init`. |
+| `Please specify one of: --calltree <N>, …` | The legacy git-clone `profiler-cli` is still installed under the same name. Run `/update`, which replaces it with `@firefox-devtools/profiler-cli`, then retry. |
 
 Only after upgrading and retrying may you report a profile as unreadable, and then you
 must say so explicitly and mark the analysis incomplete rather than presenting a

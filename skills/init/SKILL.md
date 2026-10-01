@@ -102,6 +102,8 @@ report() {  # report <label> <tool>
   else echo "⚠️  $1 MISSING"; fi
 }
 for t in cargo bmo-to-md searchfox-cli git node npm profiler-cli mach; do report "$t" "$t"; done
+npm ls -g --depth=0 profiler-cli >/dev/null 2>&1 \
+  && echo "⚠️  profiler-cli is the legacy git-clone build — run /update to switch to @firefox-devtools/profiler-cli"
 # python: python3 or python
 if r=$(have python3) || r=$(have python); then echo "✅ python → ${r#*|}"; else echo "⚠️  python MISSING"; fi
 # moz MCP + wiki (guide-only)
@@ -114,12 +116,13 @@ What each item is (req / how it's installed):
 - **`cargo`** — REQUIRED, **[installable via rustup]**. Builds `bmo-to-md` + `searchfox-cli`.
 - **`bmo-to-md`** — REQUIRED, **[installable]** (needs cargo). Pulls Bugzilla content.
 - **`searchfox-cli`** — REQUIRED, **[installable]** (needs cargo). Code search.
-- **`git`** — REQUIRED, **[guide-only]**. Source links, cloning profiler-cli.
+- **`git`** — REQUIRED, **[guide-only]**. Source links, repo lookups.
 - **`python`/`python3`** — REQUIRED, **[guide-only]**. Helper scripts + the viewer launcher.
-- **`node` + `npm`** — REQUIRED, **[installable via nvm]**. Build & run `profiler-cli`.
-- **`profiler-cli`** — REQUIRED, **[installable]** (needs node/npm + git). Powers
-  `/analyze-profile`; its install also fetches a headless Playwright **Firefox**
-  browser (the engine it drives to read profiles).
+- **`node` + `npm`** — REQUIRED, **[installable via nvm]**. Install & run `profiler-cli`
+  (needs Node ≥ 24).
+- **`profiler-cli`** — REQUIRED, **[installable]** (needs node/npm). Powers
+  `/analyze-profile`. Published on npm as
+  [`@firefox-devtools/profiler-cli`](https://www.npmjs.com/package/@firefox-devtools/profiler-cli).
 - **`mach` + checkout** — OPTIONAL, **[guide-only]**. Local build / spec checks. Run as `./mach`
   from a mozilla-central checkout, so it's usually *not* a global binary; the toolkit works via
   searchfox without it. Guide: <https://firefox-source-docs.mozilla.org/setup/>.
@@ -178,21 +181,15 @@ Then install **only the selected** items, in this dependency order:
      echo "✅ $c $("$c" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
    done
    ```
-4. **profiler-cli** (if selected) — requires node/npm + git. Clone, build,
-   `npm link`, then install its headless browser. profiler-cli drives a headless
-   Playwright **Firefox** to load the profiler SPA, so `npx playwright install
-   firefox` is **required** — without it the *first* `/analyze-profile` run
-   crashes with `browserType.launch: Executable doesn't exist … Please run: npx
-   playwright install`:
+4. **profiler-cli** (if selected) — requires node/npm (Node ≥ 24). Install the
+   published npm package globally; it has no runtime dependencies:
    ```bash
-   git clone https://github.com/dpalmeiro/profiler-cli "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
-   cd "${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}" \
-     && npm install && npm run build && npm link \
-     && npx playwright install firefox
+   npm install -g @firefox-devtools/profiler-cli@latest
+   echo "✅ profiler-cli $(profiler-cli --version 2>/dev/null)"
    ```
    Verify with the `have` resolver from Checklist B (not bare `command -v`, which
    misses Windows' npm global bin): `report profiler-cli profiler-cli`.
-   *Windows note:* `npm link` makes `profiler-cli.cmd` in the npm global bin; that
+   *Windows note:* `npm install -g` makes `profiler-cli.cmd` in the npm global bin; that
    shim runs `node`, so **`node` must also be on the bash PATH** for it to launch
    — the recipe below puts both there.
 
@@ -264,12 +261,12 @@ Status use `✅`, `⚠️ <why>` (incl. "installed, off-PATH"), or "using defaul
 3. **Core CLIs** _(the toolkit's working tools)_
    - `bmo-to-md` — pull Bugzilla bug content — REQUIRED
    - `searchfox-cli` — search the Gecko codebase — REQUIRED
-   - `profiler-cli` (+ Playwright Firefox browser) — powers `/analyze-profile` — REQUIRED
+   - `profiler-cli` — powers `/analyze-profile` — REQUIRED
    - `git` — source links, repo lookups — REQUIRED
    - `python` — helper scripts + viewer launcher — REQUIRED
 4. **Dependencies for the core CLIs** _(toolchains)_ — columns `Item | Serves | Req? | Status`
    - `cargo` (Rust) — builds `bmo-to-md`, `searchfox-cli` — REQUIRED
-   - `node` + `npm` — build & run `profiler-cli` — REQUIRED
+   - `node` + `npm` — install & run `profiler-cli` (Node ≥ 24) — REQUIRED
 5. **Optional features**
    - `mach` + checkout — local build / spec checks — OPTIONAL
    - `moz` MCP server — Bugzilla/Phabricator MCP lookups — OPTIONAL
@@ -278,8 +275,8 @@ Status use `✅`, `⚠️ <why>` (incl. "installed, off-PATH"), or "using defaul
 Then the verdict:
 
 - **Setup complete** once **every REQUIRED item** resolves on PATH: `cargo`,
-  `bmo-to-md`, `searchfox-cli`, `git`, `python`, `node`/`npm`, and `profiler-cli`
-  (with its Playwright Firefox browser). All are required — `profiler-cli` and
+  `bmo-to-md`, `searchfox-cli`, `git`, `python`, `node`/`npm`, and `profiler-cli`.
+  All are required — `profiler-cli` and
   its toolchain are no longer optional.
 - If anything is **installed-but-off-PATH**, point at the Windows /
   non-interactive PATH recipe — that's a PATH fix, not a reinstall. List any

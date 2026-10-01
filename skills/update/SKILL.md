@@ -10,7 +10,7 @@ Refresh the plugin and all its dependencies to their latest versions. For the
 **required** CLIs (`bmo-to-md`, `searchfox-cli`, `profiler-cli`) this also
 **installs them when they're missing** — they're mandatory, so `/update` must not
 leave a gap. It still needs the underlying toolchain present (`cargo` for the
-Rust CLIs, `git`+`node`/`npm` for `profiler-cli`); if the toolchain itself is
+Rust CLIs, `node`/`npm` for `profiler-cli`); if the toolchain itself is
 missing, it stops and points you to `/init` (which installs Rust/Node, asking
 first). **Optional** pieces — the triage dashboard, and Revue for
 `/open-review` — are only refreshed when already installed; they stay
@@ -136,33 +136,29 @@ The `✅ <cli>: already current (X) — no change` / `<old> → <new> (updated)`
 `installed (X)` lines are the visible payoff: when a CLI compiles, the delta
 tells you whether it was a genuine upgrade or just a no-op rebuild.
 
-**`profiler-cli`** (git pull; **rebuild only when the pull brought new commits**).
-`profiler-cli` drives a headless Playwright **Firefox** to load the profiler SPA,
-so re-assert the browser after a rebuild (Playwright versions can bump):
+**`profiler-cli`** (npm package
+[`@firefox-devtools/profiler-cli`](https://www.npmjs.com/package/@firefox-devtools/profiler-cli),
+needs Node ≥ 24). Older installs `npm link`ed a git clone of a different
+project under the same `profiler-cli` name; that global package is named plain
+`profiler-cli` and blocks the npm install, so remove it first:
 ```bash
-PDIR="${PROFILER_CLI_DIR:-$HOME/projects/profiler-cli}"
-if [ -d "$PDIR/.git" ]; then
-  before=$(git -C "$PDIR" rev-parse HEAD 2>/dev/null)
-  if git -C "$PDIR" pull --ff-only; then
-    after=$(git -C "$PDIR" rev-parse HEAD 2>/dev/null)
-    if [ "$before" != "$after" ]; then
-      ( cd "$PDIR" && npm install && npm run build && npx playwright install firefox ) \
-        && echo "✅ profiler-cli rebuilt ($after)" \
-        || echo "⚠️  profiler-cli rebuild FAILED — check $PDIR"
-    else
-      echo "profiler-cli already up to date ($after)"
+if command -v npm >/dev/null; then
+  pver() { profiler-cli --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1; }
+  before="$(pver)"
+  if npm ls -g --depth=0 profiler-cli >/dev/null 2>&1; then
+    npm rm -g profiler-cli && echo "removed the legacy git-clone profiler-cli link"
+  fi
+  if npm install -g @firefox-devtools/profiler-cli@latest; then
+    after="$(pver)"
+    if   [ -z "$before" ];         then echo "✅ profiler-cli: installed ($after)"
+    elif [ "$before" = "$after" ]; then echo "✅ profiler-cli: already current ($after) — no change"
+    else                                echo "✅ profiler-cli: $before → $after (updated)"
     fi
   else
-    echo "⚠️  profiler-cli git pull FAILED — check $PDIR"
+    echo "⚠️  profiler-cli FAILED — still ${before:-not installed}"
   fi
-elif command -v git >/dev/null && command -v npm >/dev/null; then
-  echo "profiler-cli not present — installing (required)…"
-  git clone https://github.com/dpalmeiro/profiler-cli "$PDIR" \
-    && ( cd "$PDIR" && npm install && npm run build && npm link && npx playwright install firefox ) \
-    && echo "✅ profiler-cli installed at $PDIR" \
-    || echo "⚠️  profiler-cli install FAILED — check $PDIR"
 else
-  echo "⚠️  profiler-cli missing and needs git + node/npm to install — run /init"
+  echo "⚠️  profiler-cli needs node/npm to install — run /init"
 fi
 ```
 
