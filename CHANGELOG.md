@@ -9,6 +9,25 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.4] — 2026-10-01
+
+### Changed
+- **`profiler-cli` now installs from npm.** `/init` and `/update` install the
+  Firefox Profiler team's published package with
+  `npm install -g @firefox-devtools/profiler-cli@latest` instead of cloning and
+  `npm link`ing dpalmeiro's repo. No Playwright Firefox download and no `git`
+  are needed for it any more; it requires Node ≥ 24. `/update` removes the
+  legacy `npm link`ed `profiler-cli` first, since it claims the same command
+  name, and `/init` flags it when it is still installed.
+
+### Fixed
+- **`/analyze-profile` and `/triage` use the current `profiler-cli` commands.**
+  They documented the removed single-shot forms (`profiler-cli <url> --calltree`,
+  `--top-markers`, `--log-markers`), so every command failed. They now use the
+  stateful `load` → `--session <id>` subcommand form, verified against 0.10.0.
+  A profile that cannot be read is now treated as blocking: upgrade the tool and
+  retry, and otherwise mark the analysis incomplete.
+
 ## [0.6.3] — 2026-06-30
 
 ### Fixed
@@ -760,7 +779,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...HEAD
+[0.6.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...fx-bug-toolkit--v0.6.4
 [0.6.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...fx-bug-toolkit--v0.6.3
 [0.6.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.1...fx-bug-toolkit--v0.6.2
 [0.6.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.0...fx-bug-toolkit--v0.6.1

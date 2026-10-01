@@ -102,10 +102,8 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
           padenot's repo HEAD is canonical; if HEAD, move `bmo-to-md` back to
           `cargo install --git …` (rebuilds only on a new commit). (This is the
           "(b)" the version-visibility reporting work deferred.)
-      - 🟢 **profiler-cli** (dpalmeiro's) → `git clone + npm build + link`
-        (`skills/init/SKILL.md:183`, `skills/update/SKILL.md:113`). Ask dpalmeiro to
-        publish to **npm** → `npm i -g profiler-cli`; until then keep the git clone
-        (only the `git clone` step is blocked; npm build/link/playwright run fine).
+      - ✅ **profiler-cli** now installs from npm (`@firefox-devtools/profiler-cli`),
+        no `git clone` step left to be blocked (2026-10-01).
       - ⚠️ **nvm bootstrap** (`skills/init/SKILL.md:166`) is a `curl …raw.githubusercontent…|bash`
         whose host isn't on the classifier's Toolchain-Bootstrap allow-list — consider
         node via `deb.nodesource.com`/nodejs.org for an agent-installable path.

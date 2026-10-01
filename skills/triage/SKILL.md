@@ -404,9 +404,19 @@ all bugs **simultaneously** using background agents — one agent per bug. Do th
      from masquerading as a media profile — that's the only artifact-type
      rule. /bug-start's own skip-if-current rule makes spurious dispatches
      cheap (they exit silently and log `outcome: skipped`).
-   - **Read-only analysis IS allowed** — you MUST run profiler-cli for any Firefox Profiler
-     links in the bug. Do NOT skip profile analysis even if the reporter says the issue is
-     resolved. Use: `profiler-cli <url> --calltree 20`
+   - **Read-only analysis IS allowed — and profile analysis is MANDATORY, not
+     best-effort.** You MUST analyze every Firefox Profiler link in the bug. Do NOT
+     skip it because the reporter says the issue is resolved, and do NOT skip it
+     because a tool failed — see "Artifact analysis is blocking" in Step 2c. If a
+     profile cannot be read, upgrade the tool and retry; if it still cannot be read,
+     STOP and report the bug as blocked rather than returning a draft whose analysis
+     has a hole in it.
+   - Current profiler-cli usage (the old `profiler-cli <url> --calltree N` form no
+     longer exists): `profiler-cli load <url>` prints a session id, then pass
+     `--session <id>` on EVERY subsequent query, e.g.
+     `profiler-cli thread functions --session <id> --thread t-N`. The current-session
+     pointer is global and a sibling agent's `load` will steal it, so never rely on
+     it implicitly and never run `profiler-cli stop --all`.
    ```
 
 **Parallelism cap**: dispatch at most **4 subagents concurrently**, not
@@ -718,11 +728,50 @@ about capability API mismatches — all during triage. This is `/bug-start` work
 
 **Firefox Profiler links (`share.firefox.dev/*` or `profiler.firefox.com/public/*`):**
 - Do NOT use WebFetch — these are JavaScript SPAs; WebFetch returns only the CSS shell.
-- Do NOT run `profiler-cli` directly — **invoke `/analyze-profile <url>` instead**.
-  That skill runs the full standard query set, checks all media threads, pattern-matches
-  against known signatures, and produces a structured findings report.
-- Record the findings report in the inventory. Use the "Sufficient for §1b?" field
-  from the report to decide §1a vs §1b — do not make that judgment independently.
+- Prefer **`/analyze-profile <url>`**: it runs the full standard query set, checks all
+  media threads, pattern-matches against known signatures, and produces a structured
+  findings report. Record that report in the inventory, and use its "Sufficient for
+  §1b?" field to decide §1a vs §1b rather than judging independently.
+- Driving `profiler-cli` directly is acceptable when `/analyze-profile` is unavailable
+  or has already failed. Use the current subcommand form — **the `profiler-cli <url>
+  --calltree N` and `--log-markers` forms no longer exist**:
+  ```bash
+  profiler-cli load <url>                                   # prints a session id
+  profiler-cli profile info --all --session <id>             # threads + CPU by process
+  profiler-cli thread list        --session <id>             # every thread's t-N handle
+  profiler-cli thread functions   --session <id> --thread t-N --min-self 2
+  profiler-cli thread markers     --session <id> --thread t-N --search DXVA
+  ```
+  Always pass `--session <id>`: the current-session pointer is global and any
+  concurrent `load` steals it. Never run `profiler-cli stop --all`.
+
+**⚠️ Artifact analysis is BLOCKING — never ship an analysis with an unread artifact.**
+If an artifact that the conclusion depends on (a profile, a memory report, a log, a
+crash dump) cannot be read because of **our** tooling — version too old, unsupported
+format, missing binary — that is not a caveat to note and move past. It is a blocker.
+Do all of the following, in order:
+1. **Fix the tool and retry.** Upgrade or install it (e.g.
+   `npm install -g @firefox-devtools/profiler-cli@latest` when profiler-cli reports the
+   processed-profile format is newer than it supports), then re-run the analysis.
+2. If it still cannot be read, **do not present the draft as complete.** Say plainly
+   which artifact is unread, why, and that the analysis is therefore incomplete.
+3. Never convert our tooling gap into a reporter ask. Asking someone to re-capture a
+   perfectly good profile because our reader is out of date wastes a round trip and
+   reads as not having looked.
+The reporter-side equivalent (a log emailed to media-alerts, an attachment awaiting
+download approval) is genuinely unanalyzable and is recorded as such — that is a
+different case from our own tool being stale.
+
+**⚠️ A capture that reproduces on the GOOD version cannot isolate a regression.**
+Before drawing regression conclusions from a profile, check *how it was captured*. A
+**safe-mode** capture forces software compositing and software decode, so it looks
+pathological on every build and tells you nothing about what changed. If the reporter
+says the symptom appears in safe mode on both the last-good and first-bad versions,
+their safe-mode profile characterises the safe-mode baseline, not the bug: record it as
+such in the inventory and ask for a **normal-mode** capture. When the reporter cannot
+capture one through the profiler UI, the `about:logging` route (Media Log Instructions
+below) is a *different* capture path and often works where the UI failed. Surfaced by
+bug 2071427, whose only profile was safe mode while the bug was a 156-only regression.
 
 **Media profile vs generic profile — REQUIRED check before §1b:**
 A profile link by itself does NOT prove a media bug is investigatable. The
@@ -771,10 +820,10 @@ distinction so this can't recur.
 
 **When analyzing a profile, always check ALL media-related threads**, not just `MediaDecoderStateMachine #1`. Run:
 ```bash
-profiler-cli <url> --log-markers "DXVA"
-profiler-cli <url> --log-markers "NS_ERROR"
+profiler-cli thread markers --session <id> --thread t-N --search "DXVA"
+profiler-cli thread markers --session <id> --thread t-N --search "NS_ERROR"
 ```
-Check `MediaSupervisor #N`, `MediaPDecoder #N`, and `GeckoMain` threads in addition to MDSM. Missing a thread means missing the root cause.
+Check `MediaSupervisor #N`, `MediaPDecoder #N`, `MediaPDecoder` in the **rdd** process, the GPU process's `Renderer`, and `GeckoMain` in addition to MDSM. Missing a thread means missing the root cause. Read CPU *and* wait state: a decoder thread sitting in `NtWaitForMultipleObjects`/`ZwWaitForAlertByThreadId` with large inter-frame gaps is **starved**, which is a different bug from a decoder that is saturated.
 
 **HW decode failure pattern — always investigate capability API accuracy:**
 

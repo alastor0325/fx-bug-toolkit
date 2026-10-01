@@ -187,9 +187,9 @@ multi-select to install them. Here's the lay of the land:
 |---|---|---|---|
 | [`bmo-to-md`](https://github.com/padenot/bmo-to-md) | pulling Bugzilla content | **required** | yes |
 | [`searchfox-cli`](https://github.com/padenot/searchfox-cli) | searching the codebase | **required** | yes |
-| [`profiler-cli`](https://github.com/dpalmeiro/profiler-cli) (+ Playwright Firefox) | `/analyze-profile` | **required** | yes |
+| [`profiler-cli`](https://www.npmjs.com/package/@firefox-devtools/profiler-cli) | `/analyze-profile` | **required** | yes |
 | [`cargo`](https://rustup.rs) (Rust) | building the two CLIs above | **required** | yes (via rustup) |
-| [`node`](https://nodejs.org) + `npm` | building/running profiler-cli | **required** | yes (via nvm) |
+| [`node`](https://nodejs.org) ≥ 24 + `npm` | installing/running profiler-cli | **required** | yes (via nvm) |
 | [`git`](https://git-scm.com), [`python3`](https://www.python.org) | source links, helper scripts | **required** | guide-only (use your system) |
 | [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) | `/triage` Bugzilla I/O — reads need **no** API key; writes (reply mode) need one | **for `/triage`** | yes (on first `/triage`, pinned `v0.2.0`) |
 | [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
@@ -199,9 +199,9 @@ multi-select to install them. Here's the lay of the land:
 | [`webspec-index`](https://github.com/jnjaeschke/webspec-index) | `spec-check` reading WHATWG/W3C/TC39 sections — exact section, no truncation, plus anchor validation / cross-refs / WHATWG-PR previews; falls back to `WebFetch` if absent | optional | guide-only (`cargo install webspec-index`) |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
-they're installed. `profiler-cli` is part of the core set; installing it also
-pulls a headless **Playwright Firefox** browser (~tens of MB), which it drives to
-read Firefox Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
+they're installed. `profiler-cli` is part of the core set; it is the Firefox
+Profiler team's npm package `@firefox-devtools/profiler-cli`, which reads Firefox
+Profiler captures for `/analyze-profile`. Only `mach`, the `moz` MCP
 server, `revue`, `webspec-index`, and the shared wiki are optional extras. `revue`
 powers `/open-review` and is installed lazily (from GitHub) the first time you open
 the dashboard — `/review` (the AI reviewer) needs nothing extra. `webspec-index`

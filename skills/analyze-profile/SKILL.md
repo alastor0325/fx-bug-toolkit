@@ -28,48 +28,74 @@ only the CSS shell with no profile data.
 
 ---
 
-## Step 1 — Run standard query set
+## Step 1 — Load the profile, then run the standard query set
 
-`profiler-cli` is on your `PATH` (the `init` skill installs it via `npm link`).
-It drives a headless Playwright **Firefox** to load the profiler SPA, so that
-browser must be installed too (`init` runs `npx playwright install firefox`). If
-a run fails with `browserType.launch: Executable doesn't exist … Please run: npx
-playwright install`, the browser is missing — run `npx playwright install
-firefox` (in the profiler-cli dir) or re-run `/init`, then retry.
+`profiler-cli` is on your `PATH` (the `init` skill installs it).
 
-Always invoke as:
-```bash
-profiler-cli <url> <flags>
-```
-
-Run all of the following in parallel:
+**Command shape (verified against profiler-cli 0.10.0).** It is a **subcommand** CLI and
+is *stateful*: you `load` once to create a session, then query that session. The old
+single-shot forms `profiler-cli <url> --calltree N`, `--top-markers N` and
+`--log-markers` **no longer exist** and will fail.
 
 ```bash
-# CPU hotspots
-profiler-cli <url> --calltree 20
-
-# Top markers by duration (IPC stalls, GC pauses, long tasks)
-profiler-cli <url> --top-markers 20
-
-# All media log markers (about:logging output)
-profiler-cli <url> --log-markers
+profiler-cli load <url>          # prints "Session started: <id>" — capture that id
 ```
 
-Then run targeted keyword searches based on the bug symptom:
+Then pass `--session <id>` on **every** subsequent command:
 
-| Symptom | Query |
+```bash
+profiler-cli profile info --all      --session <id>                    # threads + CPU per process
+profiler-cli thread list             --session <id>                    # every thread's t-N handle
+profiler-cli thread functions        --session <id> --thread t-N --min-self 2
+profiler-cli thread samples-top-down --session <id> --thread t-N       # where CPU goes
+profiler-cli thread samples-bottom-up --session <id> --thread t-N --search <fn>
+profiler-cli thread markers          --session <id> --thread t-N --limit 20
+profiler-cli thread markers          --session <id> --thread t-N --search "DXVA"
+profiler-cli marker info             --session <id> m-NNNN             # one marker in detail
+```
+
+`--session` is **mandatory in practice**: the "current session" pointer is global and
+not sticky, so any other concurrent `load` silently steals it and your queries start
+describing someone else's profile with no error. Never run `profiler-cli stop --all`;
+it kills other agents' sessions too.
+
+**If the load fails, that is blocking — fix it and retry.** A profile is the artifact the
+whole analysis rests on, so a failed read is never a caveat to note and move past:
+
+| Failure | Action |
 |---|---|
-| Buffering / stall | `--log-markers "waiting"` |
-| Video freeze / black screen | `--log-markers "blank media"` |
-| Audio desync / dropout | `--log-markers "Dropping audio"` |
-| Audio clock fallback | `--log-markers "system clock"` |
-| MDSM state transitions | `--log-markers "StateChange"` |
-| Hardware decode failure | `--log-markers "DXVA"` |
-| Codec / decoder errors | `--log-markers "NS_ERROR"` |
-| HEVC / codec probe | `--log-markers "METADATA"` |
-| MSE / demux issues | `--log-markers "MediaSource"` |
+| `This profile is version N, but this profiler-cli only supports up to version M` | The tool is stale. `npm install -g @firefox-devtools/profiler-cli@latest`, then retry. |
+| `Unable to extract profile URL` | The link is a `profiler.firefox.com/from-browser/...` local-session URL and contains **no profile data**. Ask for a `share.firefox.dev` URL produced by **Upload Local Profile**. |
+| `Please specify one of: --calltree <N>, …` | The legacy git-clone `profiler-cli` is still installed under the same name. Run `/update`, which replaces it with `@firefox-devtools/profiler-cli`, then retry. |
 
-If the symptom is unknown or general, run all keyword queries above.
+Only after upgrading and retrying may you report a profile as unreadable, and then you
+must say so explicitly and mark the analysis incomplete rather than presenting a
+conclusion drawn around the hole.
+
+**Targeted marker searches** by symptom (all via
+`profiler-cli thread markers --session <id> --thread t-N --search "<term>"`):
+
+| Symptom | Search term |
+|---|---|
+| Buffering / stall | `waiting` |
+| Video freeze / black screen | `blank media` |
+| Audio desync / dropout | `Dropping audio` |
+| Audio clock fallback | `system clock` |
+| MDSM state transitions | `StateChange` |
+| Hardware decode failure | `DXVA` |
+| Codec / decoder errors | `NS_ERROR` |
+| HEVC / codec probe | `METADATA` |
+| MSE / demux issues | `MediaSource` |
+| Frame delivery / copy-out | `CopyDecodedVideo` |
+| DirectComposition overlay | `DCSurfaceVideo` |
+
+If the symptom is unknown or general, run all of them.
+
+**Check how the profile was captured before drawing regression conclusions.** A
+**safe-mode** capture forces software compositing and software decode, so it looks
+pathological on every build and cannot isolate a regression. If the reporter says the
+symptom also appears in safe mode on the last-good version, their safe-mode profile
+describes the safe-mode baseline, not the bug: say so and ask for a normal-mode capture.
 
 ---
 
@@ -153,7 +179,8 @@ After collecting raw output, check for these known patterns:
 - Meaning: MSE buffer ran dry; network or append-rate issue
 
 ### IPC / GC stall on main thread
-- Signal: long-duration markers (`> 50ms`) in `--top-markers` output on `GeckoMain`
+- Signal: long-duration markers (`> 50ms`) on `GeckoMain`:
+  `thread markers --session <id> --thread <GeckoMain t-N> --min-duration 50`
 - Meaning: main thread blocked; can delay media clock ticks and cause A/V desync
 
 ### MDSM buffering state
@@ -215,10 +242,13 @@ already present in the wiki — only genuinely new findings with a verifiable so
 
 ## Notes for callers
 
-- **triage (Step 2c)**: replace all inline `profiler-cli` invocations with
-  `/analyze-profile <url>`. Use the "Sufficient for §1b?" field to decide §1a vs §1b.
+- **triage (Step 2c)**: use `/analyze-profile <url>`, driving `profiler-cli` directly
+  only when this skill is unavailable or has failed. Use the "Sufficient for §1b?"
+  field to decide §1a vs §1b.
 - **bug-start (Step 2)**: replace the profiler fetch block with `/analyze-profile <url>`.
   Paste the full findings report into the investigation file under
   `## Code Analysis → Profile Analysis`.
-- If profiler-cli fails (network error, URL expired, unsupported format): note
-  `Profile: inaccessible — <reason>` and continue without it. Do not block on it.
+- If profiler-cli fails, follow the Step 1 failure table: a stale tool is upgraded and
+  retried. Only a profile that is genuinely gone (URL expired, local-session link) is
+  noted as `Profile: inaccessible — <reason>`, and the analysis is then marked
+  incomplete rather than concluded around the gap.

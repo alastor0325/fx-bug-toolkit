@@ -123,6 +123,19 @@ class TestSkills(unittest.TestCase):
             self.assertNotIn(f":-{bad}}}", text,
                              f"{bad} is a browser-blocked port (Fetch §port-blocking)")
 
+    def test_profiler_cli_installs_from_npm(self):
+        # profiler-cli moved from a git clone + `npm link` that needed a
+        # Playwright Firefox to the published @firefox-devtools/profiler-cli
+        # package, which has neither requirement.
+        for name in ("init", "update"):
+            text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("npm install -g @firefox-devtools/profiler-cli@latest", text,
+                          f"{name} must install profiler-cli from npm")
+        for s in self.skills:
+            text = (s / "SKILL.md").read_text(encoding="utf-8")
+            for stale in ("dpalmeiro/profiler-cli", "playwright install firefox"):
+                self.assertNotIn(stale, text, f"{s.name}: stale profiler-cli install step")
+
 
 if __name__ == "__main__":
     unittest.main()
