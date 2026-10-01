@@ -737,7 +737,8 @@ about capability API mismatches — all during triage. This is `/bug-start` work
   --calltree N` and `--log-markers` forms no longer exist**:
   ```bash
   profiler-cli load <url>                                   # prints a session id
-  profiler-cli profile info       --session <id>             # threads + CPU by process
+  profiler-cli profile info --all --session <id>             # threads + CPU by process
+  profiler-cli thread list        --session <id>             # every thread's t-N handle
   profiler-cli thread functions   --session <id> --thread t-N --min-self 2
   profiler-cli thread markers     --session <id> --thread t-N --search DXVA
   ```

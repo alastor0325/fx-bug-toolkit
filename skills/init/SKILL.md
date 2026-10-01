@@ -104,6 +104,9 @@ report() {  # report <label> <tool>
 for t in cargo bmo-to-md searchfox-cli git node npm profiler-cli mach; do report "$t" "$t"; done
 npm ls -g --depth=0 profiler-cli >/dev/null 2>&1 \
   && echo "⚠️  profiler-cli is the legacy git-clone build — run /update to switch to @firefox-devtools/profiler-cli"
+node_major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
+[ -n "$node_major" ] && [ "$node_major" -lt 24 ] \
+  && echo "⚠️  node $(node --version) is too old for profiler-cli (needs ≥ 24) — nvm install --lts"
 # python: python3 or python
 if r=$(have python3) || r=$(have python); then echo "✅ python → ${r#*|}"; else echo "⚠️  python MISSING"; fi
 # moz MCP + wiki (guide-only)

@@ -44,7 +44,8 @@ profiler-cli load <url>          # prints "Session started: <id>" — capture th
 Then pass `--session <id>` on **every** subsequent command:
 
 ```bash
-profiler-cli profile info            --session <id>                    # threads + CPU per process
+profiler-cli profile info --all      --session <id>                    # threads + CPU per process
+profiler-cli thread list             --session <id>                    # every thread's t-N handle
 profiler-cli thread functions        --session <id> --thread t-N --min-self 2
 profiler-cli thread samples-top-down --session <id> --thread t-N       # where CPU goes
 profiler-cli thread samples-bottom-up --session <id> --thread t-N --search <fn>
@@ -178,7 +179,8 @@ After collecting raw output, check for these known patterns:
 - Meaning: MSE buffer ran dry; network or append-rate issue
 
 ### IPC / GC stall on main thread
-- Signal: long-duration markers (`> 50ms`) in `--top-markers` output on `GeckoMain`
+- Signal: long-duration markers (`> 50ms`) on `GeckoMain`:
+  `thread markers --session <id> --thread <GeckoMain t-N> --min-duration 50`
 - Meaning: main thread blocked; can delay media clock ticks and cause A/V desync
 
 ### MDSM buffering state
@@ -240,10 +242,13 @@ already present in the wiki — only genuinely new findings with a verifiable so
 
 ## Notes for callers
 
-- **triage (Step 2c)**: replace all inline `profiler-cli` invocations with
-  `/analyze-profile <url>`. Use the "Sufficient for §1b?" field to decide §1a vs §1b.
+- **triage (Step 2c)**: use `/analyze-profile <url>`, driving `profiler-cli` directly
+  only when this skill is unavailable or has failed. Use the "Sufficient for §1b?"
+  field to decide §1a vs §1b.
 - **bug-start (Step 2)**: replace the profiler fetch block with `/analyze-profile <url>`.
   Paste the full findings report into the investigation file under
   `## Code Analysis → Profile Analysis`.
-- If profiler-cli fails (network error, URL expired, unsupported format): note
-  `Profile: inaccessible — <reason>` and continue without it. Do not block on it.
+- If profiler-cli fails, follow the Step 1 failure table: a stale tool is upgraded and
+  retried. Only a profile that is genuinely gone (URL expired, local-session link) is
+  noted as `Profile: inaccessible — <reason>`, and the analysis is then marked
+  incomplete rather than concluded around the gap.

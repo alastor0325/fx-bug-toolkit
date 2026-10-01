@@ -142,23 +142,27 @@ needs Node ≥ 24). Older installs `npm link`ed a git clone of a different
 project under the same `profiler-cli` name; that global package is named plain
 `profiler-cli` and blocks the npm install, so remove it first:
 ```bash
-if command -v npm >/dev/null; then
+node_major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/')"
+if ! command -v npm >/dev/null; then
+  echo "⚠️  profiler-cli needs node/npm to install — run /init"
+elif [ "${node_major:-0}" -lt 24 ]; then
+  echo "⚠️  profiler-cli needs Node ≥ 24 (found $(node --version 2>/dev/null || echo none)) — upgrade Node (e.g. nvm install --lts), then re-run /update"
+else
   pver() { profiler-cli --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1; }
-  before="$(pver)"
+  before="$(pver)"; legacy=
   if npm ls -g --depth=0 profiler-cli >/dev/null 2>&1; then
-    npm rm -g profiler-cli && echo "removed the legacy git-clone profiler-cli link"
+    if npm rm -g profiler-cli; then legacy=1; before=
+    else echo "⚠️  could not remove the legacy git-clone profiler-cli (npm rm -g profiler-cli) — it blocks the npm install"; fi
   fi
-  if npm install -g @firefox-devtools/profiler-cli@latest; then
-    after="$(pver)"
-    if   [ -z "$before" ];         then echo "✅ profiler-cli: installed ($after)"
+  if npm install -g @firefox-devtools/profiler-cli@latest && after="$(pver)" && [ -n "$after" ]; then
+    if   [ -n "$legacy" ];         then echo "✅ profiler-cli: replaced the legacy git-clone build with $after"
+    elif [ -z "$before" ];         then echo "✅ profiler-cli: installed ($after)"
     elif [ "$before" = "$after" ]; then echo "✅ profiler-cli: already current ($after) — no change"
     else                                echo "✅ profiler-cli: $before → $after (updated)"
     fi
   else
-    echo "⚠️  profiler-cli FAILED — still ${before:-not installed}"
+    echo "⚠️  profiler-cli FAILED — ${before:-not installed or not runnable}${before:+ still installed}"
   fi
-else
-  echo "⚠️  profiler-cli needs node/npm to install — run /init"
 fi
 ```
 
