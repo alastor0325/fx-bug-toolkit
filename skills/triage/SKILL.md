@@ -950,6 +950,21 @@ Draft a comment asking only for items identified as missing in Step 5. Always in
 | Can you share a public/open link to reproduce? | When reported URL requires login |
 | If the content is private, you can email it to media-alerts@mozilla.com — please set needinfo on the triage owner | When no public repro is possible |
 
+**Prose budget for a needs-info comment: 60 words, excluding the capture and
+mozregression blocks.** Those blocks are procedures and are exempt; they are
+quoted verbatim and must not be shortened. The 60 words cover everything else.
+Three things that are not instructed anywhere and still appear in most drafts,
+all of them prohibited:
+
+- **No praise or restatement paragraph.** One clause at most.
+- **No hypothesis.** A guess at the mechanism is for us, not for the reporter,
+  who cannot act on it. It also commits us in public before the evidence exists.
+- **No justification of the ask.** Do not write a paragraph on why the existing
+  artifact is insufficient before asking for the next one.
+
+**At most one narrowing question**, chosen from the table above. Three questions
+in one comment lowers the chance that any of them is answered.
+
 **NI targets:** reporter by default; add others who confirmed reproduction if mentioned in comments.
 
 **Email resolution:** BMO's REST API requires the full email address for needinfo flags — the `:alias` shorthand (e.g. `:sotaro`) only works in comment text and the web UI. If you only know someone's alias, look up their email in a recent bug comment or ask the user. Known aliases: `:sotaro` → `sotaro.ikeda.g@gmail.com`.
@@ -1030,6 +1045,28 @@ reporter the issue is understood, so keep it. What must be plain and actionable
 is the **Next Steps** section the reporter acts on: a clear, numbered workaround
 or a concrete "what to capture", not engineering jargon. In short: full Analysis
 + developer detail stays; only the reporter's Next Steps get simplified.
+
+**Length discipline.** Measured across 38 real drafts, the median posted comment
+was 296 words and 16 sentences, with a worst case of 1026 words. That is too long
+to be read. "Be brief" does not work as an instruction, so these are counted
+limits and explicit prohibitions.
+
+- **25 words per sentence, maximum.** A sentence over the limit is two sentences.
+- **No dash or hyphen used as an aside.** Use a comma, a colon, or two sentences.
+- **Do not restate what the reporter already told you.** They know what they
+  reported and what they ruled out. One clause of acknowledgement is the limit.
+- **Do not explain why you need an artifact.** Ask for it. A reporter does not
+  need a justification before a request.
+- **Do not report what you eliminated.** "The reader is not short of input",
+  "downstream is regular as well", "pref-backed state is not at risk" answer
+  questions nobody asked, and they are the single largest source of length. This
+  is **not** in tension with "keep the findings" below: the root cause, the
+  citations and the fix direction all stay. What goes is the search path that
+  found them.
+- **Do not narrate the investigation.** "The piece that was missing", "that is
+  the thread worth pulling", "the interesting case is". Open on the conclusion.
+- **One measurement per claim.** Cite the number that supports the point, not
+  the whole set for every subsystem you looked at.
 
 **Verify a fix attribution before stating it.** Before telling a reporter (or
 writing in `ai_reasoning`) that a specific bug/change fixed an issue, check its
@@ -1418,14 +1455,24 @@ to profiler.firefox.com directly to start it — it is started from `about:loggi
 right preset. Always use an inline hyperlink on the words "instruction video" — never
 reference-style `[N]` footnotes. Spell out the steps:
 
-> Please capture a profile: open `about:logging`, on the **Logging presets** tab choose the
-> **"Media playback"** preset, and under **Logging output** select **"Logging to the Firefox
-> Profiler"**. Click **Start Logging**, reproduce the issue from a fresh page load, then
-> click **Stop Logging** — the captured profile opens in the Firefox Profiler. Click **Upload
-> Local Profile** (the share button) and paste the resulting **share URL** here. The
-> [instruction video](https://www.loom.com/share/24ea3a8e3a054c478de94643a0ea8620?sid=87b0ffaa-c4ea-43ce-8107-639f24b747a8)
-> walks through it. If you have privacy concerns about the profile or the media content,
-> email it to media-alerts@mozilla.com instead.
+> Please capture a profile:
+>
+> 1. Open `about:logging`.
+> 2. On the **Logging presets** tab, choose the **"Media playback"** preset.
+> 3. Under **Logging output**, select **"Logging to the Firefox Profiler"**.
+> 4. Click **Start Logging**.
+> 5. Reload the page. Then do the steps that show the problem.
+> 6. Click **Stop Logging**. The profile opens in the Firefox Profiler.
+> 7. Click **Upload Local Profile**. This is the share button.
+> 8. Copy the share URL. Add it to this bug.
+>
+> The [instruction video](https://www.loom.com/share/24ea3a8e3a054c478de94643a0ea8620?sid=87b0ffaa-c4ea-43ce-8107-639f24b747a8)
+> shows these steps. If the profile or the media content is private, send it to
+> media-alerts@mozilla.com instead.
+
+The steps are numbered, one instruction each, and in the imperative, because many
+reporters do not read English as a first language. Keep that shape. Do not collapse
+them back into a paragraph, and do not add a dash as an aside.
 
 Use the **Graphics** preset (same flow) instead of / in addition to **Media playback** when
 the issue is in the GPU/compositor/overlay path rather than playback. When a pref reset /

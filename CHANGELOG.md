@@ -9,6 +9,28 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.5] — 2026-10-05
+
+### Changed
+- **`/triage` now budgets the comment it posts.** Measured across 38 real
+  drafts, the median posted comment was 296 words and 16 sentences, with a
+  worst case of 1026 words. The skill had no counted limit, and "brief" did not
+  hold. The comment-voice rules gain a 25-word sentence cap, a ban on a dash
+  used as an aside, and prohibitions on the three things that produce the
+  length in practice: restating what the reporter already said, explaining why
+  an artifact is needed before asking for it, and reporting the subsystems that
+  were ruled out. The root cause, citations and fix direction are untouched, so
+  "keep the findings in the comment" still holds.
+- **The needs-info path has a 60-word prose budget**, excluding the capture and
+  mozregression blocks, which are procedures and stay verbatim. The praise
+  paragraph, the hypothesis and the justification of the ask are now
+  prohibited; none were instructed and all three appeared in most drafts.
+  Narrowing questions are capped at one per comment.
+- **The media-log capture block is eight numbered imperative steps**, one
+  instruction each, instead of a single dense paragraph. Many reporters do not
+  read English as a first language, and a procedure is the one place a
+  controlled-language shape clearly helps.
+
 ## [0.6.4] — 2026-10-01
 
 ### Changed
