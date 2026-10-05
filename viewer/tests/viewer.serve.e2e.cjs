@@ -80,6 +80,11 @@ async function main() {
   fs.mkdirSync(web);
   fs.mkdirSync(inv);
   for (const f of LAUNCHER_FILES) fs.copyFileSync(path.join(VIEWER, f), path.join(web, f));
+  // serve.py serves the shared theme from ../assets relative to the served dir,
+  // so stage assets/theme.css as a sibling of web/ (matches the shipped layout).
+  const assets = path.join(tmp, "assets");
+  fs.mkdirSync(assets);
+  fs.copyFileSync(path.join(VIEWER, "..", "assets", "theme.css"), path.join(assets, "theme.css"));
 
   // two real investigation files — build_index.py parses their frontmatter
   fs.writeFileSync(path.join(inv, "bug-700001-investigation.md"),
@@ -115,6 +120,12 @@ async function main() {
       for (const a of ["viewer.html", "viewer.logic.js", "marked.min.js", "favicon.svg"]) {
         assert.strictEqual((await get(`${base}/${a}`)).status, 200, a);
       }
+    });
+    // the shared theme is routed from the sibling assets/ dir, not web/
+    await check("serve.py serves the shared /theme.css from assets/", async () => {
+      const r = await get(base + "/theme.css");
+      assert.strictEqual(r.status, 200, "theme.css status");
+      assert.ok(r.body.includes("--amber"), "theme.css carries the design tokens");
     });
     // Assets must be no-store: otherwise the browser heuristically caches
     // viewer.html / viewer.logic.js and an open tab keeps running stale JS after

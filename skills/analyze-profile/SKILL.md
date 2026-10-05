@@ -67,6 +67,7 @@ whole analysis rests on, so a failed read is never a caveat to note and move pas
 | `This profile is version N, but this profiler-cli only supports up to version M` | The tool is stale. `npm install -g @firefox-devtools/profiler-cli@latest`, then retry. |
 | `Unable to extract profile URL` | The link is a `profiler.firefox.com/from-browser/...` local-session URL and contains **no profile data**. Ask for a `share.firefox.dev` URL produced by **Upload Local Profile**. |
 | `Please specify one of: --calltree <N>, …` | The legacy git-clone `profiler-cli` is still installed under the same name. Run `/update`, which replaces it with `@firefox-devtools/profiler-cli`, then retry. |
+| `browserType.launch: Executable doesn't exist` | Playwright's Firefox is missing: `npx playwright install firefox`, or re-run `/init`. |
 
 Only after upgrading and retrying may you report a profile as unreadable, and then you
 must say so explicitly and mark the analysis incomplete rather than presenting a

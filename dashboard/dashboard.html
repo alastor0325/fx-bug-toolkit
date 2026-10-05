@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · fx-bug-toolkit</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  /* Dashboard-specific layout only. Tokens, backdrop, chips, controls, brand,
+     scrollbars live in /theme.css (the toolkit design system — see /fx-style). */
+  body{overflow-y:auto}
+
+  .topbar{position:sticky; top:0; z-index:7; display:flex; align-items:center; gap:14px;
+    height:56px; padding:0 clamp(16px,2.5vw,36px); border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#131317,#0f0f12)}
+  .summary{font-family:var(--mono); font-size:12.5px; color:var(--dim); white-space:nowrap}
+  .summary b{color:var(--amber); font-weight:600}
+  .spacer{margin-left:auto}
+  .who{font-family:var(--mono); font-size:12px; color:var(--faint)}
+  .who b{color:var(--dim); font-weight:500}
+  .gen{font-family:var(--mono); font-size:11.5px; color:var(--faint); white-space:nowrap; display:flex; align-items:center; gap:8px}
+  .analyzing{display:none; align-items:center; gap:6px; color:var(--amber)}
+  .analyzing.on{display:inline-flex}
+  .analyzing .pulse{width:7px; height:7px; border-radius:50%; background:var(--amber); animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.25} 50%{opacity:1}}
+
+  /* ---------- tabs (section switcher): switching only toggles a class, no re-render ---------- */
+  .tabs{position:sticky; top:56px; z-index:6; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    padding:10px clamp(16px,2.5vw,36px); background:var(--bg); border-bottom:1px solid var(--line)}
+  .tab{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px;
+    padding:6px 13px; border-radius:8px; background:var(--panel); border:1px solid var(--line);
+    color:var(--dim); cursor:pointer; transition:color .12s,border-color .12s,background .12s}
+  .tab:hover{color:var(--ink); border-color:#37373f}
+  .tab.active{color:var(--ink); border-color:var(--accent,var(--amber)); background:#17171c}
+  .tab.active .dot{box-shadow:0 0 8px var(--accent)}
+  .tab .dot{width:7px; height:7px; border-radius:50%; background:var(--accent,var(--amber)); flex:none}
+  .tab .n{font-size:11px; color:var(--faint); background:#101015; border:1px solid var(--line); border-radius:20px; padding:1px 8px}
+  .tab.active .n{color:var(--accent)}
+  .tab[data-k="needinfos"]{--accent:var(--amber)} .tab[data-k="reviews"]{--accent:var(--cyan)} .tab[data-k="my_bugs"]{--accent:var(--blue)}
+  /* drag-to-reorder cues: grab cursor, ghost the dragged tab, amber edge marks drop side */
+  .tab[data-draggable="1"]{cursor:grab}
+  .tab.dragging{opacity:.4; cursor:grabbing}
+  .tab.drop-before{box-shadow:inset 3px 0 0 var(--amber)}
+  .tab.drop-after{box-shadow:inset -3px 0 0 var(--amber)}
+  /* order toggle — only meaningful for (and shown on) the needinfos tab.
+     Match the tabs' padding-based height + center the label (theme .sortbtn is a
+     fixed 34px non-flex button, which misaligned it in this flex row). */
+  .order-btn{margin-left:auto; display:none; align-items:center; gap:6px;
+    height:auto; padding:6px 12px; line-height:1}
+  body[data-tab="needinfos"] .order-btn{display:inline-flex}
+
+  .wrap{max-width:1720px; margin:0 auto; padding:18px clamp(16px,2.5vw,36px) 80px}
+
+  /* one panel per section; only the active one shows, and it fades in (no DOM rebuild on switch) */
+  .tabpanel{display:none}
+  .tabpanel.active{display:block; animation:fadein .16s ease}
+  @keyframes fadein{from{opacity:0; transform:translateY(3px)}}
+
+  /* responsive card grid: multi-column on wide, one column on narrow — fills the
+     width instead of stranding a column (see /fx-style Layout & density) */
+  .cards{display:grid; grid-template-columns:repeat(auto-fill, minmax(480px, 1fr)); gap:10px; align-items:start}
+  @media (max-width:520px){ .cards{grid-template-columns:1fr} }
+  .card{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:10px; overflow:hidden}
+  .tabpanel[data-k="needinfos"] .card{--accent:var(--amber)}
+  .tabpanel[data-k="reviews"] .card{--accent:var(--cyan)}
+  .tabpanel[data-k="my_bugs"] .card{--accent:var(--blue)}
+  .chead{padding:11px 13px; cursor:pointer}
+  .chead:hover{background:#17171c}
+  .crow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .card a.id{font-family:var(--mono); font-size:12.5px; color:var(--dim); text-decoration:none; font-weight:600; flex:none}
+  .card a.id:hover{color:var(--cyan); text-decoration:underline}
+  .meta{margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--dim); white-space:nowrap; flex:none}
+  .briefline{margin-top:7px; font-size:14px; color:var(--ink); line-height:1.5;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .card.open .briefline{display:none}
+  .caret{font-family:var(--mono); color:var(--faint); font-size:11px; transition:transform .15s}
+  .card.open .caret{transform:rotate(90deg); color:var(--accent)}
+
+  .cbody{border-top:1px solid var(--line-soft); padding:12px 13px; display:none}
+  .card.open .cbody{display:block}
+  .cbody .title{font-size:14.5px; color:var(--ink); font-weight:600; line-height:1.4; margin-bottom:10px}
+  .cbody .brief p{margin:0 0 7px; font-size:13.5px; color:var(--dim); line-height:1.55}
+  .cbody .brief .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); margin-right:6px}
+  /* triage-assessment rows: cyan links to other bugs, grey hedge, spaced chips */
+  .cbody .brief .blink{color:var(--cyan); text-decoration:none}
+  .cbody .brief .blink:hover{text-decoration:underline}
+  .cbody .brief .hedge{color:var(--faint); font-size:11px}
+  .cbody .brief p .chip{margin-right:4px; vertical-align:middle}
+  .noanalysis{font-family:var(--mono); font-size:11.5px; color:var(--faint); font-style:italic}
+
+  .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .abtn{height:32px; padding:0 14px; border-radius:7px; background:var(--raised); border:1px solid var(--line);
+    color:var(--ink); font-family:var(--mono); font-size:12.5px; cursor:pointer; transition:.12s}
+  .abtn:hover{border-color:var(--amber-dim); background:var(--amber-wash); color:var(--amber)}
+  .abtn.primary{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-wash)}
+  .abtn.queued{color:var(--green); border-color:rgba(134,210,140,.35); cursor:default}
+  .result{margin-top:10px; padding:9px 11px; border-radius:8px; background:#101015; border:1px solid var(--line-soft);
+    font-size:12.5px; color:var(--dim); line-height:1.45}
+  .result .k{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--green)}
+
+  .pstatus{font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:5px; border:1px solid var(--line); flex:none}
+  .pstatus.blue{color:var(--blue); border-color:rgba(124,194,255,.30)}
+  .pstatus.cyan{color:var(--cyan); border-color:rgba(106,215,198,.28)}
+  .pstatus.amber{color:var(--amber); border-color:rgba(255,180,84,.30)}
+  .pstatus.green{color:var(--green); border-color:rgba(134,210,140,.30)}
+  .pstatus.red{color:var(--red); border-color:rgba(255,123,114,.35)}
+  /* X/Y ready count for a multi-patch stack — sits just left of the state pill */
+  .rcount{font-family:var(--mono); font-size:10.5px; color:var(--dim); margin-right:7px; flex:none}
+
+  /* "Needs me" cards — left edge red (r-) / green (r+ ready to land) */
+  .card.mw-red{border-left-color:var(--red)}
+  .card.mw-green{border-left-color:var(--green)}
+  .mw-card{padding:11px 13px}
+  .mw-title{margin-top:6px; font-size:14px; color:var(--ink); line-height:1.45}
+  .mw-sub{margin-top:9px; display:flex; align-items:center; gap:12px;
+    font-family:var(--mono); font-size:11.5px; color:var(--dim)}
+  .mw-sub a.pl{color:var(--cyan); text-decoration:none}
+  .mw-sub a.pl:hover{text-decoration:underline}
+  /* Focus cards are display-only, so make each row's cards equal height (unlike
+     the expandable needinfos/reviews cards, which stay align-start) and pin the
+     meta line to the bottom so short and tall cards line up. */
+  .tabpanel[data-k="my_bugs"] .cards{align-items:stretch}
+  .tabpanel[data-k="my_bugs"] .card{display:flex}
+  .tabpanel[data-k="my_bugs"] .mw-card{flex:1; display:flex; flex-direction:column}
+  .tabpanel[data-k="my_bugs"] .mw-sub{margin-top:auto}
+
+  .emptysec{padding:16px; text-align:center; color:var(--faint); font-family:var(--mono); font-size:12px;
+    border:1px dashed var(--line); border-radius:10px}
+  .ledger-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--faint); margin:14px 2px 6px}
+
+  /* zone header above the "act" cards */
+  .zone-h{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--amber-dim); margin:20px 2px 10px}
+  .tabpanel .zone-h:first-child{margin-top:2px}   /* first zone hugs the top */
+  .zone-h b{color:var(--amber); font-weight:600}
+  .zone-h.neutral{color:var(--faint)} .zone-h.neutral b{color:var(--dim)}   /* Next/Backlog: no amber */
+  .zone-h.over b{color:var(--red)}                                          /* Focus over its soft cap */
+  .zone-h .cap{color:var(--red); font-weight:400; letter-spacing:.08em}
+  /* a section as a drag drop-target: cyan ring + lifted surface on hover-over
+     (no fill wash — amber stays reserved for the Focus count) */
+  .secdrop{border:1px solid transparent; border-radius:11px; padding:2px; transition:border-color .12s, background .12s}
+  .secdrop.dragover{border-color:var(--cyan); background:var(--raised)}
+  .secdrop .emptysec{margin:0}
+  .lrow[draggable="true"],.card[draggable="true"]{cursor:grab}
+  .lrow.dragging,.card.dragging{opacity:.4}
+  /* drift: a placement that disagrees with the bug's status → dim hint + reset */
+  .drift{font-family:var(--mono); font-size:10px; color:var(--faint); margin-left:8px}
+  .mbreset{margin-left:6px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+    font-family:var(--mono); font-size:10px; line-height:1; padding:2px 6px; cursor:pointer}
+  .mbreset:hover{color:var(--amber); border-color:var(--amber-dim)}
+  /* add-a-bug: input + section picker */
+  .mb-add{display:flex; gap:6px}
+  .mb-add select{height:34px; padding:0 8px; border-radius:7px; background:var(--raised);
+    border:1px solid var(--line); color:var(--dim); font-family:var(--mono); font-size:12px; cursor:pointer}
+
+  /* collapsed "N earlier · not analyzed" divider → reveals a compact ledger */
+  .stale-divider{display:flex; align-items:center; gap:12px; margin:18px 0 8px; cursor:pointer;
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+  .stale-divider::before,.stale-divider::after{content:""; flex:1; height:1px; background:var(--line)}
+  .stale-divider:hover{color:var(--dim)}
+  .stale-divider .caret{transition:transform .15s}
+  .stale-divider.open .caret{transform:rotate(90deg); color:var(--amber)}
+  .stale-list{display:none; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .stale-list.open{display:block}
+
+  /* compact one-line ledger row (reference: stale needinfos, my-bugs backlog) */
+  .ledger{border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .lrow{display:flex; align-items:center; gap:12px; padding:9px 14px; text-decoration:none; color:inherit;
+    border-bottom:1px solid var(--line-soft)}
+  .lrow:last-child{border-bottom:none}
+  .lrow:hover{background:#17171c}
+  .stale-list .lrow:last-child{border-bottom:none}
+  .lrow .id{font-family:var(--mono); font-size:12.5px; color:var(--dim); font-weight:600; flex:none; width:70px}
+  .lrow:hover .id{color:var(--cyan)}
+  .lrow .lchips{display:flex; gap:5px; flex:none}
+  .lrow .lchips .chip{font-size:10px; padding:1px 6px}
+  /* the bug title is the content you read here — keep it bright, not dim */
+  .lrow .ltitle{flex:1; min-width:0; font-size:13.5px; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lrow .lmeta{font-family:var(--mono); font-size:11.5px; color:var(--dim); flex:none; white-space:nowrap}
+  .lrow .lmeta .pstatus{font-size:10px}
+
+  /* My work toolbar: search + "add a bug" side by side */
+  .mb-tools{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap}
+  .mb-tools .mb-search{flex:1 1 320px; max-width:none; margin-bottom:0}
+  .mb-add{flex:0 1 400px}
+  .mb-add input{flex:1; min-width:0; height:34px; padding:0 12px; border-radius:7px; background:var(--raised);
+    border:1px solid var(--line); color:var(--ink); font-family:var(--mono); font-size:12.5px; outline:none;
+    transition:border-color .15s, box-shadow .15s}
+  .mb-add input:focus{border-color:var(--amber-dim); box-shadow:0 0 0 3px var(--amber-wash)}
+  .mb-add input::placeholder{color:var(--faint)}
+  /* a bug you pinned by hand: subtle amber chip + an ✕ to unpin */
+  .chip.pin{color:var(--amber-dim); border-color:rgba(255,180,84,.30)}
+  /* ✕ close on any My-work bug: demote to Backlog if assigned to me, else remove.
+     Destructive, so keep it OUT of the scan path + away from patch↗/reset: it sits
+     at the far right with a clear gap, and is hidden (non-interactive) until you
+     hover/focus the row — you can't mis-hit it while just scanning or opening a bug. */
+  .mbx{flex:none; margin-left:14px; border:1px solid var(--line); border-radius:5px; color:var(--faint);
+    font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer;
+    opacity:0; pointer-events:none}
+  .mw-sub .mbx{margin-left:auto}   /* card: opposite (bottom-right) corner from patch↗ */
+  .mbx:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
+  @media (prefers-reduced-motion:no-preference){ .mbx{transition:opacity .12s,color .12s,border-color .12s} }
+  @media (hover:hover){                          /* reveal on hover/focus (mouse) */
+    .lrow:hover .mbx,.lrow:focus-within .mbx,.card:hover .mbx,.card:focus-within .mbx{opacity:1; pointer-events:auto}
+  }
+  @media (hover:none){ .mbx{opacity:1; pointer-events:auto} }   /* touch: always reachable */
+  /* keyboard focus on a My-work row/card (also reveals ✕ via :focus-within; press x to close) */
+  .tabpanel[data-k="my_bugs"] .lrow:focus-visible,
+  .tabpanel[data-k="my_bugs"] .card:focus-visible{outline:none; box-shadow:0 0 0 2px var(--amber-wash); border-radius:8px}
+  @media (max-width:640px){ .lrow .lchips{display:none} }
+
+  /* queue tab view */
+  .qbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 2px 12px;
+    font-family:var(--mono); font-size:12px; color:var(--dim)}
+  .qbar .n{color:var(--amber); font-weight:600}
+  .qbar .cmd{color:var(--faint)}
+  .qbar code{font-family:var(--mono); font-size:12px; background:var(--raised); border:1px solid var(--line-soft);
+    border-radius:5px; padding:2px 7px; color:#ffd8a8}
+  .copybtn{height:24px; padding:0 10px; border-radius:6px; background:var(--raised); border:1px solid var(--line);
+    color:var(--dim); font-family:var(--mono); font-size:11px; cursor:pointer}
+  .copybtn:hover{color:var(--ink); border-color:#37373f}
+  .qrow .qaction{flex:none}
+  .qrow .rm{margin-left:4px; flex:none; background:none; border:1px solid var(--line); border-radius:5px;
+    color:var(--faint); font-family:var(--mono); font-size:11px; line-height:1; padding:3px 7px; cursor:pointer}
+  .qrow .rm:hover{color:var(--red); border-color:rgba(255,123,114,.4)}
+  .tab[data-k="queue"]{--accent:var(--amber)}
+
+  .overlay{position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; color:var(--faint); font-family:var(--mono)}
+  .overlay .ring{width:44px; height:44px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--amber);
+    animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .overlay .big{font-size:14px; color:var(--dim)}
+  .overlay .sub{font-size:12px}
+  .hidden{display:none}
+
+  /* ---------- narrow screens ---------- */
+  @media (max-width:640px){
+    .topbar{gap:10px}
+    .who{display:none}                    /* drop the email on small screens */
+    .summary{display:none}                /* counts already live in the tabs */
+    .tab{padding:5px 10px; font-size:11.5px}
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Dashboard <a href="https://github.com/alastor0325/fx-bug-toolkit" target="_blank" rel="noopener noreferrer"><span>· fx-bug-toolkit</span></a></div>
+    <div class="summary" id="summary"></div>
+    <div class="spacer"></div>
+    <div class="who" id="who"></div>
+    <div class="gen"><span class="analyzing" id="analyzing"><span class="pulse"></span>analyzing…</span><span id="gen"></span></div>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+  <main class="wrap"><div id="panels"></div></main>
+
+  <div class="overlay" id="overlay">
+    <div class="ring"></div>
+    <div class="big" id="overlaybig">Generating your dashboard…</div>
+    <div class="sub" id="overlaysub">first run — reading your needinfos, reviews, and bugs</div>
+  </div>
+
+<script src="/dashboard.logic.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let DATA = null, STATUS = null, QUEUE = [], RESULTS = {};
+let lastGen = null;
+const openCards = new Set();
+const TAB_KEY = 'fxdash.tab';
+let activeTab = (()=>{ try { return localStorage.getItem(TAB_KEY) || 'needinfos'; } catch(e){ return 'needinfos'; } })();
+const ORDER_KEY = 'fxdash.order';
+let sortOrder = (()=>{ try { return localStorage.getItem(ORDER_KEY) || 'newer'; } catch(e){ return 'newer'; } })();
+// user's drag-reordered section-tab order (array of section keys)
+const SECORDER_KEY = 'fxdash.secorder';
+let sectionOrder = (()=>{ try { return JSON.parse(localStorage.getItem(SECORDER_KEY)||'null') || SECTIONS.map(s=>s.key); } catch(e){ return SECTIONS.map(s=>s.key); } })();
+function saveSectionOrder(){ try { localStorage.setItem(SECORDER_KEY, JSON.stringify(sectionOrder)); } catch(e){} }
+const STALE_KEY = 'fxdash.stale';
+// set of open "N earlier · not analyzed" dividers, keyed (ni / review-direct / review-group)
+let staleOpen = (()=>{ try { return new Set(JSON.parse(localStorage.getItem(STALE_KEY) || '[]')); } catch(e){ return new Set(); } })();
+function saveStale(){ try { localStorage.setItem(STALE_KEY, JSON.stringify([...staleOpen])); } catch(e){} }
+let myBugsQuery = '';
+
+function tagsHtml(tags, cap){
+  return displayTags(tags, cap).map(t => `<span class="chip ${tagClass(t.kind)}">${escapeHtml(t.text)}</span>`).join("");
+}
+function collapsedMeta(it){
+  if(it.type === "mybug"){
+    const m = patchStatusMeta(it.patch_status);
+    return `<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
+  }
+  const who = it.type === "review" && it.author ? ` · ${escapeHtml(it.author)}` : "";
+  return `<span>waiting ${waitingLabel(it.waiting_days)}${who}</span>`;
+}
+function briefLineText(it){
+  const b = it.brief;
+  if(!b) return "not analyzed yet — run /dashboard-generate";
+  return b.ask || b.summary || b.bug || "";
+}
+// collapsed-card state chip for an investigate NI: ready (green) / needs info (amber)
+function niStateChipHtml(it){
+  const st = niStateChip(it);
+  return st ? `<span class="chip ${st.cls}" title="${st.cls==='green'?'ready for /bug-start':'blocked — missing info'}">${escapeHtml(st.label)}</span>` : "";
+}
+// a cyan link to another bug (regressor / duplicate / meta), tolerant of a "bug N" prefix
+function bugLink(id){
+  if(id === undefined || id === null || id === "") return "";
+  const n = String(id).replace(/^\s*bug\s*/i, "").trim();
+  return `<a class="blink" href="https://bugzilla.mozilla.org/show_bug.cgi?id=${encodeURIComponent(n)}" target="_blank" rel="noopener">bug ${escapeHtml(n)}</a>`;
+}
+// the triage-assessment rows on an investigate NI's expanded body (each optional):
+// verdict → regressor/dup/meta links → EITHER missing-info (amber chips) OR a
+// root-cause hypothesis. Color only on the amber blockers + cyan links; rest grey.
+function niTriageRows(it){
+  const rows = [];
+  const ps = [it.priority, it.severity].filter(Boolean).join("/");
+  const verdict = [it.bug_type, ps].filter(Boolean).join(" · ");
+  if(verdict) rows.push(`<p><span class="k">verdict</span>${escapeHtml(verdict)}</p>`);
+  if(it.regressor) rows.push(`<p><span class="k">regressed by</span>${bugLink(it.regressor)}</p>`);
+  if(it.duplicate_of) rows.push(`<p><span class="k">duplicate of</span>${bugLink(it.duplicate_of)} <span class="hedge">(likely)</span></p>`);
+  if(it.meta) rows.push(`<p><span class="k">under meta</span>${bugLink(it.meta)}</p>`);
+  // blocked (missing info) OR analyzed (hypothesis) — never both
+  if((it.missing_info||[]).length)
+    rows.push(`<p><span class="k">missing info</span>${it.missing_info.map(m=>`<span class="chip amber">${escapeHtml(m)}</span>`).join(" ")}</p>`);
+  else if(it.hypothesis)
+    rows.push(`<p><span class="k">hypothesis</span>${escapeHtml(it.hypothesis)}</p>`);
+  return rows;
+}
+function briefBodyHtml(it){
+  const b = it.brief;
+  if(!b) return `<div class="noanalysis">No analysis yet. Run <b>/dashboard-generate</b> to produce a brief.</div>`;
+  const rows = [];
+  if(b.bug) rows.push(`<p><span class="k">bug</span>${escapeHtml(b.bug)}</p>`);
+  if(b.ask) rows.push(`<p><span class="k">needinfo</span>${escapeHtml(b.ask)} ${niStateChipHtml(it)}</p>`);
+  if(b.summary) rows.push(`<p>${escapeHtml(b.summary)}</p>`);
+  if(it.type === "ni") rows.push(...niTriageRows(it));
+  return `<div class="brief">${rows.join("")}</div>`;
+}
+function actionsHtml(it){
+  const acts = actionsForItem(it);
+  if(!acts.length) return "";
+  const btns = acts.map(a => {
+    const key = actionKey(it.id, a.action);
+    const done = RESULTS[key];
+    const queued = QUEUE.some(q => actionKey(q.id, q.action) === key && q.status !== "done");
+    const cls = a.action === "bug-start" ? "primary" : "";
+    if(done) return `<button class="abtn queued" disabled>✓ ${escapeHtml(a.label)}</button>`;
+    if(queued) return `<button class="abtn queued" disabled>queued: ${escapeHtml(a.label)}</button>`;
+    return `<button class="abtn ${cls}" data-action="${escapeHtml(a.action)}">${escapeHtml(a.label)}</button>`;
+  }).join("");
+  const results = acts.map(a => {
+    const r = RESULTS[actionKey(it.id, a.action)];
+    return r ? `<div class="result"><span class="k">${escapeHtml(a.label)} — done</span><br>${escapeHtml(r.summary || "see result")}</div>` : "";
+  }).join("");
+  return `<div class="actions">${btns}</div>${results}`;
+}
+// review cards: show which review GROUP it's requested on (e.g. #media-playback-
+// reviewers). A direct-to-you reviewer is implied by the Direct zone, so only
+// group reviewers (names starting "#") get a chip. Neutral (not cyan): it repeats
+// on nearly every card, so it's quiet context — the section color is on the border.
+function reqChipsHtml(it){
+  if(it.type !== "review") return "";
+  return (it.reviewers || []).filter(r => r && r.charAt(0) === "#")
+    .map(r => `<span class="chip" title="requested reviewer group">→ ${escapeHtml(r)}</span>`).join("");
+}
+function cardHtml(it){
+  const open = openCards.has(String(it.id)) ? " open" : "";
+  return `<article class="card${open}" data-id="${escapeHtml(it.id)}" data-type="${escapeHtml(it.type)}">
+    <div class="chead">
+      <div class="crow">
+        <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
+        ${tagsHtml(it.tags, 2)}${niStateChipHtml(it)}${reqChipsHtml(it)}
+        <span class="meta">${collapsedMeta(it)} <span class="caret">▸</span></span>
+      </div>
+      <div class="briefline">${escapeHtml(briefLineText(it))}</div>
+    </div>
+    <div class="cbody">
+      <div class="title">${escapeHtml(it.title)}</div>
+      ${briefBodyHtml(it)}
+      ${actionsHtml(it)}
+    </div>
+  </article>`;
+}
+// compact one-line reference row (stale needinfos, my-bugs backlog)
+function ledgerRowHtml(it){
+  const pin = it.added ? `<span class="chip pin" title="you added this bug">pinned</span>` : "";
+  const chips = pin + tagsHtml(it.tags, 2);
+  let meta;
+  if(it.type === "mybug"){
+    const m = patchStatusMeta(it.patch_status);
+    const who = it.reviewer ? `${escapeHtml(it.reviewer)} · ` : "";
+    const rc = readyCount(it);
+    // no pill for a no-patch bug — "no patch" is redundant in the No-patch-yet zone
+    const pill = it.patch_status === "none" ? "" : `<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span>`;
+    meta = `<span>${who}${waitingLabel(it.last_activity_days)}</span> ${rc?`<span class="rcount">${rc} r+</span>`:""}${pill}`;
+  }
+  else meta = `waiting ${waitingLabel(it.waiting_days)}`;
+  // spans (not buttons) so they're valid inside the row's <a>; the click handler
+  // catches them before the anchor navigates.
+  const isMine = it.type === "mybug";
+  const drift = isMine ? driftHint(it, (DATA && DATA.placements) || {}) : "";
+  const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
+    `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
+  const close = isMine ? `<span class="mbx" data-id="${escapeHtml(it.id)}" data-assigned="${it.assigned?1:0}" title="${it.assigned?'move to Backlog':'remove from My work'}">✕</span>` : "";
+  const drag = isMine ? ` draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}"` : "";
+  return `<a class="lrow"${drag} href="${escapeHtml(it.url)}" target="_blank" rel="noopener">
+    <span class="id">${escapeHtml(it.id)}</span>
+    <span class="lchips">${chips}</span>
+    <span class="ltitle">${escapeHtml(it.title)}</span>
+    <span class="lmeta">${meta}</span>${driftHtml}${close}</a>`;
+}
+
+// A labeled zone: analyzed items as prominent cards + a collapsed ledger of the
+// rest ("N earlier · not analyzed"). The shared act/stale block used by both
+// Needinfos and each Reviews zone, so the two tabs read identically.
+// `collapseRest`: true hides the un-analyzed rest behind a collapsed divider
+// (needinfos — the rest is years-old stale noise). false shows them as a plain
+// visible ledger (reviews — every review is live/actionable, don't hide them).
+function actStaleBlock(label, items, staleKey, collapseRest=true){
+  const { act, rest } = analyzedSplit(items);
+  let html = `<div class="zone-h">${escapeHtml(label)} · <b>${act.length}</b></div>`;
+  if(act.length) html += `<div class="cards">${act.map(cardHtml).join("")}</div>`;
+  if(rest.length){
+    if(collapseRest){
+      const open = staleOpen.has(staleKey);
+      html += `<div class="stale-divider${open?' open':''}" data-stale="${escapeHtml(staleKey)}">${rest.length} earlier · not analyzed <span class="caret">▸</span></div>
+        <div class="stale-list${open?' open':''}">${rest.map(ledgerRowHtml).join("")}</div>`;
+    } else {
+      html += `<div class="ledger-label">${rest.length} not yet analyzed · run /dashboard-generate for briefs</div>
+        <div class="ledger">${rest.map(ledgerRowHtml).join("")}</div>`;
+    }
+  }
+  return html;
+}
+
+// Needinfos: one "Needs you" zone.
+function needinfosPanel(){
+  const all = sortForSection('needinfos', (DATA.sections && DATA.sections.needinfos) || [], sortOrder);
+  if(!all.length) return `<div class="emptysec">No open needinfos — you're clear.</div>`;
+  return actStaleBlock('Needs you', all, 'ni');
+}
+
+// Reviews: two zones — Direct (requested straight to you) on top, then Group.
+function reviewsPanel(){
+  const items = (DATA.sections && DATA.sections.reviews) || [];
+  if(!items.length) return `<div class="emptysec">You're clear — no reviews waiting on you.</div>`;
+  const byWait = a => a.slice().sort((x,y)=>(x.waiting_days||0)-(y.waiting_days||0));  // newest first
+  const direct = byWait(items.filter(r => r.direct));
+  const group  = byWait(items.filter(r => !r.direct));
+  let html = "";
+  if(direct.length) html += actStaleBlock('Direct', direct, 'review-direct', false);
+  if(group.length)  html += actStaleBlock('Group', group, 'review-group', false);
+  return html;
+}
+
+// A "Needs me" card (r- / r+): the act-now set — shows the state pill, who it's
+// on, and a direct patch link. Display-only (no expand).
+function myBugCardHtml(it){
+  const m = patchStatusMeta(it.patch_status);
+  const border = it.patch_status === "accepted" ? "mw-green" : "mw-red";
+  const prefix = it.patch_status === "accepted" ? "r+" : "r-";
+  const who = it.reviewer ? `${prefix} :${escapeHtml(it.reviewer)}` : m.label;
+  const patch = it.rev_url ? `<a class="pl" href="${escapeHtml(it.rev_url)}" target="_blank" rel="noopener">patch ↗</a>` : "";
+  const rc = readyCount(it);   // "X/Y" only when the bug has a multi-patch stack
+  const drift = driftHint(it, (DATA && DATA.placements) || {});
+  const driftHtml = drift ? `<span class="drift" title="status suggests ${escapeHtml(drift)}">↳ ${escapeHtml(drift)}</span>` +
+    `<span class="mbreset" data-id="${escapeHtml(it.id)}" title="reset to default section">reset</span>` : "";
+  const close = `<span class="mbx" data-id="${escapeHtml(it.id)}" data-assigned="${it.assigned?1:0}" title="${it.assigned?'move to Backlog':'remove from My work'}">✕</span>`;
+  return `<article class="card ${border}" draggable="true" tabindex="0" data-id="${escapeHtml(it.id)}">
+    <div class="mw-card">
+      <div class="crow">
+        <a class="id" href="${escapeHtml(it.url)}" target="_blank" rel="noopener">${escapeHtml(it.id)}</a>
+        ${it.added?`<span class="chip pin" title="you added this bug">pinned</span>`:""}${tagsHtml(it.tags)}
+        <span class="meta">${rc?`<span class="rcount" title="${rc} parts accepted">${rc} r+</span>`:""}<span class="pstatus ${m.cls}">${escapeHtml(m.label)}</span></span>
+      </div>
+      <div class="mw-title">${escapeHtml(it.title)}</div>
+      <div class="mw-sub"><span>${who} · ${waitingLabel(it.last_activity_days)}</span>${patch}${driftHtml}${close}</div>
+    </div>
+  </article>`;
+}
+
+// My work: three purpose sections the user curates — Focus (cards) and Next
+// (ledger) always visible, Backlog (ledger) collapsed. A bug's section is its
+// manual placement, else the default from its patch status. Each section is a
+// drop target; bugs drag between them. Searchable.
+const MYWORK_EMPTY = { focus: "Nothing in focus — drag a bug here to work it now.",
+                       next: "Nothing queued.", backlog: "Backlog empty." };
+function myWorkHeader(key, n){
+  const sec = MYWORK_SECTIONS.find(s => s.key === key);
+  const over = key === "focus" && n > FOCUS_CAP;
+  const cls = key === "focus" ? (over ? " over" : "") : " neutral";
+  return `<div class="zone-h${cls}" title="${escapeHtml(sec.hint)}">${escapeHtml(sec.label)} · <b>${n}</b>${over?' <span class="cap">over cap</span>':''}</div>`;
+}
+function emptyDrop(key){ return `<div class="emptysec">${escapeHtml(MYWORK_EMPTY[key])}</div>`; }
+
+function myBugsBody(rows){
+  const placements = (DATA && DATA.placements) || {};
+  const g = groupBySection(rows, placements);
+  const focus = byRecency(g.focus), next = byRecency(g.next), backlog = byRecency(g.backlog);
+  let h = "";
+  // Focus — prominent cards (the act-on set); count is the one amber thing here
+  h += myWorkHeader("focus", focus.length);
+  h += `<div class="secdrop" data-section="focus">${focus.length
+      ? `<div class="cards">${focus.map(myBugCardHtml).join("")}</div>` : emptyDrop("focus")}</div>`;
+  // Next — visible ledger
+  h += myWorkHeader("next", next.length);
+  h += `<div class="secdrop" data-section="next">${next.length
+      ? `<div class="ledger">${next.map(ledgerRowHtml).join("")}</div>` : emptyDrop("next")}</div>`;
+  // Backlog — collapsed ledger; the divider itself is the drop target
+  const open = staleOpen.has('mybugs-backlog');
+  h += `<div class="stale-divider secdrop${open?' open':''}" data-section="backlog" data-stale="mybugs-backlog">Backlog · <b>${backlog.length}</b> <span class="caret">▸</span></div>
+    <div class="stale-list${open?' open':''}">${backlog.length
+      ? backlog.map(ledgerRowHtml).join("") : emptyDrop("backlog")}</div>`;
+  return h;
+}
+function myBugsPanel(){
+  const items = (DATA.sections && DATA.sections.my_bugs) || [];
+  return `<div class="mb-tools">
+      <div class="search mb-search"><input id="mbq" type="text" spellcheck="false" autocomplete="off"
+        placeholder="search ${items.length} bugs — id, title, component" value="${escapeHtml(myBugsQuery)}"></div>
+      <div class="mb-add">
+        <input id="addbug" type="text" spellcheck="false" autocomplete="off"
+          placeholder="+ add a bug — id or URL, then Enter">
+        <select id="addsec" title="which section to add into">
+          <option value="focus">Focus</option>
+          <option value="next" selected>Next</option>
+          <option value="backlog">Backlog</option>
+        </select>
+      </div>
+    </div>
+    <div id="mb-body">${myBugsBody(filterLedger(items, myBugsQuery))}</div>`;
+}
+
+function panelHtml(sec){
+  const body = sec.key === "needinfos" ? needinfosPanel()
+    : sec.key === "reviews" ? reviewsPanel()
+    : myBugsPanel();
+  return `<section class="tabpanel${sec.key===activeTab?' active':''}" data-k="${sec.key}">${body}</section>`;
+}
+function tabHtml(sec){
+  const n = ((DATA.sections && DATA.sections[sec.key]) || []).length;
+  // section tabs are drag-reorderable (Queue is not — it's rendered separately)
+  return `<button class="tab${sec.key===activeTab?' active':''}" draggable="true" data-k="${sec.key}" data-draggable="1">
+    <span class="dot"></span>${escapeHtml(sec.label)}<span class="n">${n}</span></button>`;
+}
+function orderBtnHtml(){
+  return `<button class="sortbtn order-btn" id="order" title="Sort needinfos by date">${sortOrder==='older'?'↑ oldest first':'↓ newest first'}</button>`;
+}
+function setActiveTab(k){
+  activeTab = k;
+  try { localStorage.setItem(TAB_KEY, k); } catch(e){}
+  document.body.dataset.tab = k;                 // drives .order-btn visibility (CSS)
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.k === k));
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.dataset.k === k));
+}
+
+function render(){
+  const view = viewMode(DATA, STATUS);
+  $('#analyzing').classList.toggle('on', !!view.analyzing);
+  if(view.mode === "processing"){ $('#overlay').classList.remove('hidden'); return; }
+  $('#overlay').classList.add('hidden');
+  $('#summary').innerHTML = `<b>${totalItems(DATA)}</b> items need you`;
+  $('#who').innerHTML = DATA.user ? `<b>${escapeHtml(DATA.user)}</b>` : "";
+  $('#gen').textContent = DATA.generated_at ? `updated ${generatedAgo(DATA.generated_at, Date.now())}` : "";
+  const secs = orderedSections(sectionOrder);            // user's drag order
+  const validTabs = secs.map(s => s.key).concat('queue');
+  if(!validTabs.includes(activeTab)) activeTab = secs[0].key;
+  $('#tabs').innerHTML = secs.map(tabHtml).join("") + queueTabHtml() + orderBtnHtml();
+  $('#panels').innerHTML = secs.map(panelHtml).join("")
+    + `<section class="tabpanel${activeTab==='queue'?' active':''}" data-k="queue">${queuePanel()}</section>`;
+  document.body.dataset.tab = activeTab;
+}
+
+function queueTabHtml(){
+  return `<button class="tab${activeTab==='queue'?' active':''}" data-k="queue">
+    <span class="dot"></span>Queue<span class="n" id="qcount">${QUEUE.length}</span></button>`;
+}
+function queueRowHtml(e){
+  const m = actionMeta(e.action);
+  return `<div class="lrow qrow" data-id="${escapeHtml(e.id)}" data-action="${escapeHtml(e.action)}">
+    <a class="id" href="${escapeHtml(e.url||'#')}" target="_blank" rel="noopener">${escapeHtml(e.id)}</a>
+    <span class="chip ${m.accent} qaction">${escapeHtml(m.label)}</span>
+    <span class="ltitle">${escapeHtml(e.title||'')}</span>
+    <button class="rm" title="remove from queue">✕</button></div>`;
+}
+function queuePanel(){
+  if(!QUEUE.length) return `<div class="emptysec">Nothing queued — queue actions from the cards, then Process queue.</div>`;
+  return `<div class="qbar">
+    <span><span class="n">${QUEUE.length}</span> pending</span>
+    <button class="abtn primary" id="drainbtn">Process queue ▸</button>
+    <span class="cmd">runs <code>/dashboard-drain</code> in your Claude session</span></div>
+    <div class="ledger">${QUEUE.map(queueRowHtml).join("")}</div>`;
+}
+function updateQueueCount(){ const c = document.getElementById('qcount'); if(c) c.textContent = QUEUE.length; }
+function rerenderQueuePanel(){
+  const panel = document.querySelector('.tabpanel[data-k="queue"]');
+  if(panel) panel.innerHTML = queuePanel();
+  updateQueueCount();
+}
+function removeFromQueue(row){
+  const id = row.dataset.id, action = row.dataset.action;
+  fetch('/unqueue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, action}) })
+    .then(r=>{ if(!r.ok) throw new Error();
+      QUEUE = QUEUE.filter(e => !(String(e.id)===String(id) && e.action===action));
+      rerenderQueuePanel();
+    }).catch(()=>{});
+}
+
+// tab switch — class toggle only, no DOM rebuild. The order toggle re-sorts NI.
+$('#tabs').addEventListener('click', e=>{
+  if(e.target.closest('.order-btn')){
+    sortOrder = sortOrder === 'newer' ? 'older' : 'newer';
+    try { localStorage.setItem(ORDER_KEY, sortOrder); } catch(e){}
+    render();
+    return;
+  }
+  const t = e.target.closest('.tab'); if(!t) return;
+  setActiveTab(t.dataset.k);
+});
+
+// drag-reorder the section tabs (delegated on #tabs so it survives re-render).
+// Drop position is before/after the target depending on which half you drop on.
+let dragKey = null;
+const clearDropCues = () => document.querySelectorAll('.tab.drop-before,.tab.drop-after,.tab.dragging')
+  .forEach(x => x.classList.remove('drop-before','drop-after','dragging'));
+$('#tabs').addEventListener('dragstart', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t){ e.preventDefault(); return; }
+  dragKey = t.dataset.k;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', dragKey); } catch(_){}
+  t.classList.add('dragging');
+});
+$('#tabs').addEventListener('dragover', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t || !dragKey) return;
+  e.preventDefault();                                    // allow drop
+  e.dataTransfer.dropEffect = 'move';
+  const r = t.getBoundingClientRect();
+  const after = e.clientX > r.left + r.width/2;
+  document.querySelectorAll('.tab.drop-before,.tab.drop-after').forEach(x=>x.classList.remove('drop-before','drop-after'));
+  if(t.dataset.k !== dragKey) t.classList.add(after ? 'drop-after' : 'drop-before');
+});
+$('#tabs').addEventListener('drop', e=>{
+  const t = e.target.closest('.tab[data-draggable="1"]');
+  if(!t || !dragKey) return;
+  e.preventDefault();
+  const to = t.dataset.k;
+  if(to !== dragKey){
+    const r = t.getBoundingClientRect();
+    const after = e.clientX > r.left + r.width/2;
+    sectionOrder = moveKey(orderedSections(sectionOrder).map(s=>s.key), dragKey, to, after);
+    saveSectionOrder();
+    render();
+  }
+  dragKey = null; clearDropCues();
+});
+$('#tabs').addEventListener('dragend', ()=>{ dragKey = null; clearDropCues(); });
+// expand / action / stale-toggle within panels
+$('#panels').addEventListener('click', e=>{
+  if(e.target.id === 'drainbtn'){                       // "Process queue" — copy the drain command to run
+    try { navigator.clipboard.writeText('/dashboard-drain'); } catch(_){}
+    e.target.textContent = 'copied — paste in your Claude terminal';
+    setTimeout(()=>{ e.target.textContent = 'Process queue ▸'; }, 1800);
+    return;
+  }
+  const rm = e.target.closest('.rm');
+  if(rm){ removeFromQueue(rm.closest('.qrow')); return; }  // unqueue
+  const mbreset = e.target.closest('.mbreset');            // clear a manual placement
+  if(mbreset){ e.preventDefault(); resetBug(mbreset.dataset.id); return; }
+  const mbx = e.target.closest('.mbx');                    // ✕ close a My-work bug
+  if(mbx){ e.preventDefault();
+    if(mbx.dataset.assigned === "1") placeBug(mbx.dataset.id, 'backlog');  // mine → demote to Backlog
+    else dismissBug(mbx.dataset.id);                                       // not mine → remove for good
+    return; }
+  if(e.target.closest('a')) return;                     // ledger rows + links open normally
+  const btn = e.target.closest('.abtn');
+  if(btn){ queueAction(btn); return; }
+  const div = e.target.closest('.stale-divider');
+  if(div){                                              // reveal/hide a stale ledger (no re-render)
+    const key = div.dataset.stale;
+    if(staleOpen.has(key)) staleOpen.delete(key); else staleOpen.add(key);
+    saveStale();
+    const open = staleOpen.has(key);
+    div.classList.toggle('open', open);
+    const list = div.nextElementSibling;
+    if(list && list.classList.contains('stale-list')) list.classList.toggle('open', open);
+    return;
+  }
+  const head = e.target.closest('.chead'); if(!head) return;
+  const card = head.closest('.card'); const id = card.dataset.id;
+  const nowOpen = card.classList.toggle('open');
+  if(nowOpen) openCards.add(id); else openCards.delete(id);
+});
+// my-bugs search — update only the ledger so the input keeps focus (no re-render)
+$('#panels').addEventListener('input', e=>{
+  if(e.target.id !== 'mbq') return;
+  myBugsQuery = e.target.value;
+  const body = document.getElementById('mb-body');
+  if(!body) return;
+  body.innerHTML = myBugsBody(filterLedger((DATA.sections && DATA.sections.my_bugs) || [], myBugsQuery));
+});
+const MYWORK_ORDER = ['focus','next','backlog'];
+// add a bug into the picked section (Enter in the add box); or, on a focused
+// My-work row/card, [ / ] move it toward Focus / Backlog (keyboard, no mouse).
+$('#panels').addEventListener('keydown', e=>{
+  if(e.target.id === 'addbug' && e.key === 'Enter'){
+    const sec = (document.getElementById('addsec')||{}).value || 'next';
+    addMyBug(e.target.value, sec); e.target.value = ''; return;
+  }
+  if(e.key !== '[' && e.key !== ']' && e.key !== 'x' && e.key !== 'Delete') return;
+  const el = e.target.closest('.tabpanel[data-k="my_bugs"] .lrow[data-id], .tabpanel[data-k="my_bugs"] .card[data-id]');
+  if(!el) return;
+  const item = ((DATA.sections&&DATA.sections.my_bugs)||[]).find(b=>String(b.id)===String(el.dataset.id));
+  if(!item) return;
+  e.preventDefault();
+  if(e.key === 'x' || e.key === 'Delete'){                 // keyboard equivalent of ✕
+    if(item.assigned) placeBug(el.dataset.id, 'backlog'); else dismissBug(el.dataset.id);
+    return;
+  }
+  const cur = sectionOf(item, (DATA&&DATA.placements)||{});
+  let i = MYWORK_ORDER.indexOf(cur);
+  i = e.key === '[' ? Math.max(0,i-1) : Math.min(MYWORK_ORDER.length-1,i+1);
+  if(MYWORK_ORDER[i] !== cur) placeBug(el.dataset.id, MYWORK_ORDER[i]);
+});
+function myBugsPost(route, body){
+  return fetch(route, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+    .then(r=>r.ok?r.json():null).then(()=>refreshData());
+}
+function addMyBug(ref, section){ ref=(ref||'').trim(); if(ref) myBugsPost('/my-bugs/add', {ref, section}); }
+function dismissBug(id){ myBugsPost('/my-bugs/dismiss', {id}); }   // remove a non-assigned bug for good
+function placeBug(id, section){ myBugsPost('/my-bugs/place', {id, section}); }
+function resetBug(id){ myBugsPost('/my-bugs/reset', {id}); }
+
+// drag a My-work bug between sections (delegated on #panels; survives re-render).
+let dragBugId = null;
+const clearSecCues = () => document.querySelectorAll('.secdrop.dragover').forEach(x=>x.classList.remove('dragover'));
+$('#panels').addEventListener('dragstart', e=>{
+  const el = e.target.closest('.tabpanel[data-k="my_bugs"] .lrow[draggable="true"], .tabpanel[data-k="my_bugs"] .card[draggable="true"]');
+  if(!el) return;
+  dragBugId = el.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', dragBugId); } catch(_){}
+  el.classList.add('dragging');
+});
+$('#panels').addEventListener('dragover', e=>{
+  if(!dragBugId) return;
+  const drop = e.target.closest('.secdrop'); if(!drop) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearSecCues(); drop.classList.add('dragover');
+});
+$('#panels').addEventListener('drop', e=>{
+  if(!dragBugId) return;
+  const drop = e.target.closest('.secdrop');
+  const id = dragBugId; dragBugId = null; clearSecCues();
+  if(drop){ e.preventDefault(); if(drop.dataset.section) placeBug(id, drop.dataset.section); }
+});
+$('#panels').addEventListener('dragend', ()=>{ dragBugId = null; clearSecCues();
+  document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging')); });
+function queueAction(btn){
+  const card = btn.closest('.card');
+  const it = findItem(card.dataset.id);
+  if(!it) return;
+  const entry = { ...buildQueueEntry(it, btn.dataset.action), ts: Date.now() };
+  btn.disabled = true; btn.classList.add('queued'); btn.textContent = 'queued: ' + btn.textContent;
+  fetch('/queue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(entry) })
+    .then(r=>{ if(!r.ok) throw new Error(); QUEUE.push(entry); rerenderQueuePanel(); })
+    .catch(()=>{ btn.disabled=false; btn.classList.remove('queued'); btn.textContent = btn.textContent.replace('queued: ',''); });
+}
+function findItem(id){
+  for(const s of SECTIONS){
+    const hit = ((DATA.sections||{})[s.key]||[]).find(i => String(i.id) === String(id));
+    if(hit) return hit;
+  }
+  return null;
+}
+
+const j = (url) => fetch(url, {cache:'no-store'}).then(r => r.ok ? r.json() : null).catch(()=>null);
+function refreshData(){
+  return Promise.all([j('/data.json'), j('/queue.json'), j('/results.json')]).then(([d,q,r])=>{
+    DATA = d; QUEUE = q || []; RESULTS = r || {};
+    // only auto-expand reviews when there are few (a group like media-playback
+    // can bring dozens — don't render a wall of open cards)
+    const reviews = (DATA && DATA.sections && DATA.sections.reviews) || [];
+    if(reviews.length <= 3) reviews.forEach(rv => openCards.add(String(rv.id)));
+    lastGen = d && d.generated_at;
+    render();
+  });
+}
+function updateChrome(){
+  $('#analyzing').classList.toggle('on', !!viewMode(DATA, STATUS).analyzing);
+  if(DATA && DATA.generated_at) $('#gen').textContent = `updated ${generatedAgo(DATA.generated_at, Date.now())}`;
+}
+function poll(){
+  j('/status.json').then(s=>{
+    STATUS = s;
+    if(s && s.state === "ready" && s.generated_at && s.generated_at !== lastGen) refreshData();
+    else updateChrome();
+  });
+}
+refreshData().then(()=>{ poll(); setInterval(poll, 3000); });
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ const assert = require("node:assert");
 const { chromium } = require("playwright");
 
 const VIEWER = path.join(__dirname, "..");  // viewer/tests -> viewer/
-const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml" };
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".svg": "image/svg+xml", ".css": "text/css" };
 
 const INDEX = [
   { bug_id: 700001, bug_url: "https://bugzilla.mozilla.org/show_bug.cgi?id=700001",
@@ -42,6 +42,8 @@ function startServer() {
     "/viewer.logic.js": fs.readFileSync(path.join(VIEWER, "viewer.logic.js")),
     "/marked.min.js": fs.readFileSync(path.join(VIEWER, "marked.min.js")),
     "/favicon.svg": fs.readFileSync(path.join(VIEWER, "favicon.svg")),
+    // shared theme lives in the repo-root assets/ dir (served at /theme.css by serve.py)
+    "/theme.css": fs.readFileSync(path.join(VIEWER, "..", "assets", "theme.css")),
     "/index.json": Buffer.from(JSON.stringify(INDEX)),
   };
   const srv = http.createServer((req, res) => {

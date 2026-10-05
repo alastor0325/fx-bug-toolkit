@@ -5,6 +5,83 @@ top of each section. Check items off as they land.
 
 ---
 
+## 🟡 Active plan: Personal Dashboard (`/open-dashboard`)  — ⚠️ BETA, do NOT publish
+
+Multi-stage. Full checkpoints + open questions in
+[`docs/plans/personal-dashboard.md`](plans/personal-dashboard.md).
+
+**Beta hold:** not approved for release. No version bump, no release tag, no
+`/init` wiring, no README/tutorial — all would expose it to users. Stays
+unreleased (version pinned) + PR #61 kept a **draft** (not merged to `main`).
+Skills exist only in the dev repo/branch; released users never receive them.
+
+- [ ] **Stage 1** — collect (NI-of-me / assigned / reviews-of-me / my-revisions)
+      + standalone viewer + shared `assets/theme.css` + `/fx-style` skill.
+- [ ] **Stage 2** — act on *selected* items: analyze + draft NI replies (exclude
+      NIs from self), auto-triage `/review` on chosen review requests; via an
+      internal feedback-processing skill (back-and-forth). Selection model still
+      open.
+- [x] **Dep** — `bugzilla-cli` personal-list queries (`assigned`, `needinfos`,
+      `--json`, personal auth via `BUGZILLA_API_KEY`) — landed in
+      `~/projects/bugzilla-cli` (`81ec709`).
+- [ ] **Follow-up (🟡)** — `dashboard/serve.py` duplicates most of
+      `viewer/serve.py`'s launcher/port machinery (`pick_free_port`,
+      `resolve_port`, `running_pid`, `shared_asset_target`, no-store handler,
+      start/stop/status). Now that a second `serve.py` exists, hoist the shared
+      bits into one module both import; the real per-app deltas are the env-var
+      name/port/paths, viewer's index-rebuild `do_GET`, and dashboard's POST
+      `/queue`. Deferred from the Stage-2 /simplify pass — touches the shipped
+      viewer + both test suites. (2026-07-04)
+- [ ] **Follow-up (🟢 minor)** — viewer domain chips (`.chip.depth-deep/.cx-low/…`)
+      re-declare colors that now also live in `assets/theme.css`
+      (`.chip.amber/.green/…`). Dedup by having `viewer.logic.js` emit the shared
+      semantic class (`chip amber`) and keeping only genuinely-unique bits
+      (`.folder` glyph, `.cx-medium` alpha). Deferred — touches shipped JS + node
+      tests; low value. (2026-07-03)
+- [ ] **Follow-up (🟢 minor)** — the top-bar "N items need you" sums all three
+      sections, but "My work" is now mostly *backlog* (parked r+ + no-patch), so
+      it overcounts (e.g. 255 when only ~1 my-bug is active). Count only the
+      active my-bugs (revise + waiting + wip), not the parked backlog, in that
+      summary. (2026-07-05)
+- [x] **Storage refactor — data out of the package, split + race-safe.** (2026-07-06)
+      Runtime data now lives under `$FX_DASHBOARD_DIR` (default
+      `~/.fx-bug-toolkit/dashboard/`), never `dashboard/`. New `store.py`: atomic
+      writes (temp + os.replace), per-section files (`needinfos/reviews/my_bugs.json`,
+      each `{status, generated_at, items}`) + `manifest.json`, a user overlay
+      (`my_bugs.user.json`) the collector never touches, and `assemble()` (server
+      merges sections + overlay into `/data.json`, derives `/status.json`). No
+      cross-process locks (atomic + one-writer-per-file); in-proc lock for the
+      server's own appends. serve.py adds `/my-bugs/add` + `/my-bugs/remove`; the
+      page has a "+ add a bug" box + pin/remove on added rows.
+- [x] **Three purpose-driven My-work sections (Focus / Next / Backlog).** (2026-07-06)
+      Shipped over two dev-loop commits after a fresh UX review. Sections a bug is
+      *assigned* to: default = patch-in-review→Focus, wip→Next, else→Backlog
+      (dumb/predictable, no recency magic); manual placement always wins + persists
+      in the overlay. Add-into-a-picked-section (default Next), drag between
+      sections (cyan drop cue; amber reserved for a capped Focus count) + keyboard
+      `[`/`]` move; a `↳ suggests X` drift hint + one-click reset when a placement
+      disagrees with status (never auto-moves). Closed bugs always removed
+      (collector re-vets the overlay on `base`; assemble filters). Focus = cards,
+      Next = visible ledger, Backlog = collapsed ledger.
+- [x] **Needinfo cards reuse the `/triage` assessment.** (2026-07-06) NIs split
+      easy-vs-investigate; investigate NIs get a triage-style card (verdict ·
+      regressor · dup · meta · P/S · missing-info **or** root-cause hypothesis) and
+      a state chip (ready green / needs-info amber). Button matrix:
+      investigate+ready → run /bug-start (its findings answer the NI),
+      investigate+not-ready → draft: request missing info, easy → draft reply.
+      New `/triage --analyze-only` mode emits the §1a/§1b assessment as JSON (no
+      draft/dispatch/writes); `dashboard-enrich` reuses it (Sonnet, reuses an
+      existing investigation/triage draft if present); drain routes drafts to
+      Sonnet, /bug-start + /review to Opus. Strict ≤7d cap on the enrichment pass.
+- [ ] **Follow-up (🟢 minor)** — inline "removed — undo" for the ✕ *dismiss*
+      (not-assigned) branch. The ✕ is now hover/focus-revealed + isolated far-right
+      + keyboard `x`, so accidental dismiss is unlikely; a 6s inline undo (defer the
+      dismiss POST, offer restore via /my-bugs/add with the prior section) would
+      still be a nice safety net. Deferred — needs an un-dismiss that also clears
+      the id from the overlay `dismissed` list. (2026-07-06)
+
+---
+
 ## ✅ Decided: one plugin — no `fx-triage` spinoff
 
 fx-bug-toolkit stays a single, unified plugin (investigate + triage + review);
@@ -193,6 +270,10 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       launch *skills* open the URL per-OS (`open`/`xdg-open`/`start`); a detached
       background server shouldn't spawn a browser itself (flaky, and it'd open in
       the wrong session).
+- [ ] **Atrium `dashboard/fx-module.yaml` uses bare `python3`** — its
+      `start: "python3 serve.py --serve"` matches how Atrium (macOS-only today)
+      launches modules; a future Windows Atrium Hub would need a `python`
+      fallback. Revisit if/when the Hub ships on Windows. (2026-07-05)
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 

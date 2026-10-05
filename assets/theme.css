@@ -1,0 +1,104 @@
+/* ============================================================================
+ * fx-bug-toolkit — shared visual theme (the project's single source of truth)
+ *
+ * Every local web UI in this repo (the investigation viewer, the personal
+ * dashboard, any future page) links THIS file and builds on the tokens and
+ * primitives below, so the whole toolkit reads as one product. It is served at
+ * the absolute URL `/theme.css` by each launcher's serve.py (see the /theme.css
+ * route), so pages reference `<link rel="stylesheet" href="/theme.css">`
+ * regardless of which directory they live in.
+ *
+ * What belongs here: design tokens, the page backdrop, typography base, generic
+ * form controls, the generic chip, scrollbars, <kbd>, the brand mark.
+ * What does NOT: a page's own layout (grids, rails, columns, doc panes). Keep
+ * those inline in the page — they aren't shared.
+ *
+ * The IBM Plex font <link> stays in each page's <head> (a preconnect + stylesheet
+ * to Google Fonts) — it can't be pulled in reliably from an @import here.
+ *
+ * See the `/fx-style` skill for the full design-system reference.
+ * ========================================================================== */
+
+:root{
+  /* layered near-black surfaces, back-to-front */
+  --bg:#0c0c0e; --rail:#121215; --panel:#141418; --raised:#1a1a1f;
+  --line:#26262d; --line-soft:#1d1d22;
+  /* text: primary / dimmed / faint */
+  --ink:#e8e8ec; --dim:#9a9aa4; --faint:#65656e;
+  /* amber is the primary accent; the wash is its translucent fill */
+  --amber:#ffb454; --amber-dim:#c8893f; --amber-wash:rgba(255,180,84,.10);
+  /* semantic accents */
+  --cyan:#6ad7c6; --green:#86d28c; --red:#ff7b72; --blue:#7cc2ff;
+  /* type families: mono for chrome/ids/labels, sans for prose */
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+
+/* ---------- reset + typography base ---------- */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:14px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- backdrop: faint grain + top amber glow for atmosphere ---------- */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:999; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after{
+  content:""; position:fixed; top:0; left:0; right:0; height:240px; pointer-events:none; z-index:0;
+  background:radial-gradient(ellipse 60% 100% at 30% 0%, var(--amber-wash), transparent 70%);
+}
+
+/* ---------- brand mark (top-bar wordmark) ---------- */
+.brand{font-family:var(--mono); font-weight:600; letter-spacing:.22em; text-transform:uppercase;
+  font-size:13px; color:var(--amber); white-space:nowrap}
+.brand span{color:var(--faint); font-weight:400}
+.brand a{text-decoration:none}
+.brand a:hover span{color:var(--amber); text-decoration:underline}
+
+/* ---------- form controls ---------- */
+.search{flex:0 1 340px; position:relative}
+.search input{
+  width:100%; height:34px; padding:0 12px 0 30px; border-radius:7px;
+  background:var(--raised); border:1px solid var(--line); color:var(--ink);
+  font-family:var(--mono); font-size:13px; outline:none; transition:border-color .15s, box-shadow .15s;
+}
+.search input:focus{border-color:var(--amber-dim); box-shadow:0 0 0 3px var(--amber-wash)}
+.search::before{content:"⌕"; position:absolute; left:9px; top:50%; transform:translateY(-50%);
+  color:var(--faint); font-size:15px}
+select,.sortbtn{
+  height:34px; padding:0 10px; border-radius:7px; background:var(--raised);
+  border:1px solid var(--line); color:var(--dim); font-family:var(--mono); font-size:12px;
+  cursor:pointer; outline:none; transition:border-color .15s,color .15s;
+}
+select:hover,.sortbtn:hover{border-color:#37373f; color:var(--ink)}
+select:focus{border-color:var(--amber-dim)}
+.sortbtn{white-space:nowrap}
+.count{font-family:var(--mono); font-size:12px; color:var(--faint); white-space:nowrap; min-width:64px; text-align:right}
+.count b{color:var(--amber); font-weight:500}
+
+/* ---------- chip: the toolkit's universal tag primitive ----------
+ * `.chip` alone = neutral. Add ONE semantic-color modifier for meaning.
+ * Domain-specific chips (a page's own categories) extend `.chip` in that page. */
+.chip{font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+  padding:2px 7px; border-radius:5px; border:1px solid var(--line); color:var(--dim); background:#101015}
+.chip.amber{color:var(--amber); border-color:rgba(255,180,84,.35)}
+.chip.cyan{color:var(--cyan); border-color:rgba(106,215,198,.28)}
+.chip.green{color:var(--green); border-color:rgba(134,210,140,.30)}
+.chip.blue{color:var(--blue); border-color:rgba(124,194,255,.30)}
+.chip.red{color:var(--red); border-color:rgba(255,123,114,.35)}
+/* high-attention state (e.g. security bugs) — filled, not just outlined */
+.chip.security{color:#ffb4ad; border-color:rgba(255,123,114,.55); background:rgba(255,123,114,.14); font-weight:600}
+
+/* ---------- scrollbars ---------- */
+::-webkit-scrollbar{width:11px; height:11px}
+::-webkit-scrollbar-thumb{background:#2a2a31; border-radius:6px; border:3px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#3a3a43}
+
+/* ---------- keyboard hint ---------- */
+kbd{font-family:var(--mono); font-size:10px; background:var(--raised); border:1px solid var(--line);
+  border-radius:4px; padding:1px 5px; color:var(--dim)}

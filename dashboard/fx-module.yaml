@@ -1,0 +1,11 @@
+name: Personal Dashboard
+type: web
+provides: dashboard
+start: "python3 serve.py --serve"
+port: "env:FX_DASHBOARD_PORT"
+health: "/dashboard.html"
+entry: "/dashboard.html"
+remote: false
+defines:
+  label: Dashboard
+  purpose: "Your Bugzilla/Phabricator work at a glance — review queue, triage, and follow-ups."
