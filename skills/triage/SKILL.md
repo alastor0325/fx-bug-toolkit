@@ -412,11 +412,14 @@ all bugs **simultaneously** using background agents — one agent per bug. Do th
      STOP and report the bug as blocked rather than returning a draft whose analysis
      has a hole in it.
    - Current profiler-cli usage (the old `profiler-cli <url> --calltree N` form no
-     longer exists): `profiler-cli load <url>` prints a session id, then pass
+     longer exists): `profiler-cli load <url> --session <id>` with an id unique to this subagent
+     (`tr-<bug>-<token>-<run>`, `<run>` being 4 random hex digits), then pass
      `--session <id>` on EVERY subsequent query, e.g.
      `profiler-cli thread functions --session <id> --thread t-N`. The current-session
      pointer is global and a sibling agent's `load` will steal it, so never rely on
-     it implicitly and never run `profiler-cli stop --all`.
+     it implicitly and never run `profiler-cli stop --all`. Each session is a
+     daemon that never exits on its own: run `profiler-cli stop --session <id>`
+     once done with it, including when the analysis fails.
    ```
 
 **Parallelism cap**: dispatch at most **4 subagents concurrently**, not
@@ -736,14 +739,16 @@ about capability API mismatches — all during triage. This is `/bug-start` work
   or has already failed. Use the current subcommand form — **the `profiler-cli <url>
   --calltree N` and `--log-markers` forms no longer exist**:
   ```bash
-  profiler-cli load <url>                                   # prints a session id
+  profiler-cli load <url> --session <id>                    # <id>: tr-<bug>-<token>-<run>, unique per run
   profiler-cli profile info --all --session <id>             # threads + CPU by process
   profiler-cli thread list        --session <id>             # every thread's t-N handle
   profiler-cli thread functions   --session <id> --thread t-N --min-self 2
   profiler-cli thread markers     --session <id> --thread t-N --search DXVA
+  profiler-cli stop               --session <id>             # always, even on failure
   ```
   Always pass `--session <id>`: the current-session pointer is global and any
-  concurrent `load` steals it. Never run `profiler-cli stop --all`.
+  concurrent `load` steals it. Never run `profiler-cli stop --all`. The final `stop`
+  is required: the daemon holds the profile in memory and never exits on its own.
 
 **⚠️ Artifact analysis is BLOCKING — never ship an analysis with an unread artifact.**
 If an artifact that the conclusion depends on (a profile, a memory report, a log, a

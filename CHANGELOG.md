@@ -9,6 +9,20 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.6] — 2026-10-07
+
+### Fixed
+- **`/analyze-profile` no longer leaks `profiler-cli` daemons.** Each `load`
+  starts a background daemon that holds the whole profile in memory and never
+  exits on its own, and the skill never stopped it. On one machine 16 of them
+  had piled up over six days, about 10 GB in all. The skill now stops its
+  session as soon as the queries are done and on every early exit.
+- **Sessions are named after the bug and profile.** The id is
+  `ap-<bug>-<token>-<run>` instead of a generated one, so a session that does
+  leak can be traced in `profiler-cli session list`. The random `<run>` part
+  keeps parallel runs on the same profile from stopping each other's session.
+- **`/triage`'s direct `profiler-cli` fallback names and stops its session too.**
+
 ## [0.6.5] — 2026-10-05
 
 ### Changed
@@ -801,7 +815,9 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...HEAD
+[0.6.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.5...fx-bug-toolkit--v0.6.6
+[0.6.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...fx-bug-toolkit--v0.6.5
 [0.6.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...fx-bug-toolkit--v0.6.4
 [0.6.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.2...fx-bug-toolkit--v0.6.3
 [0.6.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.1...fx-bug-toolkit--v0.6.2
