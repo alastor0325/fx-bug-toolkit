@@ -37,8 +37,16 @@ is *stateful*: you `load` once to create a session, then query that session. The
 single-shot forms `profiler-cli <url> --calltree N`, `--top-markers N` and
 `--log-markers` **no longer exist** and will fail.
 
+Name the session yourself, so a leaked one can be traced in `profiler-cli session list`:
+`<id>` is `ap-<bug>-<token>-<run>`, where `<bug>` is the caller's bug number (omit it and
+its dash when there is none), `<token>` is the path segment after `share.firefox.dev/` or
+the first 12 characters of the hash after `profiler.firefox.com/public/`, and `<run>` is
+4 random hex digits picked once for this run. `<run>` keeps parallel runs on the same
+profile from sharing, or stopping, each other's session; if `load` still reports the id
+is already running, pick a new `<run>`.
+
 ```bash
-profiler-cli load <url>          # prints "Session started: <id>" — capture that id
+profiler-cli load <url> --session <id>
 ```
 
 Then pass `--session <id>` on **every** subsequent command:
@@ -58,6 +66,11 @@ profiler-cli marker info             --session <id> m-NNNN             # one mar
 not sticky, so any other concurrent `load` silently steals it and your queries start
 describing someone else's profile with no error. Never run `profiler-cli stop --all`;
 it kills other agents' sessions too.
+
+**You own this session and must stop it.** Each session is a background daemon holding
+the whole profile in memory (often 1–2 GB) and it never exits on its own. Run
+`profiler-cli stop --session <id>` as soon as the queries are done (end of Step 4), and
+also on every early exit: a failed load, a blocked analysis, an aborted run.
 
 **If the load fails, that is blocking — fix it and retry.** A profile is the artifact the
 whole analysis rests on, so a failed read is never a caveat to note and move past:
@@ -187,6 +200,12 @@ After collecting raw output, check for these known patterns:
 - Signal: `StateChange: DECODING → BUFFERING` without subsequent `BUFFERING → DECODING` within a few seconds
 - Meaning: decoder starved; look for network issue or demux failure upstream
 
+### Stop the session
+No later step queries the profile, so stop the daemon now, before writing the report:
+```bash
+profiler-cli stop --session <id>
+```
+
 ---
 
 ## Step 5 — Produce structured findings report
@@ -252,3 +271,5 @@ already present in the wiki — only genuinely new findings with a verifiable so
   retried. Only a profile that is genuinely gone (URL expired, local-session link) is
   noted as `Profile: inaccessible — <reason>`, and the analysis is then marked
   incomplete rather than concluded around the gap.
+- Callers that drive `profiler-cli` directly own their session the same way: name it,
+  and `profiler-cli stop --session <id>` when done.

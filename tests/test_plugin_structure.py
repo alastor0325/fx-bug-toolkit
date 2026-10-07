@@ -136,6 +136,19 @@ class TestSkills(unittest.TestCase):
             for stale in ("dpalmeiro/profiler-cli", "playwright install firefox"):
                 self.assertNotIn(stale, text, f"{s.name}: stale profiler-cli install step")
 
+    def test_profiler_cli_sessions_are_named_and_stopped(self):
+        # A profiler-cli session is a daemon that holds the whole profile in
+        # memory and never exits on its own, so a skill that loads one must name
+        # it and stop it.
+        for s in self.skills:
+            text = (s / "SKILL.md").read_text(encoding="utf-8")
+            if "profiler-cli load" not in text:
+                continue
+            self.assertIsNone(re.search(r"profiler-cli load <url>(?! --session)", text),
+                              f"{s.name}: profiler-cli load without --session")
+            self.assertIsNotNone(re.search(r"profiler-cli stop\s+--session <id>", text),
+                                 f"{s.name}: loads a profiler-cli session but never stops it")
+
 
 if __name__ == "__main__":
     unittest.main()
