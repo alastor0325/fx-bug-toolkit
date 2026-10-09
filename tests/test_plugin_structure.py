@@ -156,6 +156,7 @@ class TestSkills(unittest.TestCase):
             text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn("ASD-STE100", text, f"{name}: no ASD-STE100 writing standard")
             self.assertIn("20 words max", text, f"{name}: no instruction length limit")
+            self.assertIn("Could you please", text, f"{name}: no polite-request rule for named people")
 
 
 if __name__ == "__main__":

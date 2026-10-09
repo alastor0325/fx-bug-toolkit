@@ -9,6 +9,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.8] — 2026-10-09
+
+### Changed
+- **`/triage` asks named people politely.** A request to a developer we
+  needinfo, a QA person, the reporter, or anyone pinged with `:nick` now uses
+  "Could you please …?" or "Would you mind …?", not a bare imperative. It is
+  still one request per sentence, 25 words max, in STE words and active voice.
+  The imperative rule stays for procedural steps, such as the capture block.
+  `/triage-apply-feedback` re-drafts under the same rule.
+
 ## [0.6.7] — 2026-10-09
 
 ### Changed
@@ -827,7 +837,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...HEAD
+[0.6.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...fx-bug-toolkit--v0.6.8
 [0.6.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...fx-bug-toolkit--v0.6.7
 [0.6.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.5...fx-bug-toolkit--v0.6.6
 [0.6.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...fx-bug-toolkit--v0.6.5
