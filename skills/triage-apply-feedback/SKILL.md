@@ -49,6 +49,9 @@ Apply all feedback items for this bug as a single revision pass:
   severity/priority/resolution, add/remove blocks, NI targets, CC, or
   keywords, or reassign the component. Apply whatever each feedback
   warrants.
+- Rewritten comment text follows the /triage writing standard
+  (ASD-STE100): imperative instructions of 20 words max, descriptive
+  sentences of 25 words max, active voice, simple tenses, no dash asides.
 - Preserve fields the feedback does not mention.
 - Write the updated JSON back to the same path.
 

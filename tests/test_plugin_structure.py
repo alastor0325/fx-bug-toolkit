@@ -149,6 +149,14 @@ class TestSkills(unittest.TestCase):
             self.assertIsNotNone(re.search(r"profiler-cli stop\s+--session <id>", text),
                                  f"{s.name}: loads a profiler-cli session but never stops it")
 
+    def test_triage_comments_follow_ste100(self):
+        # Every comment /triage drafts for Bugzilla follows ASD-STE100, and the
+        # refine skill re-drafts under the same standard.
+        for name in ("triage", "triage-apply-feedback"):
+            text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("ASD-STE100", text, f"{name}: no ASD-STE100 writing standard")
+            self.assertIn("20 words max", text, f"{name}: no instruction length limit")
+
 
 if __name__ == "__main__":
     unittest.main()

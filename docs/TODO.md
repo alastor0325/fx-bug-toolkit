@@ -201,6 +201,13 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       (consistent with `FX_BUG_INVESTIGATION_DIR`). Updated `download-guard`,
       `bug-start`, `triage`, `init`, and the README. (The old cache, if present,
       is just orphaned transient files — no migration needed.)
+- [ ] **Move the posted-comment rules into one shared file** (raised
+      2026-10-09). The comment voice, S/P, ASD-STE100 writing standard and
+      Length discipline blocks sit inside §1a of `skills/triage/SKILL.md`;
+      §1b/§1c point at them and `triage-apply-feedback` carries an inline
+      summary because it never loads the triage skill. A shared
+      `skills/triage/comment-standard.md` read by both skills would remove
+      the copy and the pointers.
 - [ ] `history.log` now lives in the investigation dir (moved automatically with
       `FX_BUG_INVESTIGATION_DIR`) — confirm that's the desired home.
 - [ ] Scripted, sanitized re-sync from `~/.claude/skills` → this repo (so future
