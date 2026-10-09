@@ -9,6 +9,18 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.7] — 2026-10-09
+
+### Changed
+- **`/triage` writes every posted comment in ASD-STE100 Simplified Technical
+  English.** A new writing standard next to the length rules covers all §1a,
+  §1b and §1c drafts and every refine: simple words with one meaning, no
+  synonyms for one thing, 20-word instructions and 25-word descriptions, active
+  voice, simple tenses, no noun clusters of more than three words, and warnings
+  first. Technical names, code, quoted log lines and the media-log capture block
+  stay as they are. The 25-word cap and the dash rule moved into the standard,
+  and the example phrases in the skill now follow it.
+
 ## [0.6.6] — 2026-10-07
 
 ### Fixed
@@ -815,7 +827,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...HEAD
+[0.6.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...fx-bug-toolkit--v0.6.7
 [0.6.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.5...fx-bug-toolkit--v0.6.6
 [0.6.5]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.4...fx-bug-toolkit--v0.6.5
 [0.6.4]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.3...fx-bug-toolkit--v0.6.4

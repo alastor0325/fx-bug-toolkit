@@ -952,8 +952,8 @@ Draft a comment asking only for items identified as missing in Step 5. Always in
 | Does this happen in Private Browsing mode? | Any playback/recording issue — rules out extensions |
 | Does this happen on all videos, or only certain ones? | Playback failures |
 | Does this happen on a specific codec only? (H.264, H.265, AV1, VP9) | Playback failures with codec hint |
-| Can you share a public/open link to reproduce? | When reported URL requires login |
-| If the content is private, you can email it to media-alerts@mozilla.com — please set needinfo on the triage owner | When no public repro is possible |
+| Can you share a public link that shows the problem? | When reported URL requires login |
+| If the content is private, send it to media-alerts@mozilla.com. Then set needinfo on the triage owner. | When no public repro is possible |
 
 **Prose budget for a needs-info comment: 60 words, excluding the capture and
 mozregression blocks.** Those blocks are procedures and are exempt; they are
@@ -1026,9 +1026,9 @@ human-readable response, not as a checklist.
 **Comment voice — the triage account is a bot, not a person. Write advisory, not
 volitional.** Never use first-person preference/intention phrasing in a posted
 comment: avoid "I'd like to…", "I'll take a look", "I'll start…", "I want to…",
-"I personally…", "let me…". Use neutral or suggestion phrasing instead:
-"I'd suggest…", "Suggest…", "Recommend…", "The next step is…", "This looks
-like…", "We can…". This applies to **every** posted comment.
+"I personally…", "let me…". Use neutral or advisory phrasing instead:
+"We recommend…", "The next step is…", "This looks like…", "We can…". This
+applies to **every** posted comment.
 
 **Never state severity or priority in the posted comment.** S/P are Bugzilla
 *fields*, set via the dropdowns (`set-fields`) — that is the single source of
@@ -1051,13 +1051,49 @@ is the **Next Steps** section the reporter acts on: a clear, numbered workaround
 or a concrete "what to capture", not engineering jargon. In short: full Analysis
 + developer detail stays; only the reporter's Next Steps get simplified.
 
+**Writing standard: ASD-STE100 Simplified Technical English.** Every comment
+drafted for posting to Bugzilla (§1a, §1b and §1c drafts, and every refine of
+them) MUST follow ASD-STE100, together with the comment voice, S/P and
+Length discipline rules.
+
+- **Words.** Use simple, common English words with one meaning each. Use a word
+  only as the part of speech that STE approves (e.g. "test" as a noun, not "to
+  test"). Do not use synonyms for the same thing: if you call it "the decoder"
+  once, do not call it "the codec" later.
+- **Technical names are allowed.** Function, class, file, pref, API, codec,
+  component and product names (`MediaFormatReader`, `media.ffmpeg.enabled`,
+  H.264, WebRender, Firefox) and bug numbers stay as they are. Do not simplify
+  them.
+- **Instructions** (every Next Steps item): imperative, one instruction per
+  sentence, 20 words max: "Open `about:logging`.", "Set `media.ffmpeg.enabled`
+  to false, then restart Firefox."
+- **Descriptive sentences:** 25 words max. A sentence over the limit is two
+  sentences.
+- **Active voice.** Write "The decoder rejects the stream", not "The stream is
+  rejected by the decoder".
+- **Simple tenses only.** Use present, simple past, or future ("will"). Do not
+  use an "-ing" form as the main verb or a perfect tense ("has regressed"
+  becomes "regressed").
+- **No noun clusters** of more than 3 words. Split them with "of", "for", and
+  similar words ("the decode error for hardware video", not "the hardware video
+  decode error").
+- **Keep articles** ("a", "the") and short connecting words. Do not write in
+  telegraph style.
+- **No dash or hyphen used as an aside.** Use a comma, a colon, or two sentences.
+- **Paragraphs.** One topic per paragraph, 6 sentences max (the comment budgets
+  in this skill are stricter, so they win).
+- **Warnings first.** If a step carries a risk or a workaround has a side
+  effect, put it at the start of the sentence: "Caution: this also resets your
+  other `media.*` prefs."
+- **Exempt:** code, identifiers, quoted log lines, link text, and the media-log
+  capture block (see Media Log Instructions), which is quoted verbatim.
+
 **Length discipline.** Measured across 38 real drafts, the median posted comment
 was 296 words and 16 sentences, with a worst case of 1026 words. That is too long
 to be read. "Be brief" does not work as an instruction, so these are counted
-limits and explicit prohibitions.
+limits and explicit prohibitions. The sentence limits and the dash rule are in
+the writing standard above.
 
-- **25 words per sentence, maximum.** A sentence over the limit is two sentences.
-- **No dash or hyphen used as an aside.** Use a comma, a colon, or two sentences.
 - **Do not restate what the reporter already told you.** They know what they
   reported and what they ruled out. One clause of acknowledgement is the limit.
 - **Do not explain why you need an artifact.** Ask for it. A reporter does not
@@ -1065,7 +1101,7 @@ limits and explicit prohibitions.
 - **Do not report what you eliminated.** "The reader is not short of input",
   "downstream is regular as well", "pref-backed state is not at risk" answer
   questions nobody asked, and they are the single largest source of length. This
-  is **not** in tension with "keep the findings" below: the root cause, the
+  is **not** in tension with "keep the findings" above: the root cause, the
   citations and the fix direction all stay. What goes is the search path that
   found them.
 - **Do not narrate the investigation.** "The piece that was missing", "that is
@@ -1128,7 +1164,7 @@ Apply the P/S standard. Check meta bug blocking.
 **If Fixable = Yes:**
 1. Invoke `/bug-start {id}` first — do NOT set any fields or post any comment before it completes.
 2. After `/bug-start` completes, read the investigation file and determine the outcome:
-   - **Root cause found** → draft a comment summarising findings + next steps (do **not** state severity/priority in the comment — see the comment-voice rules), then apply the suggested P/S **as fields** and the meta bug blocker in the same `apply` (one atomic action). Do **not** auto-CC or auto-NI the triage owner — that's the owner's per-draft choice via the dashboard's "CC me" / "NI me" checkboxes (default off); a checked "NI me" is the "ready for implementation, owner's attention" signal. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
+   - **Root cause found** → draft a comment summarising findings + next steps (do **not** state severity/priority in the comment — see the comment-voice rules; write it to the ASD-STE100 writing standard and Length discipline in §1a), then apply the suggested P/S **as fields** and the meta bug blocker in the same `apply` (one atomic action). Do **not** auto-CC or auto-NI the triage owner — that's the owner's per-draft choice via the dashboard's "CC me" / "NI me" checkboxes (default off); a checked "NI me" is the "ready for implementation, owner's attention" signal. **Never include a link to the local investigation file** (`$FX_BUG_INVESTIGATION_DIR/`) in the Bugzilla comment — it is an internal working document, not a public artifact.
    - **Investigation reveals missing info** → fall back to §1a; draft NI comment asking for the specific missing data, with the suggested P/S applied **as fields** in the same `apply` (not stated in the comment).
 3. **Never set P/S or meta bug blocker as standalone operations** — always bundle them with a comment so Bugzilla shows a coherent update.
 
@@ -1269,7 +1305,7 @@ Playback`, so will-apply showed a move back to A/V.)
 - If the profile reveals a root cause → §1b, pursue investigation
 - If the profile is inconclusive → leave the bug open, add a comment acknowledging the profile and noting the intermittent nature; set P3/S3 and add to the relevant meta bug blocker
 
-Show draft in same format as above. Apply dedup check — skip any action whose value is already set. Post only on `apply {id}`.
+Show draft in same format as above. The comment follows the §1a comment voice, ASD-STE100 writing standard and Length discipline. Apply dedup check — skip any action whose value is already set. Post only on `apply {id}`.
 
 ### Watch list cleanup on handoff
 
@@ -1450,7 +1486,7 @@ Also check the meta bug's open dependency list for existing duplicates of the ne
 diagnostic — make it the FIRST item in "Next Steps"**, with the concrete steps spelled
 out (not a vague "use the media preset" line). The only exception: if high-risk `media.*`
 prefs were found (see the high-risk-prefs step), lead with the pref reset + restart and
-make the capture the **next** item ("if it still persists after the reset, capture…").
+make the capture the **next** item ("If the problem continues after the reset, capture…").
 Do not bury the capture as the last bullet.
 
 The capture is driven from `about:logging` using the **"Logging to the Firefox Profiler"**
@@ -1481,8 +1517,8 @@ them back into a paragraph, and do not add a dash as an aside.
 
 Use the **Graphics** preset (same flow) instead of / in addition to **Media playback** when
 the issue is in the GPU/compositor/overlay path rather than playback. When a pref reset /
-workaround precedes the capture (the high-risk-prefs case), prefix it with "If the issue
-still persists after the reset, …".
+workaround precedes the capture (the high-risk-prefs case), prefix it with "If the problem
+continues after the reset, …".
 
 ---
 
