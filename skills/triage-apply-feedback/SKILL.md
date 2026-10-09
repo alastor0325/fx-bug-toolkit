@@ -50,8 +50,13 @@ Apply all feedback items for this bug as a single revision pass:
   keywords, or reassign the component. Apply whatever each feedback
   warrants.
 - Rewritten comment text follows the /triage writing standard
-  (ASD-STE100): imperative instructions of 20 words max, descriptive
-  sentences of 25 words max, active voice, simple tenses, no dash asides.
+  (ASD-STE100): imperative instructions of 20 words max for procedural
+  steps, descriptive sentences of 25 words max, active voice, simple tenses,
+  no dash asides. A request to a named person (a developer we needinfo, a QA
+  person, the reporter, or anyone pinged with `:nick`) is polite, not a bare
+  imperative: "Could you please …?" or "Would you mind …?", plus "when you have
+  time" where it fits, one request per sentence, 25 words max. The numbered
+  steps under the request stay imperative.
 - Preserve fields the feedback does not mention.
 - Write the updated JSON back to the same path.
 

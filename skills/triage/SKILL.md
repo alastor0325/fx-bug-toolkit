@@ -952,7 +952,7 @@ Draft a comment asking only for items identified as missing in Step 5. Always in
 | Does this happen in Private Browsing mode? | Any playback/recording issue — rules out extensions |
 | Does this happen on all videos, or only certain ones? | Playback failures |
 | Does this happen on a specific codec only? (H.264, H.265, AV1, VP9) | Playback failures with codec hint |
-| Can you share a public link that shows the problem? | When reported URL requires login |
+| Could you please share a public link that shows the problem? | When reported URL requires login |
 | If the content is private, send it to media-alerts@mozilla.com. Then set needinfo on the triage owner. | When no public repro is possible |
 
 **Prose budget for a needs-info comment: 60 words, excluding the capture and
@@ -1064,9 +1064,16 @@ Length discipline rules.
   component and product names (`MediaFormatReader`, `media.ffmpeg.enabled`,
   H.264, WebRender, Firefox) and bug numbers stay as they are. Do not simplify
   them.
-- **Instructions** (every Next Steps item): imperative, one instruction per
-  sentence, 20 words max: "Open `about:logging`.", "Set `media.ffmpeg.enabled`
-  to false, then restart Firefox."
+- **Instructions** (procedural steps the reader follows, such as the capture
+  block): imperative, one instruction per sentence, 20 words max: "Open
+  `about:logging`.", "Set `media.ffmpeg.enabled` to false, then restart Firefox."
+- **Requests to a named person** (a developer we needinfo, a QA person, the
+  reporter, or anyone pinged with `:nick`): a polite request, not a bare
+  imperative. Use "Could you please …?" or "Would you mind …?", and add "when
+  you have time" where it fits. One request per sentence, 25 words max:
+  ":stransky, could you please take a look at this Vulkan direct export problem
+  on NVIDIA?", ":aosmond, could you please confirm whether …?" The request is
+  polite; the numbered steps under it stay imperative.
 - **Descriptive sentences:** 25 words max. A sentence over the limit is two
   sentences.
 - **Active voice.** Write "The decoder rejects the stream", not "The stream is
