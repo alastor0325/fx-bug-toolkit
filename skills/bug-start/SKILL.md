@@ -503,20 +503,21 @@ I'd suggest to have **sec-{level}** because:
 
 ### Affected versions
 
-Resolve the version numbers first. Nightly comes from `config/milestone.txt` on `origin/main`. Beta, Release and the active ESR lines come from <https://product-details.mozilla.org/1.0/firefox_versions.json> or <https://whattrainisitnow.com/> (two ESR lines are often active at once). Then check the vulnerable code on each channel's branch of <https://github.com/mozilla-firefox/firefox> (`main`, `beta`, `release`, `esr<NNN>`). Never write "all supported branches" or "current branches" in place of numbers.
+{Fill every row; never write "all supported branches" or "current branches" in place of numbers. Take every version from one source, [product-details](https://product-details.mozilla.org/1.0/firefox_versions.json): `FIREFOX_NIGHTLY`, `LATEST_FIREFOX_DEVEL_VERSION` (Beta), `LATEST_FIREFOX_VERSION` (Release), and each ESR key (`FIREFOX_ESR`, `FIREFOX_ESR_NEXT` and any line-specific key such as `FIREFOX_ESR115`). Add one ESR row per active line. Check the vulnerable code on each channel's branch of the [Firefox repository](https://github.com/mozilla-firefox/firefox) (`main`, `beta`, `release`, `esrNNN`). If a branch cannot be checked (fetch fails, code renamed), write `unverified` and say why; never guess a verdict.}
 
 | Channel | Version | Branch | Verdict |
 |---|---|---|---|
-| Nightly | {N} | `main` | {affected/unaffected} |
-| Beta | {N-1} | `beta` | {affected/unaffected} |
-| Release | {N-2} | `release` | {affected/unaffected} |
-| ESR | {each active ESR line} | `esr{NNN}` | {affected/unaffected} |
+| Nightly | {FIREFOX_NIGHTLY} | `main` | {affected / unaffected / unverified} |
+| Beta | {LATEST_FIREFOX_DEVEL_VERSION} | `beta` | {affected / unaffected / unverified} |
+| Release | {LATEST_FIREFOX_VERSION} | `release` | {affected / unaffected / unverified} |
+| ESR {NNN} | {that ESR's version} | `esr{NNN}` | {affected / unaffected / unverified} |
+| ESR {MMM} | {that ESR's version, one row per active line} | `esr{MMM}` | {affected / unaffected / unverified} |
 
-{One or two lines: which part of the vulnerable code you checked on each branch, any older names or paths on ESR, and any pref or build flag that changes reachability per channel (read its default per channel, watch `#ifdef NIGHTLY_BUILD` and platform guards).}
+{Evidence notes for this investigation only (they are never posted): which part of the vulnerable code you checked on each branch, older names or paths on ESR, and any pref or build flag that changes reachability per channel (read its default per channel, watch `#ifdef NIGHTLY_BUILD` and platform guards).}
 
 ### Sec-approval answers
 
-{Answer each question with a conclusion only: no function names, file paths, code or stack traces. Questions that depend on the patch say "Pending patch" until a fix exists; update them before requesting sec-approval. Once a fix exists, dry-run applying it to each affected branch and record the result for the backport answer.}
+{These answers are posted to Bugzilla. Write a conclusion only: no function names, file paths, code, stack traces, or evidence notes from the table above. Answers that depend on the patch say "Pending patch" until a fix exists. Update them only when the user asks (gotcha 6), through `update-investigation`. Once a fix exists, dry-run applying it to each affected branch and use the result in the backport answer.}
 
 **How easily could an exploit be constructed based on the patch?**
 {Easy / Moderate / Difficult, then 1-2 sentences}
@@ -525,7 +526,7 @@ Resolve the version numbers first. Nightly comes from `config/milestone.txt` on 
 {Yes/No, and why}
 
 **Which branches (beta, release, and/or ESR) are affected by this flaw, and do the release status flags reflect this affected/unaffected state correctly?**
-{Each channel with its version and verdict, from the table above, and the status flags to set (e.g. `status-firefox160` affected)}
+{Each channel with its version and verdict from the table above, versions and verdicts only, and the status flags to set: `status-firefoxNNN` for Nightly, Beta and Release, `status-firefox-esrNNN` for each ESR line (e.g. `status-firefox160` affected, `status-firefox-esr153` affected)}
 
 **If not all supported branches, which bug introduced the flaw?**
 {Bug NNNNNNN, or N/A if every supported branch is affected}
@@ -717,7 +718,7 @@ For a contained bug where the cause was found directly, write
    - [ ] Is the Implementation Guide section present?
    - [ ] Is `**Public**` set correctly based on the MCP result?
    - [ ] If the bug has a `sec-*` keyword or is in a security group: is the `## Security Rating` section present with a clear rating and rationale?
-   - [ ] If the bug has a `sec-*` keyword or is in a security group: is the `## Security Approval` section present, and does its **Affected versions** table give a concrete version and a checked verdict for Nightly, Beta, Release and every active ESR line?
+   - [ ] If the bug has a `sec-*` keyword or is in a security group: is the `## Security Approval` section present, and does its **Affected versions** table give a concrete version and a checked (or explicitly `unverified`) verdict for Nightly, Beta, Release and one row per active ESR line?
 
    **IF ANY CHECKBOX IS UNCHECKED, DO NOT PROCEED. FIX THE ISSUE FIRST.**
 

@@ -162,13 +162,24 @@ class TestSkills(unittest.TestCase):
         # A security bug's investigation carries the sec-approval answers, and
         # its affected-versions part names every supported channel by number.
         text = (SKILLS / "bug-start" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("## Security Approval", text, "bug-start: no Security Approval section")
-        self.assertIn("### Affected versions", text, "bug-start: no Affected versions part")
-        for channel in ("| Nightly |", "| Beta |", "| Release |", "| ESR |"):
-            self.assertIn(channel, text, f"bug-start: affected-versions table lacks {channel}")
-        self.assertIn("which bug introduced the flaw", text, "bug-start: sec-approval questions missing")
+        start = text.index("**Required Document Structure")
+        end = text.index("### After Creating Investigation File")
+        template = text[start:end]
+        self.assertIn("## Security Approval", template, "bug-start: Security Approval not in the deep template")
+        self.assertIn("### Affected versions", template, "bug-start: no Affected versions part in the template")
+        for row in ("| Nightly |", "| Beta |", "| Release |", "| ESR {NNN} |", "| ESR {MMM} |"):
+            self.assertIn(row, template, f"bug-start: affected-versions table lacks {row}")
+        self.assertIn("unverified", template, "bug-start: no fallback verdict for an unchecked branch")
+        self.assertIn("status-firefox-esrNNN", template, "bug-start: ESR status-flag form missing")
+        self.assertIn("which bug introduced the flaw", template, "bug-start: sec-approval questions missing")
+        self.assertIsNone(re.search(r"<https?://", template),
+                          "bug-start: <url> links break the skill's own link checker")
+        self.assertIn("is the `## Security Approval` section present", text,
+                      "bug-start: self-check item for Security Approval missing")
         self.assertIn("- ❌ `## Security Approval`", text,
                       "bug-start: triage mode must omit the Security Approval section")
+        update = (SKILLS / "update-investigation" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Security Approval", update, "update-investigation: no mapping for Security Approval")
 
 
 if __name__ == "__main__":

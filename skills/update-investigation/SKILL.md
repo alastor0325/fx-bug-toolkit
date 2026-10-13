@@ -50,6 +50,7 @@ Map the user's request to sections:
 | Patch arrangement change | Implementation Plan → Patch Arrangement table + Patch Details |
 | Test strategy change | Implementation Plan → Test Strategy + relevant Patch Details |
 | Add gotcha / edge case | Relevant Patch Details section |
+| Affected versions, backport result, or sec-approval answers (security bugs) | Security Approval → Affected versions + Sec-approval answers |
 
 If the request is ambiguous, ask: "Which part needs updating — root cause, proposed solution, patch arrangement, test plan, or something else?"
 

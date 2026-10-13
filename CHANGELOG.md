@@ -14,10 +14,14 @@ _Nothing user-facing yet._
 ### Added
 - **`/bug-start` writes a Security Approval section for security bugs.** Next
   to the Security Rating, the investigation now has an **Affected versions**
-  table. It gives the version of Nightly, Beta, Release and every active ESR
-  line, each with a verdict checked against that channel's code. The section
-  also holds the nine sec-approval answers. Answers that depend on the patch
-  say "Pending patch" until a fix exists. Triage mode still omits it.
+  table. It gives the version of Nightly, Beta, Release and each active ESR
+  line, one row per line, all read from product-details. Each verdict is
+  checked against that channel's code, or marked `unverified` with a reason.
+  The section also holds the nine sec-approval answers, with the correct
+  `status-firefox-esrNNN` flag form for ESR. Answers that depend on the patch
+  say "Pending patch" until a fix exists, and `/update-investigation` now maps
+  updates to this section. Triage mode still omits it, and the tutorial
+  mentions it.
 
 ## [0.6.8] — 2026-10-09
 
