@@ -158,6 +158,18 @@ class TestSkills(unittest.TestCase):
             self.assertIn("20 words max", text, f"{name}: no instruction length limit")
             self.assertIn("Could you please", text, f"{name}: no polite-request rule for named people")
 
+    def test_bug_start_security_approval_section(self):
+        # A security bug's investigation carries the sec-approval answers, and
+        # its affected-versions part names every supported channel by number.
+        text = (SKILLS / "bug-start" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("## Security Approval", text, "bug-start: no Security Approval section")
+        self.assertIn("### Affected versions", text, "bug-start: no Affected versions part")
+        for channel in ("| Nightly |", "| Beta |", "| Release |", "| ESR |"):
+            self.assertIn(channel, text, f"bug-start: affected-versions table lacks {channel}")
+        self.assertIn("which bug introduced the flaw", text, "bug-start: sec-approval questions missing")
+        self.assertIn("- ❌ `## Security Approval`", text,
+                      "bug-start: triage mode must omit the Security Approval section")
+
 
 if __name__ == "__main__":
     unittest.main()

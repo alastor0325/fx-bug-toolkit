@@ -53,7 +53,7 @@ path is never empty. The directory is created in step 5 if it doesn't exist.
 5. **Evaluate proposed fixes independently — never adopt them verbatim** — if the bug has a proposed patch or fix in comments (from a reviewer, contributor, or another engineer), read the actual code and verify every step of that fix yourself. A proposed fix may have subtle errors (wrong argument type, missed edge case, incorrect invariant). Adopt the structural approach only after confirming each detail against the code. Never write "fix from comment N" as the authoritative solution.
 6. **Do not update `investigation.md` during exploratory discussion** — it is a stable checkpoint. Only update when the user explicitly signals ("update investigation.md", "document this").
 7. **Private bug history log**: when logging to `history.log`, ONLY write the bug number for private bugs. Never log any title, component, description, or root cause details.
-8. **Security bugs MUST include a Security Rating section** — if the bug has any `sec-*` keyword (sec-high, sec-moderate, sec-low, sec-critical, etc.) or is in a security group, you MUST add a `## Security Rating` section. See template below.
+8. **Security bugs MUST include a Security Rating section and a Security Approval section** — if the bug has any `sec-*` keyword (sec-high, sec-moderate, sec-low, sec-critical, etc.) or is in a security group, you MUST add a `## Security Rating` section and a `## Security Approval` section. The Security Approval section MUST name the concrete version of every supported channel (Nightly, Beta, Release, each active ESR line) with an affected/unaffected verdict checked against that channel's code. See template below.
 
 ## Invocation Modes
 
@@ -497,6 +497,56 @@ I'd suggest to have **sec-{level}** because:
 
 ---
 
+## Security Approval
+
+> **REQUIRED for security bugs** (any `sec-*` keyword or security group). Omit for non-security bugs. The sec-approval request posted to Bugzilla is drawn from this section.
+
+### Affected versions
+
+Resolve the version numbers first. Nightly comes from `config/milestone.txt` on `origin/main`. Beta, Release and the active ESR lines come from <https://product-details.mozilla.org/1.0/firefox_versions.json> or <https://whattrainisitnow.com/> (two ESR lines are often active at once). Then check the vulnerable code on each channel's branch of <https://github.com/mozilla-firefox/firefox> (`main`, `beta`, `release`, `esr<NNN>`). Never write "all supported branches" or "current branches" in place of numbers.
+
+| Channel | Version | Branch | Verdict |
+|---|---|---|---|
+| Nightly | {N} | `main` | {affected/unaffected} |
+| Beta | {N-1} | `beta` | {affected/unaffected} |
+| Release | {N-2} | `release` | {affected/unaffected} |
+| ESR | {each active ESR line} | `esr{NNN}` | {affected/unaffected} |
+
+{One or two lines: which part of the vulnerable code you checked on each branch, any older names or paths on ESR, and any pref or build flag that changes reachability per channel (read its default per channel, watch `#ifdef NIGHTLY_BUILD` and platform guards).}
+
+### Sec-approval answers
+
+{Answer each question with a conclusion only: no function names, file paths, code or stack traces. Questions that depend on the patch say "Pending patch" until a fix exists; update them before requesting sec-approval. Once a fix exists, dry-run applying it to each affected branch and record the result for the backport answer.}
+
+**How easily could an exploit be constructed based on the patch?**
+{Easy / Moderate / Difficult, then 1-2 sentences}
+
+**Do comments in the patch, the check-in comment, or tests included in the patch paint a bulls-eye on the security problem?**
+{Yes/No, and why}
+
+**Which branches (beta, release, and/or ESR) are affected by this flaw, and do the release status flags reflect this affected/unaffected state correctly?**
+{Each channel with its version and verdict, from the table above, and the status flags to set (e.g. `status-firefox160` affected)}
+
+**If not all supported branches, which bug introduced the flaw?**
+{Bug NNNNNNN, or N/A if every supported branch is affected}
+
+**Do you have backports for the affected branches?**
+{Yes/No}
+
+**If not, how different, hard to create, and risky will they be?**
+{Result of the dry-run apply per branch, and the risk}
+
+**How likely is this patch to cause regressions; how much testing does it need?**
+{Low/Moderate/High, one sentence}
+
+**Is the patch ready to land after security approval is given?**
+{Yes/No}
+
+**Is Android affected?**
+{Yes/No/Unknown}
+
+---
+
 ## Implementation Plan
 
 > This section captures the proposed fix and patch breakdown. If you have an
@@ -667,6 +717,7 @@ For a contained bug where the cause was found directly, write
    - [ ] Is the Implementation Guide section present?
    - [ ] Is `**Public**` set correctly based on the MCP result?
    - [ ] If the bug has a `sec-*` keyword or is in a security group: is the `## Security Rating` section present with a clear rating and rationale?
+   - [ ] If the bug has a `sec-*` keyword or is in a security group: is the `## Security Approval` section present, and does its **Affected versions** table give a concrete version and a checked verdict for Nightly, Beta, Release and every active ESR line?
 
    **IF ANY CHECKBOX IS UNCHECKED, DO NOT PROCEED. FIX THE ISSUE FIRST.**
 
@@ -702,6 +753,7 @@ investigation — re-run for deep" affordance. Aim for ≤5 minutes per bug.
 
 **Sections to EXPLICITLY OMIT in triage mode** — these are deep-mode only:
 - ❌ `## Security Rating`
+- ❌ `## Security Approval`
 - ❌ `## Implementation Plan`
 - ❌ `## Patch Arrangement`
 - ❌ `## Mechanism Replacement`
