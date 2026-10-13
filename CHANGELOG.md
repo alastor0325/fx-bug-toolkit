@@ -9,6 +9,20 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.6.9] — 2026-10-13
+
+### Added
+- **`/bug-start` writes a Security Approval section for security bugs.** Next
+  to the Security Rating, the investigation now has an **Affected versions**
+  table. It gives the version of Nightly, Beta, Release and each active ESR
+  line, one row per line, all read from product-details. Each verdict is
+  checked against that channel's code, or marked `unverified` with a reason.
+  The section also holds the nine sec-approval answers, with the correct
+  `status-firefox-esrNNN` flag form for ESR. Answers that depend on the patch
+  say "Pending patch" until a fix exists, and `/update-investigation` now maps
+  updates to this section. Triage mode still omits it, and the tutorial
+  mentions it.
+
 ## [0.6.8] — 2026-10-09
 
 ### Changed
@@ -837,7 +851,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...HEAD
+[0.6.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...fx-bug-toolkit--v0.6.9
 [0.6.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...fx-bug-toolkit--v0.6.8
 [0.6.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...fx-bug-toolkit--v0.6.7
 [0.6.6]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.5...fx-bug-toolkit--v0.6.6
