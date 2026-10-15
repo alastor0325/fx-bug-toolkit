@@ -182,5 +182,100 @@ class TestSkills(unittest.TestCase):
         self.assertIn("Security Approval", update, "update-investigation: no mapping for Security Approval")
 
 
+# The skills the gecko-triage Hackbot agent runs in its cloud container.
+HACKBOT_SKILLS = ("analyze-profile", "bug-start", "check-log", "spec-check")
+# Tools the container does not have. A Hackbot-mode line may name one only to
+# skip or replace it, never as something to run.
+HACKBOT_FORBIDDEN = (
+    r"bmo-to-md", r"BMO_API_KEY", r"searchfox-cli", r"bugzilla-cli", r"mcp__moz__",
+    r"gecko-navigator", r"\bjj\b", r"\bmach\b", r"\bnpm\b", r"(?<![\w-])/update\b",
+    r"firefox-wiki", r"\.fx-bug-toolkit", r"/rename\b", r"\bviewer\b", r"TaskCreate",
+    r"AskUserQuestion", r"/download-guard", r"/analyze-profile",
+)
+# The MCP tools the container provides.
+HACKBOT_MCP_TOOLS = {
+    "mcp__bugzilla__search_bugs", "mcp__bugzilla__get_bugs",
+    "mcp__bugzilla__get_bug_comments", "mcp__bugzilla__get_bug_attachments",
+    "mcp__searchfox__search_identifier", "mcp__searchfox__search_text",
+    "mcp__searchfox__find_definition", "mcp__searchfox__get_function_at_line",
+    "mcp__searchfox__get_blame", "mcp__searchfox__get_file",
+    "mcp__mozilla_vcs__file_history", "mcp__mozilla_vcs__get_commit_info",
+    "mcp__mozilla_vcs__get_commit_diff", "mcp__attachments__fetch_attachment",
+}
+
+
+def hackbot_section(text: str):
+    """The line number and body of the `## Hackbot mode` section, up to the next heading or rule."""
+    start = text.index("\n## Hackbot mode\n")
+    ends = [i for i in (text.find("\n## ", start + 1), text.find("\n---\n", start)) if i != -1]
+    return text.count("\n", 0, start) + 1, text[start:min(ends, default=len(text))]
+
+
+def hackbot_violations(section: str) -> list:
+    """Lines that name a forbidden tool other than to skip or replace it."""
+    bad = []
+    for line in section.splitlines():
+        if re.match(r"- (Skip|Never)\b", line):
+            continue
+        if line.startswith("- Instead of ") and ":" in line:
+            line = line.split(":", 1)[1]
+        if any(re.search(p, line) for p in HACKBOT_FORBIDDEN):
+            bad.append(line.strip())
+    return bad
+
+
+class TestHackbotMode(unittest.TestCase):
+    def section(self, name):
+        return hackbot_section((SKILLS / name / "SKILL.md").read_text(encoding="utf-8"))[1]
+
+    def test_every_hackbot_skill_has_the_section_near_its_top(self):
+        for name in HACKBOT_SKILLS:
+            text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertEqual(text.count("\n## Hackbot mode\n"), 1, f"{name}: needs one Hackbot mode section")
+            line, section = hackbot_section(text)
+            self.assertLess(line, 30, f"{name}: Hackbot mode section is not near the top")
+            self.assertIn("printenv FX_BUG_TOOLKIT_MODE", section, f"{name}: no env-var check")
+            self.assertIn("`hackbot`", section, f"{name}: no mode value")
+            self.assertIn("skill runs as written", section,
+                          f"{name}: does not say local behavior is unchanged")
+            self.assertIn("Never ask a question", section, f"{name}: may ask in an unattended run")
+            self.assertNotIn("```", section, f"{name}: Hackbot mode must not carry a command block")
+
+    def test_hackbot_section_runs_no_forbidden_tool(self):
+        for name in HACKBOT_SKILLS:
+            self.assertEqual(hackbot_violations(self.section(name)), [],
+                             f"{name}: Hackbot mode tells the agent to run a local-only tool")
+
+    def test_hackbot_section_names_only_provided_mcp_tools(self):
+        for name in HACKBOT_SKILLS:
+            for tool in re.findall(r"mcp__\w+", self.section(name)):
+                if not tool.startswith("mcp__moz__"):
+                    self.assertIn(tool, HACKBOT_MCP_TOOLS, f"{name}: {tool} is not in the container")
+
+    def test_hackbot_violations_catches_a_forbidden_tool(self):
+        self.assertEqual(hackbot_violations("- Instead of `jj log`: run `searchfox-cli`."),
+                         ["run `searchfox-cli`."])
+        self.assertEqual(hackbot_violations("- Run `bmo-to-md 1`."), ["- Run `bmo-to-md 1`."])
+        self.assertEqual(hackbot_violations("- Skip `./mach wpt-update`."), [])
+        self.assertEqual(hackbot_violations("- Never use AskUserQuestion."), [])
+        self.assertEqual(hackbot_violations("- Instead of `jj log`: use file history."), [])
+
+    def test_hackbot_section_covers_each_skills_gaps(self):
+        expected = {
+            "bug-start": ("mcp__bugzilla__get_bugs", "mcp__bugzilla__get_bug_comments",
+                          "**Public: Yes**", "mcp__mozilla_vcs__file_history",
+                          "Searchfox revision that the task gives", "$FX_BUG_INVESTIGATION_DIR",
+                          "Accept any component", "link check", "lock file", "history log"),
+            "check-log": (".moz_log", "mcp__attachments__fetch_attachment", "log-analysis.log"),
+            "spec-check": ("mcp__searchfox__search_text", "wpt-update", "report it in your answer",
+                           "Security Rules still apply"),
+            "analyze-profile": ("tooling gap", "Never install or update", "wiki"),
+        }
+        for name, needles in expected.items():
+            section = self.section(name)
+            for needle in needles:
+                self.assertIn(needle, section, f"{name}: Hackbot mode lacks {needle!r}")
+
+
 if __name__ == "__main__":
     unittest.main()

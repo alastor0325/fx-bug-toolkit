@@ -18,7 +18,7 @@ both suites, so `require("playwright")` resolves from either location.
 
 | File | Kind | Covers |
 |---|---|---|
-| `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; `folder == name`; invocable-vs-internal contract; agent frontmatter |
+| `test_plugin_structure.py` | contract | manifests parse; every SKILL.md has valid frontmatter; `folder == name`; invocable-vs-internal contract; agent frontmatter; each Hackbot-mode section exists near its skill's top and runs no local-only tool |
 | `test_serve_locator.py` | contract (**seam**) | the inline Python locator embedded in `open-investigation`/`bug-start` that finds the shipped `viewer/serve.py` — via `$CLAUDE_PLUGIN_ROOT`, the plugin's `bin/` on `$PATH`, then the plugin cache |
 | `tutorial.e2e.cjs` | e2e (browser) | the tutorial page: title, chapter links, repo + wiki links, TOC chapter→hash, scrollspy hash-sync, foldable TOC toggle, click-to-enlarge lightbox open/backdrop/Esc |
 

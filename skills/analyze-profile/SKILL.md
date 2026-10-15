@@ -14,6 +14,16 @@ structured findings report consumed by `/triage`, `/bug-start`, and other skills
 
 Where `<url>` is a `share.firefox.dev/*` or `profiler.firefox.com/public/*` link.
 
+## Hackbot mode
+
+Run `printenv FX_BUG_TOOLKIT_MODE` before anything else. If it prints `hackbot`, you run unattended in the Hackbot cloud container, and these rules override the steps below. Otherwise skip this section: the skill runs as written.
+
+- Never install or update a tool (`npm install`, `/update`).
+- If `profiler-cli` is too old for the profile, or it is the legacy CLI, report a tooling gap on our side and mark the analysis incomplete. It is not a question for the reporter.
+- Instead of asking for a new capture (a `share.firefox.dev` link or a normal-mode profile): say in your answer which capture is necessary.
+- Skip the wiki (Step 3, Step 6).
+- Never ask a question or use AskUserQuestion: nobody is there to answer.
+
 ---
 
 ## ⚠️ Rules for callers

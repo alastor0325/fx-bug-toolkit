@@ -9,6 +9,22 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.7.0] — 2026-10-15
+
+### Added
+- **Hackbot mode for `/analyze-profile`, `/check-log`, `spec-check` and
+  `/bug-start`.** When `FX_BUG_TOOLKIT_MODE=hackbot` is set, each of these
+  skills follows a short section at its top for the gecko-triage Hackbot cloud
+  container. It uses the container's MCP tools (`mcp__bugzilla__*`,
+  `mcp__searchfox__*`, `mcp__mozilla_vcs__*`, `mcp__attachments__fetch_attachment`)
+  or Grep and Read on the source checkout, in place of `bmo-to-md`,
+  `searchfox-cli`, `jj` and the gecko-navigator agent. It skips the wiki, the
+  history logs, the lock file, the viewer, the link check, tool installs and
+  every question to the user. `/check-log` accepts every log path that
+  `fetch_attachment` returns, such as `.moz_log`. With the variable unset, the
+  skills behave as before. A structure test checks that each section exists
+  and runs no local-only tool.
+
 ## [0.6.9] — 2026-10-13
 
 ### Added
@@ -851,7 +867,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...HEAD
+[0.7.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...fx-bug-toolkit--v0.7.0
 [0.6.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...fx-bug-toolkit--v0.6.9
 [0.6.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...fx-bug-toolkit--v0.6.8
 [0.6.7]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.6...fx-bug-toolkit--v0.6.7
