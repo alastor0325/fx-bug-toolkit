@@ -162,7 +162,8 @@ things live:
 
 The gecko-triage Hackbot agent runs `/analyze-profile`, `/check-log`,
 `spec-check` and `/bug-start --triage-mode` unattended in a cloud container. That
-container has no local developer tools, so it sets `FX_BUG_TOOLKIT_MODE=hackbot`.
+container has no local developer tools, so the agent must set
+`FX_BUG_TOOLKIT_MODE=hackbot` in its session environment.
 Each of these four skills then follows a short **Hackbot mode** section at its
 top:
 
