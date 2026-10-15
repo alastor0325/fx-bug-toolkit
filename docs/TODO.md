@@ -303,6 +303,10 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       loading (needs auth) — that part already verified live via `--plugin-dir`.
 - [ ] Document how a coworker registers the `moz` MCP server (no auto-config;
       `init` reports on it but can't install it).
+- [ ] Hackbot mode (2026-10-15): confirm in a gecko-triage run that the agent
+      sets `FX_BUG_TOOLKIT_MODE=hackbot` in its session env and passes the
+      Searchfox revision to `/bug-start`, and that its subagent prompts no longer
+      name local tools.
 
 ---
 

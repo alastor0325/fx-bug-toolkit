@@ -132,6 +132,7 @@ things live:
 | `TRIAGE_OWNER` | _(none — required for `/triage` **reply mode** only)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off). Not needed in read-only mode |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
 | `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |
+| `FX_BUG_TOOLKIT_MODE` | _(unset: local mode)_ | set to `hackbot` only in the Hackbot cloud container; see [Hackbot mode](#hackbot-mode) |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
 [Optional: the shared wiki](#optional-the-shared-wiki).)
@@ -156,6 +157,30 @@ things live:
 > shell, so `export` the variable in a file those shells read — not only an
 > interactive-only startup file. If it's set but the skills don't pick it up,
 > that's usually why; confirm with `<your-shell> -c 'echo $FX_BUG_INVESTIGATION_DIR'`.
+
+### Hackbot mode
+
+The gecko-triage Hackbot agent runs `/analyze-profile`, `/check-log`,
+`spec-check` and `/bug-start --triage-mode` unattended in a cloud container. That
+container has no local developer tools, so the agent must set
+`FX_BUG_TOOLKIT_MODE=hackbot` in its session environment.
+Each of these four skills then follows a short **Hackbot mode** section at its
+top:
+
+- **Tools:** Bugzilla, Searchfox, hg history and attachments come from the
+  container's MCP tools (`mcp__bugzilla__*`, `mcp__searchfox__*`,
+  `mcp__mozilla_vcs__*`, `mcp__attachments__fetch_attachment`) or from Grep and
+  Read on its source checkout. The skills do not call `bmo-to-md`,
+  `searchfox-cli`, `jj`, `mach` or the gecko-navigator agent.
+- **Skipped steps:** the wiki, history logs, the lock file, the viewer, the
+  session rename, the link check, tool installs and updates, and every question
+  to the user. Findings and open questions go into the answer.
+- **Files:** `/bug-start` writes only its investigation file, to
+  `$FX_BUG_INVESTIGATION_DIR` (under `/tmp`). `/check-log` accepts every log
+  path that `fetch_attachment` returns, such as `.moz_log` files.
+
+When the variable is unset (or has any other value), the skills behave exactly
+as before. Do not set it on a developer machine.
 
 ### Your investigations are yours — offline and local
 

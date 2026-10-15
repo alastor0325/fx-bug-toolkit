@@ -7,6 +7,27 @@ allowed-tools: [Read, Write, Edit, Grep, Glob, Bash, TaskCreate, AskUserQuestion
 
 # Bug Start Workflow
 
+## Hackbot mode
+
+Run `printenv FX_BUG_TOOLKIT_MODE` before anything else. If it prints `hackbot`, you run unattended in the Hackbot cloud container, and these rules override the steps below. Otherwise skip this section: the skill runs as written.
+
+- Instead of `mcp__moz__get_bugzilla_bug` or `bmo-to-md`: fetch the bug and each duplicate with `mcp__bugzilla__get_bugs` and `mcp__bugzilla__get_bug_comments`, and list attachments with `mcp__bugzilla__get_bug_attachments`. The bug is public, so it is **Public: Yes**.
+- Instead of `searchfox-cli`: use `mcp__searchfox__search_identifier`, `mcp__searchfox__search_text`, `mcp__searchfox__find_definition` and `mcp__searchfox__get_file`, or Grep and Read on the shallow source checkout in your working directory.
+- Instead of the gecko-navigator agent: read the code yourself.
+- Instead of `jj log`: use `mcp__mozilla_vcs__file_history`, then `mcp__mozilla_vcs__get_commit_info` for one commit. `mcp__searchfox__get_blame` gives the commit of a line.
+- For `REV`: use the Searchfox revision that the task gives. If it gives none, resolve it with the curl below.
+- Instead of `/download-guard` and `bmo-to-md -a`: fetch an attachment with `mcp__attachments__fetch_attachment`. Fetch no other file and no media sample.
+- Instead of WebFetch on the Treeherder API: run `curl` on that URL from Bash, and only when the bug is intermittent.
+- Instead of `/analyze-profile`: write "analyzed separately" under Profile Analysis. Another agent reads the profile.
+- Instead of the default `~/.fx-bug-toolkit` directory: write the investigation file only to `$FX_BUG_INVESTIGATION_DIR`, which is under `/tmp`. Write no other file.
+- Accept any component. Ignore the check that the bug is Audio/Video.
+- Skip the link check with curl, the lock file, the history log (§6a), the wiki (§3 lookups, §6b), the "6. Review and Iteration Workflow" section, and sections 7 to 11 (tests, `mach`, TaskCreate, the viewer, `/rename`). This applies in deep mode too.
+- Never ask a question or use AskUserQuestion: nobody is there to answer. Put open questions in the Notes section.
+- Never build, test or run Firefox.
+- After you verify the investigation file with Read, stop and give your findings as your answer.
+
+---
+
 **🔗 MANDATORY: every reference to a source file, function, or line number in the investigation MUST be a clickable, revision-pinned searchfox hyperlink:**
 ```
 [`path/to/file.cpp:NNN`](https://searchfox.org/firefox-main/rev/<REV>/path/to/file.cpp#NNN)
