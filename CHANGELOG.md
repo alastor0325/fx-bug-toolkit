@@ -7,7 +7,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Fixed
+- **Searchfox links pin to an indexed revision and a verified line.**
+  `source-links` no longer pins links to the local `git rev-parse HEAD` after
+  an HTTP `200` check, which passes for unindexed revisions and for Searchfox's
+  bot-challenge page. Links now take the revision and line from
+  `searchfox-cli --permalink`, and each cited line is checked with
+  `git show <rev>:<path>` before the link is written. The review skill passes
+  that indexed revision to its workers as `base_revision`.
 
 ## [0.7.1] — 2026-10-16
 

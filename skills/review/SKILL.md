@@ -130,9 +130,11 @@ mkdir -p "$CTX_DIR"
   - `local`: `jj diff -r 'trunk()..@'` (or `git diff main..HEAD`).
   - `diff`: `jj diff` (or `git diff HEAD`).
 - Write `$CTX_DIR/context.md`: **source kind** (`phabricator D{id}`/`local`/`diff`),
-  **base revision** (mozilla-central hash for searchfox links — the diff's Base
-  Revision, or `git merge-base main HEAD`), the **Patch Set Intention**, and the
-  **changed-files list** (`--stat`).
+  **base revision** for searchfox links (the Searchfox-indexed revision from
+  `searchfox-cli -q <term> -p <path> --permalink`, never the diff's Base
+  Revision or a local `git merge-base`, which Searchfox may not have indexed;
+  see `source-links`), the **Patch Set Intention**, and the **changed-files
+  list** (`--stat`).
 
 This bundle may hold security-sensitive diff content — delete it in Step 6.
 
