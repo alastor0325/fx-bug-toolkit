@@ -70,15 +70,32 @@ https://searchfox.org/{repo}/rev/{hash}/{path}#{start}-{end}
 
 ### Revision Resolution Strategy
 
-1. Get the local revision: `git rev-parse HEAD`.
-2. Validate it on searchfox by fetching a sentinel path such as
-   `https://searchfox.org/firefox-main/rev/{hash}/moz.configure`.
-   - If `200`: use this hash for all links in the session.
-   - If `404` (searchfox hasn't indexed this revision yet): fetch
-     `https://searchfox.org/firefox-main/source/moz.configure` and extract
-     the indexed revision from the page content.
-3. Cache the validated revision for the remainder of the session so every
-   link uses the same pin.
+**Never pin a Searchfox link to a local hash** (`git rev-parse HEAD`, `git
+merge-base`, `origin/main`, a Phabricator "Base Revision"). Searchfox indexing
+lags landing by up to a day, so the local hash is often not indexed yet. An
+HTTP status check does not detect this: Searchfox answers `200` for an
+unindexed revision, and it answers `200` with a JavaScript "Client Challenge"
+page to `curl`/WebFetch. A `200` proves nothing.
+
+1. Get the pinned URL from `searchfox-cli`, which only returns indexed
+   revisions:
+   ```bash
+   searchfox-cli -q '<text on the cited line>' -p <path> --permalink
+   ```
+   Use the revision **and** the line number it prints. Use the same revision
+   for every link in the document.
+2. **Verify every cited line before you write the link.** Line numbers drift
+   between revisions, so a line taken from a local checkout, a diff, or a
+   subagent report can be wrong at the indexed revision. Read the line at that
+   revision and confirm it holds the code you cite:
+   ```bash
+   git show <indexed-rev>:<path> | sed -n '<start>,<end>p'
+   ```
+   (Run from a Firefox checkout that has the revision; `git fetch origin` if it
+   is missing.) For a range, the range must start and end on the cited code.
+3. If `searchfox-cli` is not available or the revision cannot be verified,
+   name the file and quote the line instead of linking it. Do not guess a hash
+   or a line.
 4. For ESR / beta branches, repeat the resolution with the appropriate
    repo ID.
 

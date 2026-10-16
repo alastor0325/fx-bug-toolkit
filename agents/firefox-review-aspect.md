@@ -70,7 +70,10 @@ Every finding MUST cite a concrete `file:line` (or `file:start-end`). A finding
 without a line number is incomplete — drop it or pin it down. Determine the line
 from the actual diff/file content; never guess. For unlanded Phabricator
 patches, pin searchfox URLs to `base_revision` and note the line is at the base
-revision.
+revision. Before you put a line number in a searchfox URL, read that line at
+`base_revision` (`git show <base_revision>:<path> | sed -n '<line>p'`) and
+confirm it holds the cited code; a line from the local checkout or the diff can
+be off at `base_revision`.
 
 ### Guards for forbidden states
 
