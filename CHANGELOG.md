@@ -13,16 +13,18 @@ _Nothing user-facing yet._
 
 ### Changed
 - **Reviews and investigations follow the spec instead of tolerating bad
-  state.** The spec reviewer now runs on any patch on a web-spec algorithm path,
-  including crash, lifetime and security fixes, and flags a Firefox step that
-  runs synchronously where the spec queues a task as a blocker. The code-quality
-  reviewer flags a new guard that bypasses an existing assertion as a blocker
-  unless the state is shown to be legitimate. The verifier also judges whether a
-  finding's suggested fix tolerates a state that should not exist. `/review`
-  only allows "N/A" for spec compliance off spec algorithm paths and re-derives
-  guard fixes from the root cause. `/bug-start` asks whether the spec can ever
-  produce the failing state, and requires the Specification Compliance section
-  for crash and security bugs on algorithm paths.
+  state.** The review agent has one rule, "Guards for forbidden states": a
+  guard for a state the spec or design can never produce is a blocker, and the
+  fix belongs where the invariant breaks. Defense-in-depth bail-outs that keep
+  the assertion stay allowed when the cause is also fixed. The spec lens now
+  checks lifetime, crash and security patches on web-spec algorithm paths
+  instead of skipping them as "no web-visible change", and flags a step that
+  runs synchronously where the spec queues a task. The verifier can redirect a
+  confirmed finding's fix to the cause, and `/review` uses that corrected fix.
+  `/review` allows "N/A" for spec compliance only off spec algorithm paths and
+  says where a cause fix goes when it is outside the reviewed commit.
+  `/bug-start` asks whether the spec can ever produce the failing state, and
+  treats crash and security bugs on algorithm paths as spec work, not internal.
 
 ## [0.7.0] — 2026-10-15
 

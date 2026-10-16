@@ -1060,7 +1060,10 @@ This will:
 
 ### For Internal Features (decoders, media pipeline, etc.)
 
-**Skip spec-check, go directly to:**
+If the failing path runs through a web-spec algorithm (including crash and
+security bugs in, say, HTMLMediaElement, WebVTT, EME or MSE code), it is not
+internal: run `/spec-check` for that algorithm first, as above. Otherwise,
+**skip spec-check, go directly to:**
 - Mochitest for integration testing
 - GTest for C++ unit testing
 - Crashtest for crash bugs
