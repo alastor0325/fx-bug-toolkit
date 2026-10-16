@@ -197,7 +197,8 @@ Prompt:
   base_revision: {base hash}
   finding: {the finding JSON}
 ```
-- `confirmed` → keep.
+- `confirmed` → keep. If it carries `corrected_fix`, replace the finding's `fix`
+  with it, and note "(fix redirected to the cause on verification)".
 - `refuted` → **drop** from action items (optionally demote to a note: "(refuted on verification: …)").
 - `uncertain` → keep, marked "⚠️ unverified — {what's missing}".
 
@@ -239,7 +240,7 @@ patches the line is at the base revision).
 {From `spec`: the core technical claim, then verified/unverified/partial + spec citation (section + table).}
 
 ## Spec Compliance
-{Web-exposed: compliance verdict + citation. Or "N/A — no web-visible behaviour change."}
+{Web-exposed or on a web-spec algorithm path: compliance verdict + citation, including whether any state the patch handles can occur per spec. "N/A" only when the touched code is on no spec algorithm path.}
 
 ## Architecture & Design
 ### Security (memory safety)
@@ -285,6 +286,11 @@ patches the line is at the base revision).
 For each BLOCKER/IMPORTANT: apply changes only to files in that commit; amend into
 that commit (interactive rebase if not the tip); don't mix across patches;
 summarize what changed per finding afterward.
+A suggested fix that only guards a state the spec or design forbids (see
+"Guards for forbidden states" in the `firefox-review-aspect` agent) is re-derived
+from the root cause first. If the cause is in code outside that commit, fix it in
+the commit that owns that code, or as a new commit ordered before the symptom's
+commit. Never fall back to the use-site guard to stay inside one commit.
 ```
 
 Then clean up the bundle:

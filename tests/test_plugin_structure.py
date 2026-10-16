@@ -276,6 +276,42 @@ class TestHackbotMode(unittest.TestCase):
             for needle in needles:
                 self.assertIn(needle, section, f"{name}: Hackbot mode lacks {needle!r}")
 
+    def test_spec_first_fix_rules(self):
+        # A guard for a state the spec or design can never produce is a review
+        # blocker whose fix goes to the cause; investigations treat crash and
+        # security bugs on spec algorithm paths as spec work.
+        aspect = (ROOT / "agents" / "firefox-review-aspect.md").read_text(encoding="utf-8")
+        rule_start = aspect.index("### Guards for forbidden states")
+        rule = aspect[rule_start:aspect.index("### Dimension checklists")]
+        for needle, why in (
+            ("ask whether the spec or the design can ever produce that", "no spec/design question"),
+            ("a use-site guard alone is not a valid `fix`", "use-site guard still a valid fix"),
+            ("is a **BLOCKER**", "forbidden-state guard is not a blocker"),
+            ("Defense in depth is allowed", "no defense-in-depth exemption"),
+        ):
+            self.assertIn(needle, rule, f"review-aspect canonical rule: {why}")
+        self.assertGreaterEqual(aspect.count("**Guards for forbidden states**"), 3,
+                                "review-aspect: lenses/verifier do not reference the canonical rule")
+        self.assertIn('never\n  return `"ran": false` for such a patch', aspect,
+                      "review-aspect: spec lens can still opt out on algorithm paths")
+        self.assertIn("is a BLOCKER spec finding at the departure point", aspect,
+                      "review-aspect: sync-vs-queued departure is not a blocker")
+        self.assertIn("Compare Blink", aspect, "review-aspect: no Blink/WebKit comparison")
+        self.assertIn('"corrected_fix"', aspect, "review-aspect: verify output cannot carry a corrected fix")
+        review = (SKILLS / "review" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIsNone(re.search(r"N/A\W+no web-visible behaviou?r change", review),
+                          "review: the blanket spec N/A carve-out came back")
+        self.assertIn("corrected_fix", review, "review: Step 5b ignores a redirected fix")
+        self.assertIn("Never fall back to the use-site guard", review,
+                      "review: cause fixes outside the commit fall back to guards")
+        bug_start = (SKILLS / "bug-start" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("can the spec ever produce the", bug_start,
+                      "bug-start: no spec-reachability invariant question")
+        self.assertIsNone(re.search(r"### Specification Compliance \(if applicable\)", bug_start),
+                          "bug-start: spec compliance is optional again")
+        self.assertIn("it is not\ninternal: run `/spec-check`", bug_start,
+                      "bug-start: crash/sec bugs on algorithm paths still skip spec-check")
+
 
 if __name__ == "__main__":
     unittest.main()

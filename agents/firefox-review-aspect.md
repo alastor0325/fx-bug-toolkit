@@ -72,6 +72,22 @@ from the actual diff/file content; never guess. For unlanded Phabricator
 patches, pin searchfox URLs to `base_revision` and note the line is at the base
 revision.
 
+### Guards for forbidden states
+
+This is the one rule every dimension and the verifier apply. When a finding is
+"X can be null, stale or re-entered here", or a patch adds a null check, early
+return, skip, sort-last branch or re-entry guard that bypasses or replaces an
+existing assertion, ask whether the spec or the design can ever produce that
+state.
+- If it cannot, the state is reachable only because an invariant is broken
+  upstream (often a step that runs synchronously where the spec queues a task).
+  The `fix` names that place; a use-site guard alone is not a valid `fix`. A
+  patch that relies on such a guard is a **BLOCKER**.
+- If it can, say why it is legitimate, and a use-site guard is fine.
+- Defense in depth is allowed: a release-mode bail-out that keeps the assertion
+  (`MOZ_ASSERT(x); if (NS_WARN_IF(!x)) return;`) is fine when the cause is fixed
+  in the same patch or stack. It is not a substitute for that fix.
+
 ### Dimension checklists
 
 **`spec`** — purpose verification & spec compliance.
@@ -84,6 +100,13 @@ revision.
 - Does the *approach* match the purpose? (correct field/type, sufficient scope,
   nothing else that should also be handled).
 - For web-exposed behaviour: is it spec-compliant, and do WPTs cover it?
+- If the patch touches code on a web-spec algorithm path, check it even when
+  the patch claims no web-visible change (lifetime, crash, sec fixes); never
+  return `"ran": false` for such a patch. Apply **Guards for forbidden states**
+  to any state or re-entrancy the patch survives. A Firefox step that runs
+  synchronously where the spec queues a task, or that lets script run where the
+  spec does not, is a BLOCKER spec finding at the departure point. Compare Blink
+  (`source.chromium.org`) and WebKit (`searchfox.org/wubkat`).
 
 **`threading`** — concurrency correctness. **Always runs; posture is adversarial
 about scheduling** — assume any other thread can run at the worst moment between
@@ -186,6 +209,7 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
 **`code-quality`** — correctness, style, comments, scope.
 - Does the code do what the commit says? Edge cases (null, empty, boundary,
   unexpected state)?
+- New guards around an existing assertion: apply **Guards for forbidden states**.
 - Firefox/Gecko style & naming consistent with surrounding code? Simpler
   alternative? Unnecessary complexity?
 - Comments rare and only where logic is non-obvious; no comment restating the
@@ -232,6 +256,8 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
 If the dimension turns up nothing, return `"findings": []`. If you determine the
 dimension does not apply to this patch at all, return `"ran": false` with an
 empty `findings` array (the orchestrator records what was and wasn't checked).
+The `spec` dimension never returns `"ran": false` for a patch on a web-spec
+algorithm path.
 
 ---
 
@@ -247,13 +273,22 @@ until the real code proves it right.** Read the actual code at `base_revision`
 - `uncertain` — cannot confirm or refute from available evidence (e.g. needs a
   spec you couldn't reach, or runtime behaviour). Explain what's missing.
 
+Judge the premise first, then the `fix`, using **Guards for forbidden states**:
+- If the state the finding claims cannot occur on any real path, the premise is
+  false: `refuted`.
+- If the state does occur, but only because an invariant is broken upstream, the
+  bug is real: `confirmed`, and set `corrected_fix` to the fix at the cause. The
+  orchestrator uses it in place of the finding's `fix`.
+- Otherwise leave `corrected_fix` out.
+
 ### Output (verify mode) — JSON only
 
 ```json
 {
   "verdict": "confirmed",
   "file": "dom/media/Foo.cpp:142",
-  "reasoning": "<why, citing the code/spec you actually read>"
+  "reasoning": "<why, citing the code/spec you actually read>",
+  "corrected_fix": "<optional: the fix at the cause, when the finding's fix only tolerates the state>"
 }
 ```
 

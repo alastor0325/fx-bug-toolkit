@@ -309,6 +309,10 @@ Then ask in order:
 1. Where is this invariant **assumed**? (call sites that depend on it being true)
 2. Where is it **enforced**? (the place responsible for guaranteeing it)
 3. Is every path between enforcement and assumption covered?
+4. If the code implements a web-spec algorithm: can the spec ever produce the
+   failing state? If not, find the step where Firefox departs (often something
+   run synchronously where the spec queues a task) and compare Blink and WebKit.
+   That departure is the root cause, even for a crash or sec bug.
 
 Each answer either closes the investigation or opens the next question. Stop when you can explain *why* the invariant failed — not just *where* it manifested. That distinction separates a fix from a workaround.
 
@@ -653,7 +657,7 @@ For a contained bug where the cause was found directly, write
 
 {Code flow in plain English. Every reference needs a searchfox link.}
 
-### Specification Compliance (if applicable)
+### Specification Compliance (required when the failing path runs through a web-spec algorithm, including crash/sec bugs)
 
 - **Spec**: [Section name](URL)
 - **Required**: {behavior}
@@ -1056,7 +1060,10 @@ This will:
 
 ### For Internal Features (decoders, media pipeline, etc.)
 
-**Skip spec-check, go directly to:**
+If the failing path runs through a web-spec algorithm (including crash and
+security bugs in, say, HTMLMediaElement, WebVTT, EME or MSE code), it is not
+internal: run `/spec-check` for that algorithm first, as above. Otherwise,
+**skip spec-check, go directly to:**
 - Mochitest for integration testing
 - GTest for C++ unit testing
 - Crashtest for crash bugs

@@ -9,6 +9,23 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.7.1] — 2026-10-16
+
+### Changed
+- **Reviews and investigations follow the spec instead of tolerating bad
+  state.** The review agent has one rule, "Guards for forbidden states": a
+  guard for a state the spec or design can never produce is a blocker, and the
+  fix belongs where the invariant breaks. Defense-in-depth bail-outs that keep
+  the assertion stay allowed when the cause is also fixed. The spec lens now
+  checks lifetime, crash and security patches on web-spec algorithm paths
+  instead of skipping them as "no web-visible change", and flags a step that
+  runs synchronously where the spec queues a task. The verifier can redirect a
+  confirmed finding's fix to the cause, and `/review` uses that corrected fix.
+  `/review` allows "N/A" for spec compliance only off spec algorithm paths and
+  says where a cause fix goes when it is outside the reviewed commit.
+  `/bug-start` asks whether the spec can ever produce the failing state, and
+  treats crash and security bugs on algorithm paths as spec work, not internal.
+
 ## [0.7.0] — 2026-10-15
 
 ### Added
@@ -867,7 +884,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...HEAD
+[0.7.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...fx-bug-toolkit--v0.7.1
 [0.7.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...fx-bug-toolkit--v0.7.0
 [0.6.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...fx-bug-toolkit--v0.6.9
 [0.6.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...fx-bug-toolkit--v0.6.8
