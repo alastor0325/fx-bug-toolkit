@@ -317,7 +317,7 @@ class TestSearchfoxPinning(unittest.TestCase):
     """Searchfox links must pin to an indexed revision and a verified line."""
 
     def setUp(self):
-        self.source_links = (SKILLS / "source-links" / "SKILL.md").read_text()
+        self.source_links = (SKILLS / "source-links" / "SKILL.md").read_text(encoding="utf-8")
 
     def test_revision_comes_from_searchfox_cli_permalink(self):
         self.assertIn("searchfox-cli -q", self.source_links)
@@ -331,12 +331,12 @@ class TestSearchfoxPinning(unittest.TestCase):
         self.assertNotIn("If `200`: use this hash", self.source_links)
 
     def test_review_base_revision_is_the_indexed_revision(self):
-        review = (SKILLS / "review" / "SKILL.md").read_text()
+        review = (SKILLS / "review" / "SKILL.md").read_text(encoding="utf-8")
         self.assertNotIn("Revision, or `git merge-base main HEAD`)", review)
         self.assertIn("--permalink", review)
 
     def test_review_agent_verifies_lines_at_base_revision(self):
-        agent = (ROOT / "agents" / "firefox-review-aspect.md").read_text()
+        agent = (ROOT / "agents" / "firefox-review-aspect.md").read_text(encoding="utf-8")
         self.assertIn("git show <base_revision>:<path>", agent)
 
 
