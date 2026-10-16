@@ -276,6 +276,26 @@ class TestHackbotMode(unittest.TestCase):
             for needle in needles:
                 self.assertIn(needle, section, f"{name}: Hackbot mode lacks {needle!r}")
 
+    def test_spec_first_fix_rules(self):
+        # A guard for a state the spec says cannot exist is a review blocker, and
+        # investigations ask whether the spec can produce the failing state.
+        aspect = (ROOT / "agents" / "firefox-review-aspect.md").read_text(encoding="utf-8")
+        self.assertIn("is a **BLOCKER** unless the patch shows the", aspect,
+                      "review-aspect: guard-bypassing-assert rule missing")
+        self.assertIn("this lens runs even", aspect,
+                      "review-aspect: spec lens can still be skipped for lifetime/sec patches")
+        self.assertIn("Also judge the finding's `fix`", aspect,
+                      "review-aspect: verifier does not judge the suggested fix")
+        review = (SKILLS / "review" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn('"N/A — no web-visible behaviour change."', review,
+                         "review: the blanket spec N/A carve-out came back")
+        self.assertIn("re-derived from the root cause", review, "review: guard fixes are not re-derived")
+        bug_start = (SKILLS / "bug-start" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("can the spec ever produce the", bug_start,
+                      "bug-start: no spec-reachability invariant question")
+        self.assertNotIn("### Specification Compliance (if applicable)", bug_start,
+                         "bug-start: spec compliance is optional again")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -239,7 +239,7 @@ patches the line is at the base revision).
 {From `spec`: the core technical claim, then verified/unverified/partial + spec citation (section + table).}
 
 ## Spec Compliance
-{Web-exposed: compliance verdict + citation. Or "N/A — no web-visible behaviour change."}
+{Web-exposed or on a web-spec algorithm path: compliance verdict + citation, including whether any state the patch handles can occur per spec. "N/A" only when the touched code is on no spec algorithm path.}
 
 ## Architecture & Design
 ### Security (memory safety)
@@ -285,6 +285,8 @@ patches the line is at the base revision).
 For each BLOCKER/IMPORTANT: apply changes only to files in that commit; amend into
 that commit (interactive rebase if not the tip); don't mix across patches;
 summarize what changed per finding afterward.
+A suggested fix that adds a guard for a state the spec or design forbids is
+re-derived from the root cause first; fixing the cause may touch other files.
 ```
 
 Then clean up the bundle:

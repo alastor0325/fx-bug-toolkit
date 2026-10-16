@@ -72,6 +72,10 @@ from the actual diff/file content; never guess. For unlanded Phabricator
 patches, pin searchfox URLs to `base_revision` and note the line is at the base
 revision.
 
+When a finding is "X can be null, stale or re-entered here", its `fix` names
+where the invariant is broken. A use-site guard is a valid `fix` only if you state
+why the state is legitimate per spec or design.
+
 ### Dimension checklists
 
 **`spec`** — purpose verification & spec compliance.
@@ -84,6 +88,13 @@ revision.
 - Does the *approach* match the purpose? (correct field/type, sufficient scope,
   nothing else that should also be handled).
 - For web-exposed behaviour: is it spec-compliant, and do WPTs cover it?
+- If the patch touches code on a web-spec algorithm path, this lens runs even
+  when the patch claims no web-visible change (lifetime, crash, sec fixes). Ask
+  whether the state or re-entrancy the patch survives can occur per spec. A
+  Firefox step that runs synchronously where the spec queues a task, or that
+  lets script run where the spec does not, is a BLOCKER spec finding at the
+  departure point. Compare Blink (`source.chromium.org`) and WebKit
+  (`searchfox.org/wubkat`).
 
 **`threading`** — concurrency correctness. **Always runs; posture is adversarial
 about scheduling** — assume any other thread can run at the worst moment between
@@ -186,6 +197,10 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
 **`code-quality`** — correctness, style, comments, scope.
 - Does the code do what the commit says? Edge cases (null, empty, boundary,
   unexpected state)?
+- A new null check, early return, skip or sort-last branch that bypasses or
+  replaces an existing assertion is a **BLOCKER** unless the patch shows the
+  state is legitimate per spec or design. The finding asks where the invariant
+  is broken.
 - Firefox/Gecko style & naming consistent with surrounding code? Simpler
   alternative? Unnecessary complexity?
 - Comments rare and only where logic is non-obvious; no comment restating the
@@ -246,6 +261,10 @@ until the real code proves it right.** Read the actual code at `base_revision`
   elsewhere, guarded by a caller, false premise). Say exactly why.
 - `uncertain` — cannot confirm or refute from available evidence (e.g. needs a
   spec you couldn't reach, or runtime behaviour). Explain what's missing.
+
+Also judge the finding's `fix`: if it tolerates a state that should not exist per
+spec or design, return `confirmed` with reasoning that redirects the fix to the
+cause.
 
 ### Output (verify mode) — JSON only
 

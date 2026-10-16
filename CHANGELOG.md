@@ -9,6 +9,21 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.7.1] — 2026-10-16
+
+### Changed
+- **Reviews and investigations follow the spec instead of tolerating bad
+  state.** The spec reviewer now runs on any patch on a web-spec algorithm path,
+  including crash, lifetime and security fixes, and flags a Firefox step that
+  runs synchronously where the spec queues a task as a blocker. The code-quality
+  reviewer flags a new guard that bypasses an existing assertion as a blocker
+  unless the state is shown to be legitimate. The verifier also judges whether a
+  finding's suggested fix tolerates a state that should not exist. `/review`
+  only allows "N/A" for spec compliance off spec algorithm paths and re-derives
+  guard fixes from the root cause. `/bug-start` asks whether the spec can ever
+  produce the failing state, and requires the Specification Compliance section
+  for crash and security bugs on algorithm paths.
+
 ## [0.7.0] — 2026-10-15
 
 ### Added
@@ -867,7 +882,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...HEAD
+[0.7.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...fx-bug-toolkit--v0.7.1
 [0.7.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...fx-bug-toolkit--v0.7.0
 [0.6.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...fx-bug-toolkit--v0.6.9
 [0.6.8]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.7...fx-bug-toolkit--v0.6.8
