@@ -7,6 +7,10 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.7.2] — 2026-10-16
+
 ### Fixed
 - **Searchfox links pin to an indexed revision and a verified line.**
   `source-links` no longer pins links to the local `git rev-parse HEAD` after
@@ -891,7 +895,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...HEAD
+[0.7.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...fx-bug-toolkit--v0.7.2
 [0.7.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...fx-bug-toolkit--v0.7.1
 [0.7.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...fx-bug-toolkit--v0.7.0
 [0.6.9]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.8...fx-bug-toolkit--v0.6.9
