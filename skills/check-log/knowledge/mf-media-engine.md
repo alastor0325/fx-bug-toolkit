@@ -15,7 +15,7 @@ Encrypted Media Extensions (EME), CDM utility processes, and PlayReady DRM.
 | `MFMediaEngineWrapper` / `MFMediaEngineParent` | MF engine wrapper/parent lifecycle |
 | `CDM setup` / `CDM failed` / `CDM error` | CDM initialization failures |
 | `E_ABORT` / `0x80004004` | Abort propagation through MF pipeline |
-| `MF_E_SHUTDOWN` / `0xC00D36B1` | MF object used after shutdown |
+| `MF_E_SHUTDOWN` / `0xC00D3E85` | MF object used after shutdown |
 | `Destroyed actor without shutdown` on an MFMediaEngine-related actor | The MF Media Engine utility process crashed — find `hr=` or error lines immediately before it. Note: this signal has a different meaning for other IPC actors. |
 
 ## Known Failure Pattern: Hardware Context Reset
@@ -47,10 +47,11 @@ successfully or stays broken for the remainder of the test.
 
 ## PlayReady / DRM-Specific
 
-- `DRM_E_LICENSENOTFOUND` (`0x8004CD12`) — can indicate either a missing license
-  or a hardware context reset that invalidated DRM session state; look at surrounding
-  context to distinguish
-- `MF_E_UNSUPPORTED_SERVICE` (`0xC00D6D6D`) — DRM/PMP service unavailable; often
+- `DRM_E_TEE_INVALID_HWDRM_STATE` (`0x8004CD12`) — the hardware DRM state became
+  invalid, for example after OS sleep/resume or a move to another graphics adapter.
+  It is not a missing license. Gecko then closes all CDM sessions
+  (`MFCDMProxy::OnHardwareContextReset`)
+- `MF_E_UNSUPPORTED_SERVICE` (`0xC00D36BA`) — requested service not supported; often
   seen when the CDM utility process is in a bad state
 - License acquisition failures typically appear before playback starts; hardware
   reset failures appear mid-playback

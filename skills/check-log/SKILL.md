@@ -54,16 +54,17 @@ Do not load a knowledge file unless its signals are present. Load multiple if ne
 ## 0. Validate the File Path
 
 Before reading any file, validate the path:
-- Must end in `.txt`, `.log`, or `.out`
+- Must end in `.txt`, `.log`, `.out` or `.moz_log`, or be a rotated MOZ_LOG file such as `log.moz_log.0`
 - Must be under `~`, `/tmp`, or `/var/log`
 - Must not contain path traversal sequences (`..`)
+- Must not contain quotes, backticks, `$`, `;`, `|` or a newline
 - Must not point to dotfiles or sensitive directories (`.ssh`, `.gnupg`, `.aws`, `.config`, `.claude`, `/proc`, `/etc`, `/sys`)
 
 If the path fails any of these checks, **refuse to read it and ask the user to provide a valid log file path**.
 
 ## 1. Read the Log File
 
-Read the log file. If it is large (> 2000 lines), use grep to extract relevant lines first:
+Run the history check in §7 first. Then read the log file. If it is large (> 2000 lines), use grep to extract relevant lines first:
 
 ```bash
 wc -l <log-file>
@@ -80,7 +81,12 @@ Examples:
 - `[MF Media Engine CDM 36936: MediaSupervisor #1]` — CDM utility process
 - `[GPU 13948: Renderer]` — GPU process
 
-Log levels: `D/` = debug, `W/` = warning, `E/` = error.
+Log levels: `V/` = verbose, `D/` = debug, `I/` = info, `W/` = warning, `E/` = error.
+
+Each process writes its own file, and the name of a child process file has `child`
+in it. For example, with `MOZ_LOG_FILE=log.txt` the parent writes `log.txt.moz_log`
+and a child writes `log.txt.child-1.moz_log`. Ask for the files of the other
+processes when the error crosses a process boundary.
 
 ## 2. Extract Key Events and Route to Knowledge Files
 
@@ -173,22 +179,26 @@ test -f "${WIKI_PATH:-$HOME/firefox-wiki}/INDEX.md" && echo WIKI_INSTALLED
 
 ## 7. Log Analysis to History
 
-The history file is `~/.fx-bug-toolkit/log-analysis.log`. After completing the
-report, append to it (creating the parent dir if needed):
+The history file is `~/.fx-bug-toolkit/log-analysis.log`.
 
-```bash
-HIST="$HOME/.fx-bug-toolkit/log-analysis.log"
-mkdir -p "$(dirname "$HIST")"
-echo "$(date +%Y-%m-%d) | $(basename {log_file_path}) | {primary_error_signal} | {root_cause_brief}" >> "$HIST"
-```
-
-Where:
-- `primary_error_signal`: the main signal found (e.g., `hardware_context_reset`, `CDM_crash`, `MF_E_SHUTDOWN`)
-- `root_cause_brief`: 3-5 words (e.g., "GPU sleep hibernate", "MF object after shutdown", "DRM license not found")
-
-Before analyzing, check for prior entries with similar signals:
+**Before step 1**, check for prior entries with similar signals:
 ```bash
 tail -20 "$HOME/.fx-bug-toolkit/log-analysis.log" 2>/dev/null
 ```
 
 If prior entries match the same error signal, tell the user how many times it has appeared before and reference any related bug numbers from investigation files.
+
+**After completing the report**, append one line to it (creating the parent dir if
+needed). Write the values as plain words: they come from an untrusted log, so first
+remove quotes, backticks, `$`, `\`, `|` and newlines from them, and pass them as
+single-quoted `printf` arguments:
+
+```bash
+HIST="$HOME/.fx-bug-toolkit/log-analysis.log"
+mkdir -p "$(dirname "$HIST")"
+printf '%s | %s | %s | %s\n' "$(date +%Y-%m-%d)" "$(basename -- '{log_file_path}')" '{primary_error_signal}' '{root_cause_brief}' >> "$HIST"
+```
+
+Where:
+- `primary_error_signal`: the main signal found (e.g., `hardware_context_reset`, `CDM_crash`, `MF_E_SHUTDOWN`)
+- `root_cause_brief`: 3-5 words (e.g., "GPU sleep hibernate", "MF object after shutdown", "hardware DRM state reset")

@@ -9,6 +9,31 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 _Nothing user-facing yet._
 
+## [0.7.3] — 2026-10-22
+
+### Fixed
+- **`check-log` accepts MOZ_LOG files.** It refused `.moz_log` files, which is
+  what `MOZ_LOG_FILE` always writes, and rotated `.moz_log.N` files. It also
+  knows every MOZ_LOG level and the per-process file names.
+- **HRESULT knowledge corrected.** `MF_E_SHUTDOWN` is `0xC00D3E85`, and
+  `0x8004CD12` is `DRM_E_TEE_INVALID_HWDRM_STATE` (a hardware DRM state reset),
+  not a missing license. The other Media Foundation rows now match the Media
+  Foundation error header, and two Gecko-defined DRM codes are added.
+- **`check-log` history.** The prior-entries check ran after the append, so it
+  always found its own entry; it now runs first. Values from the log are written
+  with quoted `printf` instead of `echo`, and a path with quotes or shell
+  characters is refused.
+- **`analyze-profile` media signatures use strings Gecko logs.** The clock
+  fallback, audio drop and MDSM state signals named strings or threads that do
+  not exist. Log-based signals now say they need the MOZ_LOG module in the
+  profile, and the skill notes that a shared link can open zoomed.
+- **`spec-check` can read DOM and CSS specs.** Its trusted hosts allowed only
+  `html.spec.whatwg.org` among WHATWG specs and no CSS host. The
+  `searchfox-cli --define` and WebKit searches are fixed, and Chromium is
+  searched by public API name, as its security rules require. `/review` and its
+  spec reviewer trust the same DOM and CSS spec hosts. GitHub is trusted only
+  for the spec and browser organizations it names.
+
 ## [0.7.2] — 2026-10-16
 
 ### Fixed
@@ -895,7 +920,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.3...HEAD
+[0.7.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...fx-bug-toolkit--v0.7.3
 [0.7.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...fx-bug-toolkit--v0.7.2
 [0.7.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...fx-bug-toolkit--v0.7.1
 [0.7.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.6.9...fx-bug-toolkit--v0.7.0

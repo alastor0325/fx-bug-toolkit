@@ -340,5 +340,63 @@ class TestSearchfoxPinning(unittest.TestCase):
         self.assertIn("git show <base_revision>:<path>", agent)
 
 
+class TestDiagnosticSkillFacts(unittest.TestCase):
+    # Facts the diagnostic skills got wrong before; each was checked against
+    # Gecko or the Windows SDK headers.
+    def read(self, rel):
+        return (SKILLS / rel).read_text(encoding="utf-8")
+
+    def test_check_log_accepts_moz_log_files(self):
+        # MOZ_LOG_FILE output always ends in .moz_log, and rotation adds .<N>.
+        text = self.read("check-log/SKILL.md")
+        validate = text[text.index("## 0. Validate"):text.index("## 1. Read")]
+        self.assertIn("`.moz_log`", validate)
+        self.assertIn("rotated", validate)
+
+    def test_check_log_reads_history_before_writing_it(self):
+        text = self.read("check-log/SKILL.md")
+        self.assertLess(text.index("**Before step 1**"), text.index("**After completing the report**"))
+        self.assertNotIn('echo "$(date', text, "history values must not go through echo")
+        self.assertIn("printf '%s | %s | %s | %s", text)
+
+    def test_hresult_values_match_their_names(self):
+        table = self.read("check-log/knowledge/hresult-table.md")
+        for code, name in (("0xC00D3E85", "MF_E_SHUTDOWN"), ("0xC00D36B1", "MF_E_BUFFERTOOSMALL"),
+                           ("0xC00D36B3", "MF_E_INVALIDSTREAMNUMBER"), ("0xC00D36BA", "MF_E_UNSUPPORTED_SERVICE"),
+                           ("0x8004CD12", "DRM_E_TEE_INVALID_HWDRM_STATE")):
+            self.assertIn(f"| `{code}` | `{name}`", table)
+        for rel in ("check-log/knowledge/hresult-table.md", "check-log/knowledge/mf-media-engine.md"):
+            self.assertNotIn("DRM_E_LICENSENOTFOUND", self.read(rel), rel)
+
+    def test_media_signatures_use_strings_gecko_logs(self):
+        text = self.read("analyze-profile/SKILL.md")
+        self.assertNotIn("Fell back to system clock", text)
+        self.assertNotIn("DECODING → BUFFERING", text)
+        self.assertIn("`SEEKING`, `COMPLETED` or `SHUTDOWN`", text)
+        self.assertIn("zoom clear", text, "zoom pop removes only the last range")
+        self.assertIn("Dropping audio packets", text)
+        self.assertIn("MDSM::StateChange", text)
+
+    def test_spec_check_trusts_dom_and_css_spec_hosts(self):
+        text = self.read("spec-check/SKILL.md")
+        self.assertIn("`*.spec.whatwg.org`", text)
+        self.assertIn("`drafts.csswg.org`", text)
+        self.assertNotIn("--define -l", text, "searchfox-cli --define takes the symbol as its argument")
+        self.assertNotIn("WebKit searchfox context", text, "searchfox-cli cannot search WebKit")
+        self.assertNotIn("and `github.com` only for", text, "GitHub must be limited to named organizations")
+
+    def test_review_paths_trust_dom_and_css_spec_hosts(self):
+        for rel in ("skills/review/SKILL.md", "agents/firefox-review-aspect.md"):
+            text = (ROOT / rel).read_text(encoding="utf-8")
+            self.assertIn("`*.spec.whatwg.org`", text, rel)
+            self.assertIn("`drafts.csswg.org`", text, rel)
+
+    def test_check_log_history_path_cannot_break_the_quote(self):
+        text = self.read("check-log/SKILL.md")
+        validate = text[text.index("## 0. Validate"):text.index("## 1. Read")]
+        self.assertIn("Must not contain quotes", validate)
+        self.assertNotIn("DRM license not found", text)
+
+
 if __name__ == "__main__":
     unittest.main()
