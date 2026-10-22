@@ -31,8 +31,9 @@ findings carry a real searchfox URL).
   finding and continue.
 - Only spawn `gecko-navigator` via the Agent tool. Never spawn any other agent
   (including a general-purpose one or another `firefox-review-aspect`).
-- Only use WebFetch on trusted domains: `html.spec.whatwg.org`, `w3c.github.io`,
-  `webaudio.github.io`, `source.chromium.org`, `searchfox.org`, `wpt.fyi`,
+- Only use WebFetch on trusted domains: `*.spec.whatwg.org`, `w3c.github.io`,
+  `www.w3.org`, `drafts.csswg.org`, `drafts.fxtf.org`, `drafts.css-houdini.org`,
+  `wicg.github.io`, `tc39.es`, `webaudio.github.io`, `source.chromium.org`, `searchfox.org`, `wpt.fyi`,
   `phabricator.services.mozilla.com`, `bugzilla.mozilla.org`. Do not follow
   redirects off these. For codec/format/protocol spec lookups invoke
   `spec-check`; never fetch ITU/ISO/IETF URLs directly.

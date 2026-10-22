@@ -196,6 +196,11 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
+- [ ] **Deprecate analyze-profile, check-log and spec-check in favor of the `gecko`
+  plugin** (2026-10-22). Generic copies are moving to `plugins/gecko/` in
+  mozilla/firefox-aidev-plugins. Once it lands: point `bug-start` and `/triage` at
+  `gecko:<skill>`, move the gecko-triage Hackbot pin, then remove the copies here.
+  Until then, keep fact fixes in both places.
 - [x] Moved the download-guard cache under the toolkit namespace:
       `~/.cache/firefox-download-guard` → **`~/.fx-bug-toolkit/download-cache`**
       (consistent with `FX_BUG_INVESTIGATION_DIR`). Updated `download-guard`,

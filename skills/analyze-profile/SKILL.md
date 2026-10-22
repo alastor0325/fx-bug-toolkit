@@ -2,7 +2,7 @@
 name: analyze-profile
 description: Analyze a Firefox Profiler capture (share.firefox.dev or profiler.firefox.com/public links) for performance and media-pipeline issues, producing a structured findings report consumed by bug-start and triage. Triggers on "analyze profile", "analyze this profile", "/analyze-profile", or a Firefox Profiler URL.
 argument-hint: <profiler-url>
-allowed-tools: [Bash, Read, WebFetch]
+allowed-tools: [Bash, Read]
 ---
 
 # /analyze-profile — Firefox Profiler Analysis
@@ -104,7 +104,7 @@ conclusion drawn around the hole.
 | Video freeze / black screen | `blank media` |
 | Audio desync / dropout | `Dropping audio` |
 | Audio clock fallback | `system clock` |
-| MDSM state transitions | `StateChange` |
+| MDSM state transitions | `MDSM::StateChange` |
 | Hardware decode failure | `DXVA` |
 | Codec / decoder errors | `NS_ERROR` |
 | HEVC / codec probe | `METADATA` |
@@ -113,6 +113,11 @@ conclusion drawn around the hole.
 | DirectComposition overlay | `DCSurfaceVideo` |
 
 If the symptom is unknown or general, run all of them.
+
+**The view can start zoomed.** A shared link can open on a selected range. The header
+of each command shows `View:`, and a marker list says `(of N in the full range)`. If
+the evidence you need can be outside the range, run
+`profiler-cli zoom clear --session <id>` to see the whole profile.
 
 **Check how the profile was captured before drawing regression conclusions.** A
 **safe-mode** capture forces software compositing and software decode, so it looks
@@ -172,7 +177,9 @@ report and skip the corresponding code-level investigation.
 
 ## Step 4 — Pattern match against known signatures
 
-After collecting raw output, check for these known patterns:
+After collecting raw output, check for these known patterns. Signals that quote log
+text only appear when the profile was captured with that MOZ_LOG module enabled. If the
+profile has no log markers, say so instead of reporting the signal as not detected.
 
 ### DXVA slot exhaustion
 - Signal: `DXVA failure: D3D11:` repeating across `MediaSupervisor #N` threads, one per video
@@ -190,12 +197,17 @@ After collecting raw output, check for these known patterns:
 - Meaning: video element backgrounded or tab hidden; decoder suspended by `MediaDecoderStateMachine`
 
 ### Audio clock drift / loop gap
-- Signal: `Dropping audio` markers in `AudioSink` thread
+- Signal: `Dropping audio packets` log markers from `AudioSinkWrapper` on the
+  `MediaDecoderStateMachine` thread (needs `AudioSinkWrapper:5` in MOZ_LOG), or
+  `Dropping audio [` from `DecodedStream` for a captureStream or MediaStream output
+  (needs `MediaDecoder:4`)
 - Meaning: audio sink clock diverged from video PTS; often caused by loop boundary gap or MSE discontinuity
 
 ### Audio clock fallback
-- Signal: `Fell back to system clock` in `AudioSinkWrapper`
-- Meaning: audio device unavailable; clock accuracy degrades
+- Signal: `Getting position from the system clock` log markers from `AudioSinkWrapper`
+  on the `MediaDecoderStateMachine` thread (needs `AudioSinkWrapper:5` in MOZ_LOG)
+- Meaning: the audio stream has not started or stopped, so the clock runs on the system
+  clock; A/V sync accuracy degrades
 
 ### MSE stall / demux failure
 - Signal: `NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA` in MDSM thread
@@ -207,7 +219,9 @@ After collecting raw output, check for these known patterns:
 - Meaning: main thread blocked; can delay media clock ticks and cause A/V desync
 
 ### MDSM buffering state
-- Signal: `StateChange: DECODING → BUFFERING` without subsequent `BUFFERING → DECODING` within a few seconds
+- Signal: an `MDSM::StateChange` marker with the text `BUFFERING`, without a later
+  `MDSM::StateChange` to any other state within a few seconds. A change to
+  `SEEKING`, `COMPLETED` or `SHUTDOWN` also ends buffering
 - Meaning: decoder starved; look for network issue or demux failure upstream
 
 ### Stop the session
