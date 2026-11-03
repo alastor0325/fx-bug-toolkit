@@ -24,6 +24,9 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
   - `run_locked.py` runs triage in Claude Code's `--restricted` mode with a
     PreToolUse guard (`triage_guard.py`), the Bash sandbox, no MCP servers,
     and no API keys, for bugs nobody has vetted.
+- **`checks` in triage drafts**: what the triage actually did (spec, source,
+  wpt.fyi, browsers, …), so the reviewer sees what it didn't. `dom-core`
+  drafts set it; the validator rejects browser checks from locked runs.
 
 ### Changed
 
