@@ -215,7 +215,8 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       is just orphaned transient files — no migration needed.)
 - [ ] **Move the posted-comment rules into one shared file** (raised
       2026-10-09). The comment voice, S/P, ASD-STE100 writing standard and
-      Length discipline blocks sit inside §1a of `skills/triage/SKILL.md`;
+      Length discipline blocks sit inside §1a of `skills/triage/teams/av.md`
+      (moved there from `SKILL.md` with the team-profile split, 2026-11-03);
       §1b/§1c point at them and `triage-apply-feedback` carries an inline
       summary because it never loads the triage skill. A shared
       `skills/triage/comment-standard.md` read by both skills would remove
