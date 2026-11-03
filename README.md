@@ -81,7 +81,7 @@ source plugin shown next to each.
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
 | `/open-investigation` | Open a local web viewer to search & read all your past investigations |
-| `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
+| `/triage` | Firefox bug triage for a team's components (A/V by default; other teams via team profiles) — sweep watched + untriaged bugs, write reviewable drafts |
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (**always** spec, security/memory-safety, threading, code quality, tests; **plus** IPC, error-handling, API usage when relevant), adversarially verifies the serious findings, and writes a structured review doc |
 | `/open-review [worktree]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand, on the right worktree. Pass a worktree path or a Revue worktree name; with no argument it opens the worktree the session works in, else your remembered repo (Revue's `revue init` default in `~/.revue/config.json`). Revue ≥ 0.3.2 selects the worktree at the path it is given. Lazily installs Revue on first use. Every repo shares one Revue port, and the dashboard at `/` switches between them |
@@ -131,7 +131,8 @@ things live:
 | `FX_REVIEW_DIR` | `~/.fx-bug-toolkit/patches-review` | where `/review` writes its review documents |
 | `TRIAGE_OWNER` | _(none — required for `/triage` **reply mode** only)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off). Not needed in read-only mode |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
-| `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |
+| `TRIAGE_TEAM` | `av` | which team profile `/triage` uses: `av` (Audio/Video, the default; see [`skills/triage/teams/`](skills/triage/teams/)) |
+| `TRIAGE_COMPONENTS` | _(the team profile's set)_ | `;`-separated list of `Product::Component` (or bare component) names `/triage` covers; unset = the profile's default (see [`skills/triage/components.md`](skills/triage/components.md)) |
 | `FX_BUG_TOOLKIT_MODE` | _(unset: local mode)_ | set to `hackbot` only in the Hackbot cloud container; see [Hackbot mode](#hackbot-mode) |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
@@ -144,14 +145,15 @@ things live:
 > so later runs reuse it; reply mode won't proceed without one, since it
 > CCs/needinfo's that address when writing.
 
-> **`TRIAGE_COMPONENTS` is optional.** The components `/triage` covers are
-> defined in [`skills/triage/components.md`](skills/triage/components.md) — the
-> single source of truth (the skill, the meta-bug search, and `bugzilla-cli
-> fetch` all read from it; the CLI no longer hardcodes the set). On the **first
-> run** the skill shows the default eight A/V components and asks whether to keep
-> them or customize; keeping the default writes nothing (unset = default), and
-> customizing persists a `;`-separated list. Every run prints the resolved set
-> before fetching so it's always clear which components it's triaging.
+> **`TRIAGE_TEAM` and `TRIAGE_COMPONENTS` are optional.** Each team profile in
+> [`skills/triage/teams/`](skills/triage/teams/) defines its components, queue,
+> per-bug workflow, severity standard, and comment rules. `av` (the default)
+> triages recent A/V bugs and hands fixable ones to `/bug-start`. On the **first run** the
+> skill shows the profile's components and asks whether to keep them or
+> customize; keeping the default writes nothing (unset = default), and
+> customizing persists a `;`-separated list (see
+> [`skills/triage/components.md`](skills/triage/components.md)). Every run prints
+> the team and resolved set before fetching.
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
 > shell, so `export` the variable in a file those shells read — not only an

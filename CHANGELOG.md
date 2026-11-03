@@ -7,6 +7,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+### Changed
+
+- **`/triage` reads a team profile** (`TRIAGE_TEAM`, default `av`). The A/V
+  per-bug workflow moved word for word from `skills/triage/SKILL.md` to
+  `skills/triage/teams/av.md`; `SKILL.md` keeps setup, modes, the watch list,
+  pre-flight, drafts, and apply. `TRIAGE_COMPONENTS` entries may be
+  `Product::Component`, and the scope check compares the product too.
+
 ## [0.8.1] — 2026-11-07
 
 ### Fixed

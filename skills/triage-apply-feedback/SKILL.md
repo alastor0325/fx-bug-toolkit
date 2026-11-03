@@ -1,7 +1,7 @@
 ---
 name: triage-apply-feedback
 description: >
-  Process queued refine feedback for a single Firefox A/V triage draft.
+  Process queued refine feedback for a single Firefox triage draft.
   Re-draft the pending JSON in response to the human's feedback, then
   REQUIRED: extract any generalizable lesson and propose a wiki addition
   inline so future triage runs avoid the same mistake. Triggered from the
@@ -49,8 +49,9 @@ Apply all feedback items for this bug as a single revision pass:
   severity/priority/resolution, add/remove blocks, NI targets, CC, or
   keywords, or reassign the component. Apply whatever each feedback
   warrants.
-- Rewritten comment text follows the /triage writing standard
-  (ASD-STE100): imperative instructions of 20 words max for procedural
+- Rewritten comment text follows the team profile's comment rules
+  (`$TRIAGE_TEAM`, default `av`; see the /triage skill's `teams/<team>.md`).
+  For `av`, that is the /triage writing standard (ASD-STE100): imperative instructions of 20 words max for procedural
   steps, descriptive sentences of 25 words max, active voice, simple tenses,
   no dash asides. A request to a named person (a developer we needinfo, a QA
   person, the reporter, or anyone pinged with `:nick`) is polite, not a bare
