@@ -14,6 +14,7 @@ Exit 0 = OK (warnings may print), 1 = errors.
 
 import argparse
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -22,8 +23,12 @@ import urllib.parse
 ALLOWED_KEYS = {
     "bug_id", "title", "comment", "ni_targets", "priority", "severity", "blocks_add",
     "regressed_by_add", "see_also_add", "cc_add", "resolution", "keywords_add", "product",
-    "component", "status", "dupe_of", "assigned_to", "created_at", "bug_context",
+    "component", "status", "dupe_of", "assigned_to", "created_at", "bug_context", "checks",
 }
+# What a triage run actually checked, so a reviewer sees what wasn't.
+BROWSER_CHECKS = {"firefox", "chrome", "safari"}
+CHECKS = {"duplicates", "source", "spec", "wpt.fyi", "crash-stats", "attachments",
+          "linked-pages", "mozregression"} | BROWSER_CHECKS
 SEVERITIES = {None, "S1", "S2", "S3", "S4", "N/A"}
 PRIORITIES = {None, "P1", "P2", "P3", "P4", "P5"}
 RESOLUTIONS = {None, "DUPLICATE", "INVALID", "WONTFIX", "INCOMPLETE", "WORKSFORME", "FIXED"}
@@ -55,6 +60,10 @@ LOCAL_PATH = re.compile(r"(?:/Users/|/home/|[A-Za-z]:\\Users\\|~/\.|\$HOME|%USER
 URL = re.compile(r"https?://[^\s<>()\"'\]]+", re.I)
 EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 AI_NOTE = "(AI-assisted triage, with review.)"
+# camelCase or call-shaped words outside code spans and links, e.g. fooBar, foo().
+BARE_CODE = re.compile(r"(?<![\w`./-])(?:[a-z]+[A-Z]\w*(?:\([^)\s]*\))?|[A-Za-z_]\w*\(\))(?![\w`])")
+NOT_CODE = {"macOS", "iOS", "iPadOS", "iPhone", "iPad", "eBay", "mozregression"}
+TESTED_CLAIM = re.compile(r"(?i)\bI (?:tested|ran|reproduced|tried)\b")
 CANT_TEST = re.compile(r"(?i)\b(?:couldn't|could not|can't|cannot|unable to|wasn't able to)\s+(?:test|check|run|reproduce|verify|try)")
 DOM_KEYWORDS = {"spec-needed", "intermittent-failure", "regression", "testcase-wanted",
                 "parity-chrome", "parity-safari", "stalled", "perf"}
@@ -107,8 +116,8 @@ def participants(bug):
     return out
 
 
-def validate(draft, team="av", bug=None, expected_id=None):
-    """Return (errors, warnings) for a draft dict."""
+def validate(draft, team="av", bug=None, expected_id=None, locked=False):
+    """Return (errors, warnings) for a draft dict. `locked`: a run without browsers."""
     errors, warnings = [], []
     if not isinstance(draft, dict):
         return ["draft is not a JSON object"], []
@@ -171,6 +180,15 @@ def validate(draft, team="av", bug=None, expected_id=None):
             elif bug and email.lower() not in people and not email.lower().endswith(("@mozilla.com", "@mozilla.org")):
                 errors.append(f"{key}: {email} is not on the bug and not a Mozilla account")
 
+    checks = draft.get("checks")
+    if checks is not None and (not isinstance(checks, list)
+                               or not all(isinstance(c, str) and c in CHECKS for c in checks)):
+        errors.append(f"checks must be a list of {sorted(CHECKS)}")
+        checks = []
+    checks = checks or []
+    if locked and BROWSER_CHECKS & set(checks):
+        errors.append("checks: no browser runs in a locked run")
+
     comment = draft.get("comment") or ""
     errors += text_problems(comment, "comment")
     if len(comment) > 4000:
@@ -196,6 +214,16 @@ def validate(draft, team="av", bug=None, expected_id=None):
         words = len(URL.sub("", re.sub(r"`[^`]*`", "", comment)).split())
         if words > 300:
             warnings.append(f"comment: {words} words; check that every sentence carries a fact, pointer, or ask")
+        if "checks" not in draft:
+            warnings.append("checks: missing; list what this triage actually checked")
+        elif not str((context if isinstance(context, dict) else {}).get("ai_reasoning") or "").startswith("Checked:"):
+            warnings.append("ai_reasoning: start with 'Checked: <checks>.' so the dashboard shows it")
+        if TESTED_CLAIM.search(comment) and not (BROWSER_CHECKS | {"mozregression"}) & set(checks):
+            warnings.append("comment: says you tested something, but checks lists no browser or mozregression")
+        prose = re.sub(r"\]\([^)]*\)", "]", re.sub(r"`[^`]*`", "", comment))
+        bare = sorted({m for m in BARE_CODE.findall(URL.sub("", prose)) if m not in NOT_CODE})
+        if bare:
+            warnings.append(f"comment: put code in backticks: {', '.join(bare)}")
         if CANT_TEST.search(comment):
             warnings.append("comment: say what you didn't test, not that you couldn't")
     return errors, warnings
@@ -219,7 +247,8 @@ def main(argv=None):
         bug = json.loads(text[start:end + 1])
         if isinstance(bug, dict) and isinstance(bug.get("bugs"), list) and bug["bugs"]:
             bug = bug["bugs"][0]
-    errors, warnings = validate(draft, args.team, bug, int(m.group(1)) if m else None)
+    errors, warnings = validate(draft, args.team, bug, int(m.group(1)) if m else None,
+                                locked=os.environ.get("FX_TRIAGE_LOCKED") == "1")
     for w in warnings:
         print(f"warning: {w}")
     for e in errors:

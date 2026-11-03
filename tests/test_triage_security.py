@@ -41,7 +41,8 @@ def draft(**kw):
          "severity": "S3", "blocks_add": [], "regressed_by_add": [], "see_also_add": [],
          "cc_add": [], "resolution": None, "keywords_add": [], "product": None,
          "component": None, "status": None, "dupe_of": None, "assigned_to": None,
-         "created_at": "2026-11-03T00:00:00Z", "bug_context": {}}
+         "created_at": "2026-11-03T00:00:00Z", "checks": ["spec"],
+         "bug_context": {"ai_reasoning": "Checked: spec."}}
     d.update(kw)
     return d
 
@@ -53,6 +54,38 @@ class TestValidateDraft(unittest.TestCase):
     def test_clean_draft_passes(self):
         c = f"The spec says X (https://html.spec.whatwg.org/#x).\n\n{NOTE}"
         self.assertEqual(self.errors(draft(comment=c)), [])
+
+    def warnings(self, d):
+        return vd.validate(d, "dom-core", None, 100)[1]
+
+    def test_checks_vocabulary(self):
+        self.assertEqual(self.errors(draft(checks=["spec", "chrome", "wpt.fyi"])), [])
+        self.assertTrue(self.errors(draft(checks=["everything"])))
+        self.assertTrue(self.errors(draft(checks="spec")))
+        self.assertEqual(vd.validate(draft(checks=None), "av", None, 100), ([], []))
+
+    def test_checks_locked_has_no_browsers(self):
+        d = draft(checks=["spec", "safari"])
+        self.assertTrue(vd.validate(d, "dom-core", None, 100, locked=True)[0])
+        self.assertEqual(vd.validate(draft(), "dom-core", None, 100, locked=True)[0], [])
+
+    def test_checks_warnings(self):
+        d = draft()
+        del d["checks"]
+        self.assertTrue(any("checks: missing" in w for w in self.warnings(d)))
+        self.assertTrue(any("ai_reasoning" in w for w in self.warnings(draft(bug_context={}))))
+        tested = f"I tested it in Chrome Canary.\n\n{NOTE}"
+        self.assertTrue(any("tested" in w for w in self.warnings(draft(comment=tested))))
+        self.assertEqual(self.warnings(draft(comment=tested, checks=["chrome"])), [])
+
+    def test_bare_code_warns(self):
+        c = f"formAssociatedCallback runs after disconnectedCallback and remove().\n\n{NOTE}"
+        w = " ".join(self.warnings(draft(comment=c)))
+        for name in ("formAssociatedCallback", "disconnectedCallback", "remove()"):
+            self.assertIn(name, w)
+        ok = (f"`formAssociatedCallback(null)` runs in [`Element::UnbindFromTree`](https://searchfox.org/a/b#1) "
+              f"on macOS, see https://html.spec.whatwg.org/#fooBar.\n\n{NOTE}")
+        self.assertEqual(self.warnings(draft(comment=ok)), [])
 
     def test_cant_test_phrasing_warns(self):
         c = f"I couldn't test Safari.\n\n{NOTE}"
@@ -416,6 +449,8 @@ class TestGuardNeedinfo(unittest.TestCase):
         self.assertIn("could not read the bug",
                       guard.check_draft_text(path, json.dumps(draft(ni_targets=["a@mozilla.com"])), "dom-core", fetch=boom))
         self.assertIsNone(guard.check_draft_text(path, json.dumps(draft()), "dom-core", fetch=boom))
+        self.assertIn("no browser", guard.check_draft_text(
+            path, json.dumps(draft(checks=["firefox"])), "dom-core", fetch=boom))
 
 
 class TestRunLocked(unittest.TestCase):

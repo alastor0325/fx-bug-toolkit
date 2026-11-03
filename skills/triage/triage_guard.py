@@ -133,7 +133,7 @@ def check_draft_text(path, text, team, fetch=fetch_bug):
             bug = fetch(draft_id(path))
         except Exception as e:  # noqa: BLE001
             return f"could not read the bug to check needinfo/CC targets ({e}); try again"
-    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path))
+    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path), locked=True)
     if errors:
         return "draft rejected by validate_draft.py: " + "; ".join(errors)
     return None

@@ -207,6 +207,14 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
     already-triaged bugs (snapshot at triage time), then tune the profile.
   - `triage-apply-feedback` lessons go to the shared wiki; decide whether
     team-specific lessons should land in the team profile instead.
+  - Render a draft's `checks` in the dashboard (unchecked ones too); until
+    then `dom-core` repeats them at the start of `ai_reasoning`.
+  - Pin `webspec-index`, `searchfox-cli` and `bmo-search` in
+    `versions.json`, and have the pre-flight record which ones work, so drafts
+    from different machines are comparable.
+  - A verify step a developer runs locally: run the draft's testcase in
+    browsers (e.g. with the wpt runner), then add the results and browser
+    checks to the draft.
 - [ ] **Triage hardening follow-ups** (raised 2026-11-03, with `run_locked.py`).
   - 🔴 The triage dashboard (firefox-triage-dashboard) accepts cross-site POSTs:
     any web page open in the user's browser can POST to `127.0.0.1:9001`
