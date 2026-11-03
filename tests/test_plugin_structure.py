@@ -140,23 +140,45 @@ class TestSkills(unittest.TestCase):
         # A profiler-cli session is a daemon that holds the whole profile in
         # memory and never exits on its own, so a skill that loads one must name
         # it and stop it.
-        for s in self.skills:
-            text = (s / "SKILL.md").read_text(encoding="utf-8")
+        # Team profiles carry skill text too, so they are checked as well.
+        files = [s / "SKILL.md" for s in self.skills] + sorted((SKILLS / "triage" / "teams").glob("*.md"))
+        for f in files:
+            name = f.relative_to(SKILLS).as_posix()
+            text = f.read_text(encoding="utf-8")
             if "profiler-cli load" not in text:
                 continue
             self.assertIsNone(re.search(r"profiler-cli load <url>(?! --session)", text),
-                              f"{s.name}: profiler-cli load without --session")
+                              f"{name}: profiler-cli load without --session")
             self.assertIsNotNone(re.search(r"profiler-cli stop\s+--session <id>", text),
-                                 f"{s.name}: loads a profiler-cli session but never stops it")
+                                 f"{name}: loads a profiler-cli session but never stops it")
 
     def test_triage_comments_follow_ste100(self):
         # Every comment /triage drafts for Bugzilla follows ASD-STE100, and the
         # refine skill re-drafts under the same standard.
-        for name in ("triage", "triage-apply-feedback"):
-            text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+        # The A/V rules live in the A/V team profile.
+        for name, path in (("triage/teams/av.md", SKILLS / "triage" / "teams" / "av.md"),
+                           ("triage-apply-feedback", SKILLS / "triage-apply-feedback" / "SKILL.md")):
+            text = path.read_text(encoding="utf-8")
             self.assertIn("ASD-STE100", text, f"{name}: no ASD-STE100 writing standard")
             self.assertIn("20 words max", text, f"{name}: no instruction length limit")
             self.assertIn("Could you please", text, f"{name}: no polite-request rule for named people")
+
+    def test_triage_team_profiles(self):
+        # Every team profile is listed in the triage skill and in components.md,
+        # has a Profile settings section, and names its components.
+        triage = SKILLS / "triage"
+        skill = (triage / "SKILL.md").read_text(encoding="utf-8")
+        components = (triage / "components.md").read_text(encoding="utf-8")
+        profiles = sorted((triage / "teams").glob("*.md"))
+        self.assertIn("av", [p.stem for p in profiles], "triage: default av profile missing")
+        for p in profiles:
+            text = p.read_text(encoding="utf-8")
+            self.assertIn(f"teams/{p.stem}.md", skill, f"triage: {p.stem} profile not listed in SKILL.md")
+            self.assertIn(f"teams/{p.stem}.md", components, f"triage: {p.stem} profile not in components.md")
+            self.assertIn("## Profile settings", text, f"{p.stem}: no Profile settings section")
+            self.assertIn("**Components**", text, f"{p.stem}: no component list")
+            self.assertIn("**Queue:**", text, f"{p.stem}: no queue")
+        self.assertIn('echo "TRIAGE_TEAM=${TRIAGE_TEAM:-av}"', skill, "triage: team resolution missing")
 
     def test_bug_start_security_approval_section(self):
         # A security bug's investigation carries the sec-approval answers, and
