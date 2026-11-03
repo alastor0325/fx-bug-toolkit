@@ -18,6 +18,10 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bmo_http  # noqa: E402
 
 BMO = "https://bugzilla.mozilla.org"
 FIELDS = "id,summary,product,component,status,assigned_to,creator,creation_time,keywords"
@@ -89,10 +93,21 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+SHORT_LINK_HOSTS = ("mzl.la", "bugzil.la")
+
+
+def link_host_ok(url):
+    """Only Bugzilla and Mozilla's short-link hosts are followed (no fetches elsewhere)."""
+    parts = urllib.parse.urlsplit(url)
+    return parts.scheme == "https" and parts.netloc in SHORT_LINK_HOSTS + ("bugzilla.mozilla.org",)
+
+
 def resolve(url):
     """Follow a short link's redirects (without fetching the buglist page) to the BMO URL."""
     opener = urllib.request.build_opener(_NoRedirect)
     for _ in range(5):
+        if not link_host_ok(url):
+            raise ValueError(f"not a Bugzilla or mzl.la/bugzil.la URL: {url}")
         if urllib.parse.urlsplit(url).netloc == "bugzilla.mozilla.org":
             return url
         try:
@@ -118,9 +133,7 @@ def main(argv=None):
         params = buglist_params(resolve(args.url))
     else:
         params = untriaged_query([parse_component(c, args.product) for c in args.component])
-    req = urllib.request.Request(rest_url(params), headers=UA)
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        bugs = json.load(resp)["bugs"]
+    bugs = json.loads(bmo_http.get(rest_url(params)))["bugs"]
     json.dump(oldest_first(bugs), sys.stdout, indent=1)
     print()
 

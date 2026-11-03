@@ -15,6 +15,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 - **`skills/triage/bmo_query.py`**: runs BugBot's untriaged query ("no
   Severity field set and no pending needinfos") for a team's components, or a
   pasted query URL, e.g. `/triage https://mzl.la/…`.
+- **Untrusted-input hardening for `/triage`.** Bug text, comments, and
+  attachments are treated as data from strangers:
+  - `validate_draft.py` checks every draft before it is shown or applied;
+  - `read_attachment.py` reads only text and verified images, and
+    `read_bug.py` returns a bug as escaped JSON with full emails;
+  - `crash_stats.py` gets crash volume from Socorro's public API;
+  - `run_locked.py` runs triage in Claude Code's `--restricted` mode with a
+    PreToolUse guard (`triage_guard.py`), the Bash sandbox, no MCP servers,
+    and no API keys, for bugs nobody has vetted.
 
 ### Changed
 
