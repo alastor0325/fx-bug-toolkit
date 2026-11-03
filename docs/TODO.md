@@ -213,6 +213,25 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
     already-triaged bugs (snapshot at triage time), then tune the profile.
   - `triage-apply-feedback` lessons go to the shared wiki; decide whether
     team-specific lessons should land in the team profile instead.
+- [ ] **Triage hardening follow-ups** (raised 2026-11-03, with `run_locked.py`).
+  - 🔴 The triage dashboard (firefox-triage-dashboard) accepts cross-site POSTs:
+    any web page open in the user's browser can POST to `127.0.0.1:9001`
+    (`/draft/<id>/refine` queues text for the Claude drain, `/apply` queues a
+    write in reply mode, `/field` edits drafts). Check `Origin`/`Sec-Fetch-Site`
+    and the `Host` header (DNS rebinding) there.
+  - Locked runs have no browsers. An isolated mode (fresh profile, no network
+    except a local server for a testcase the model wrote, never for
+    security-sensitive bugs) would bring back interop testing.
+  - `bmo-to-md`, `bugzilla-cli` (TLS/DNS) and `socorro-cli` (TLS) fail inside
+    the macOS Seatbelt sandbox, and `sandbox.excludedCommands` didn't exempt
+    them. The sandbox proxy also drops the tail of replies when the server
+    closes right after sending; `bmo_http.py` asks for gzip over a kept-alive
+    connection to avoid it. Locked runs use `read_bug.py`, `crash_stats.py`
+    and `bmo-search`. Revisit if those CLIs switch to rustls or the proxy is
+    fixed.
+  - The A/V profile still downloads attachments via `/download-guard` and
+    analyzes profiles; it isn't covered by `run_locked.py` yet (no
+    `profiler-cli`, no downloads there).
 
 - [ ] **Deprecate analyze-profile, check-log and spec-check in favor of the `gecko`
   plugin** (2026-10-22). Generic copies are moving to `plugins/gecko/` in

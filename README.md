@@ -151,7 +151,15 @@ things live:
 > triages recent A/V bugs and hands fixable ones to `/bug-start`; `dom-core`
 > works BugBot's untriaged list (open defects with no severity and no pending
 > needinfo) and drafts a severity plus at most one comment per bug. You can also
-> pass BugBot's query link: `/triage https://mzl.la/…`. On the **first run** the
+> pass BugBot's query link: `/triage https://mzl.la/…`. For bugs nobody has
+> vetted (anyone can file or comment), run it locked:
+> `python3 skills/triage/run_locked.py --team dom-core [--print "/triage …"]`.
+> That starts Claude Code with `--restricted`, no MCP servers, a hook that
+> allows only read-only tools, drafts that pass `validate_draft.py`, and fetches
+> of public sites (no localhost or private network), plus the Bash sandbox.
+> Attachments are read with `read_attachment.py`: text as escaped text, images
+> after a magic-byte check, never archives or binaries. It is read-only and
+> anonymous. Review the drafts with `/open-triage` afterwards. On the **first run** the
 > skill shows the profile's components and asks whether to keep them or
 > customize; keeping the default writes nothing (unset = default), and
 > customizing persists a `;`-separated list (see
@@ -226,7 +234,7 @@ multi-select to install them. Here's the lay of the land:
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
-| [`bmo-search`](https://crates.io/crates/bmo-search), [`socorro-cli`](https://crates.io/crates/socorro-cli) | `/triage` with `TRIAGE_TEAM=dom-core`: duplicate search by function name, crash volume | optional | guide-only (`cargo install bmo-search socorro-cli`) |
+| [`bmo-search`](https://crates.io/crates/bmo-search) | `/triage` with `TRIAGE_TEAM=dom-core`: duplicate search by function name | optional | guide-only (`cargo install bmo-search`) |
 | [`webspec-index`](https://github.com/jnjaeschke/webspec-index) | `spec-check` reading WHATWG/W3C/TC39 sections — exact section, no truncation, plus anchor validation / cross-refs / WHATWG-PR previews; falls back to `WebFetch` if absent | optional | guide-only (`cargo install webspec-index`) |
 
 All the tools above the divider are **required** — `init` isn't "complete" until
