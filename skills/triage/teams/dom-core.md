@@ -313,6 +313,9 @@ For each bug print one decision line, then the comment if there is one:
   <comment text, if any>
 ```
 
-Use the pending JSON format from SKILL.md (`dupe_of` for duplicates). Put the
-reasoning (the checks that decided it, with links) in
-`bug_context.ai_reasoning`, at most 3 sentences, for every draft, not just §1b.
+Use the pending JSON format from SKILL.md (`dupe_of` for duplicates). Set
+`checks` on every draft to what you actually did (SKILL.md lists the values).
+Start `bug_context.ai_reasoning` with `Checked: <checks>.` (the dashboard shows
+that field), then the reasoning (the checks that decided it, with links), at
+most 3 sentences, for every draft, not just §1b. The comment may only report
+results of listed checks.

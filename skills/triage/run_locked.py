@@ -66,6 +66,7 @@ LOCKED_NOTE = """Locked triage run (run_locked.py). Rules that override the skil
 - Read bugs with `python3 {scripts}/read_bug.py <id>` (fields, full emails, public comments, attachment list). Crash volume: `python3 {scripts}/crash_stats.py "<signature>"`. Merge parallel triage-log tmp files with `python3 {scripts}/merge_triage_log.py`. `bmo-to-md`, `bugzilla-cli` and `socorro-cli` are not available; `bmo-search` is, for duplicate searches.
 - Read attachments only with `python3 {scripts}/read_attachment.py --bug <id>` (list) and `--bug <id> --id <attachment id>` (text, or an image saved for the Read tool). It refuses archives and binaries; don't try to get around that.
 - No browsers are available. For interop claims use wpt.fyi results and the engines' source. In comments, say what you didn't test, not that you couldn't.
+- No browser ran in this run, so `checks` never lists firefox, chrome or safari.
 - Validate every draft: `python3 {validator} <draft> --team {team}`. A hook rejects drafts that fail.
 - Don't open the dashboard; say the drafts are ready for /open-triage."""
 

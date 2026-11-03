@@ -707,6 +707,7 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
   "dupe_of": null,
   "assigned_to": null,
   "created_at": "2026-04-02T10:00:00Z",
+  "checks": ["duplicates", "source", "spec"],
   "bug_context": {
     "description_excerpt": "First ~500 chars of description, plain text",
     "platform": "Windows 10 x64",
@@ -748,6 +749,12 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 Set `priority`/`severity` to `null` for §1a (P/S unchanged). Set `keywords_add: ["stalled"]` for stalled bugs. **`cc_add` defaults to empty — do NOT pre-add `$TRIAGE_OWNER`.** Whether the triage owner is CC'd (or needinfo'd) is the owner's per-draft choice via the dashboard's **"CC me" / "NI me"** checkboxes (default **off**); the dashboard adds/removes `$TRIAGE_OWNER` from `cc_add`/`ni_targets` when toggled. Add other CCs to `cc_add` only when genuinely needed. Set `product` and `component` for §1c reassignments (both must be set together); leave `null` otherwise. For a duplicate, set `resolution: "DUPLICATE"` and `dupe_of: <bug>`; apply resolves it with `status: RESOLVED`. Set `regressed_by_add: [<bug>]` only when the regressor is actually known (see the team profile's regression rules); leave `[]` otherwise.
 
 **Assigning a bug for implementation.** When a bug is being taken by a known owner — a §1b you (or a named engineer) will fix, or an explicit "assign to X" refine — set `assigned_to: "<email>"` and `status: "ASSIGNED"`. Apply writes these via `set-fields --assigned-to`/`--status`, which formally assigns the bug, not just a self-NI. Keep the implementer's NI if you're still using it for tracking. Leave both `null` for bugs that stay with the reporter (the §1a/§1c common case). Do not set `assigned_to` to a name — it must be the Bugzilla account email.
+
+**`checks`** (optional unless the team profile requires it) lists what this
+triage actually did, so the reviewer can see what it didn't: any of
+`duplicates`, `source`, `spec`, `wpt.fyi`, `crash-stats`, `attachments`,
+`linked-pages`, `mozregression`, `firefox`, `chrome`, `safari` (a browser
+counts only if a testcase ran in it). Never list a check that didn't run.
 
 The **`bug_context`** object captures the bug's state at draft time so the
 triage dashboard can render context-rich cards without re-fetching Bugzilla.
