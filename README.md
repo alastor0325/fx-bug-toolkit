@@ -81,7 +81,7 @@ source plugin shown next to each.
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
 | `/open-investigation` | Open a local web viewer to search & read all your past investigations |
-| `/triage` | Firefox bug triage for a team's components (A/V by default; other teams via team profiles) — sweep watched + untriaged bugs, write reviewable drafts |
+| `/triage` | Firefox bug triage for a team's components (A/V by default, DOM Core via `TRIAGE_TEAM=dom-core`) — sweep watched + untriaged bugs, write reviewable drafts |
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (**always** spec, security/memory-safety, threading, code quality, tests; **plus** IPC, error-handling, API usage when relevant), adversarially verifies the serious findings, and writes a structured review doc |
 | `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
@@ -131,7 +131,7 @@ things live:
 | `FX_REVIEW_DIR` | `~/.fx-bug-toolkit/patches-review` | where `/review` writes its review documents |
 | `TRIAGE_OWNER` | _(none — required for `/triage` **reply mode** only)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off). Not needed in read-only mode |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
-| `TRIAGE_TEAM` | `av` | which team profile `/triage` uses: `av` (Audio/Video, the default; see [`skills/triage/teams/`](skills/triage/teams/)) |
+| `TRIAGE_TEAM` | `av` | which team profile `/triage` uses: `av` (Audio/Video) or `dom-core` (see [`skills/triage/teams/`](skills/triage/teams/)) |
 | `TRIAGE_COMPONENTS` | _(the team profile's set)_ | `;`-separated list of `Product::Component` (or bare component) names `/triage` covers; unset = the profile's default (see [`skills/triage/components.md`](skills/triage/components.md)) |
 | `FX_BUG_TOOLKIT_MODE` | _(unset: local mode)_ | set to `hackbot` only in the Hackbot cloud container; see [Hackbot mode](#hackbot-mode) |
 
@@ -148,7 +148,10 @@ things live:
 > **`TRIAGE_TEAM` and `TRIAGE_COMPONENTS` are optional.** Each team profile in
 > [`skills/triage/teams/`](skills/triage/teams/) defines its components, queue,
 > per-bug workflow, severity standard, and comment rules. `av` (the default)
-> triages recent A/V bugs and hands fixable ones to `/bug-start`. On the **first run** the
+> triages recent A/V bugs and hands fixable ones to `/bug-start`; `dom-core`
+> works BugBot's untriaged list (open defects with no severity and no pending
+> needinfo) and drafts a severity plus at most one comment per bug. You can also
+> pass BugBot's query link: `/triage https://mzl.la/…`. On the **first run** the
 > skill shows the profile's components and asks whether to keep them or
 > customize; keeping the default writes nothing (unset = default), and
 > customizing persists a `;`-separated list (see
@@ -223,6 +226,7 @@ multi-select to install them. Here's the lay of the land:
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
+| [`bmo-search`](https://crates.io/crates/bmo-search), [`socorro-cli`](https://crates.io/crates/socorro-cli) | `/triage` with `TRIAGE_TEAM=dom-core`: duplicate search by function name, crash volume | optional | guide-only (`cargo install bmo-search socorro-cli`) |
 | [`webspec-index`](https://github.com/jnjaeschke/webspec-index) | `spec-check` reading WHATWG/W3C/TC39 sections — exact section, no truncation, plus anchor validation / cross-refs / WHATWG-PR previews; falls back to `WebFetch` if absent | optional | guide-only (`cargo install webspec-index`) |
 
 All the tools above the divider are **required** — `init` isn't "complete" until

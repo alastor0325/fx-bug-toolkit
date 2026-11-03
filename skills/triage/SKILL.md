@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Firefox bug triage for a team's Bugzilla components (Audio/Video by default; other teams via a team profile) — completeness check, duplicate detection, severity assessment, needinfo and comment drafting across watched + untriaged bugs, writing pending drafts the triage dashboard reads. Triggers on "/triage", "triage <bug-id>", "triage <bugzilla-url>", "triage Firefox bugs", "weekly triage".
+description: Firefox bug triage for a team's Bugzilla components (Audio/Video by default; DOM Core and other teams via a team profile) — completeness check, duplicate detection, severity assessment, needinfo and comment drafting across watched + untriaged bugs, writing pending drafts the triage dashboard reads. Triggers on "/triage", "triage <bug-id>", "triage <bugzilla-url>", "triage Firefox bugs", "weekly triage".
 allowed-tools: [Bash, Read, Write, Edit, Agent, AskUserQuestion]
 ---
 
@@ -28,6 +28,7 @@ any triage work begins (see Setup check).
 Each team's triage rules live in a profile, `teams/<team>.md` next to this file:
 
 - `av` (default): Firefox Audio/Video — [`teams/av.md`](teams/av.md)
+- `dom-core`: DOM Core — [`teams/dom-core.md`](teams/dom-core.md)
 
 Resolve the team before anything else and **read the whole profile**:
 
@@ -51,7 +52,7 @@ set; see [`components.md`](components.md) and Setup check → Resolve
 
 - `/triage` — **full session**: poll all watched bugs + fetch the profile's queue + triage all
 - `/triage <bug-id>` — **single-bug mode**: triage exactly one bug; MUST NOT touch any other bug or any other pending/watch/log state
-- `/triage <bugzilla-url>` — **batch mode**: parse all bug IDs from the URL; run single-bug mode for each ID independently
+- `/triage <bugzilla-url>` — **batch mode**: run single-bug mode for each bug ID independently. A `show_bug.cgi` URL or a list of IDs gives the IDs directly. A **query URL** (`buglist.cgi?…`, or a short link such as `https://mzl.la/…` from BugBot's "no Severity field set" email) is run through `bmo_query.py --url "<url>"` (see Fetch bugs) to get the IDs.
 
 
 ### Mode isolation rules
@@ -314,7 +315,7 @@ next session. (You can automate this with your own scheduler running
 ## Fetch bugs
 
 **Full session (`/triage`):** fetch the queue the team profile names, with the
-resolved component set:
+resolved component set. Two queue types exist:
 
 - **`bugzilla-cli fetch`** (recently filed, unassigned): one `--component
   "<name>"` flag per component, bare names without `Product::` (`fetch` has no
@@ -323,7 +324,21 @@ resolved component set:
   START=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d '14 days ago' +%Y-%m-%d)
   bugzilla-cli fetch --start $START --component "<component>" …
   ```
-It prints a JSON array. Process bugs oldest-first.
+- **Untriaged query** (`bmo_query.py`, shipped next to this file): the same
+  query as BugBot's daily "no Severity field set and no pending needinfos" email —
+  open defects with severity `--`/`n/a`, no pending needinfo, not `meta`, not
+  `intermittent-failure`, not `[no-nag]`, not filed by wptsync, any age and any
+  assignee. Pass each component as `Product::Component` (it matches product and
+  component together). Run it with the skill's base directory (shown when the
+  skill loads):
+  ```bash
+  PY="$(command -v python3 || command -v python)"
+  "$PY" "<skill base dir>/bmo_query.py" --component "Core::DOM: Events" --component "Core::XSLT" …
+  ```
+  For a query URL (`/triage <url>`), run `"$PY" "<skill base dir>/bmo_query.py" --url "<url>"` instead.
+  Reads are anonymous: restricted (security) bugs don't appear.
+
+Both print a JSON array. Process bugs oldest-first.
 
 **Single-bug mode (`/triage <id>` or each ID in `/triage <url>`):**
 ```bash

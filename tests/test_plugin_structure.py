@@ -180,6 +180,15 @@ class TestSkills(unittest.TestCase):
             self.assertIn("**Queue:**", text, f"{p.stem}: no queue")
         self.assertIn('echo "TRIAGE_TEAM=${TRIAGE_TEAM:-av}"', skill, "triage: team resolution missing")
 
+    def test_dom_core_profile_rules(self):
+        # DOM Core triage: severity and one comment only, never priority, and an
+        # AI-triage note on every comment.
+        text = (SKILLS / "triage" / "teams" / "dom-core.md").read_text(encoding="utf-8")
+        self.assertIn("never priority", text)
+        self.assertIn("No investigation", text)
+        self.assertIn("(AI-assisted triage, with review.)", text)
+        self.assertIn("Core::<component>", text, "dom-core: components must be product-qualified")
+
     def test_bug_start_security_approval_section(self):
         # A security bug's investigation carries the sec-approval answers, and
         # its affected-versions part names every supported channel by number.

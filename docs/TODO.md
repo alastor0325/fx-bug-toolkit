@@ -196,6 +196,18 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
+- [ ] **Triage team profiles: follow-ups** (raised 2026-11-03, with the
+      `TRIAGE_TEAM` / `teams/dom-core.md` split).
+  - The dashboard's queue drain still handles `bug-start` entries, though
+    0.5.0 no longer queues them on apply; make sure no `dom-core` path
+    queues one.
+  - `bugzilla-cli fetch` has no `--product`, so `av` passes bare names; add it
+    so both queue types are product-scoped.
+  - Evaluate `dom-core` read-only on the live untriaged queue and on
+    already-triaged bugs (snapshot at triage time), then tune the profile.
+  - `triage-apply-feedback` lessons go to the shared wiki; decide whether
+    team-specific lessons should land in the team profile instead.
+
 - [ ] **Deprecate analyze-profile, check-log and spec-check in favor of the `gecko`
   plugin** (2026-10-22). Generic copies are moving to `plugins/gecko/` in
   mozilla/firefox-aidev-plugins. Once it lands: point `bug-start` and `/triage` at
