@@ -7,6 +7,15 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+### Added
+
+- **DOM Core triage profile** (`TRIAGE_TEAM=dom-core`): severity (never
+  priority) and at most one comment per bug, plus the field changes triage
+  implies. The rules come from a study of past DOM Core triage.
+- **`skills/triage/bmo_query.py`**: runs BugBot's untriaged query ("no
+  Severity field set and no pending needinfos") for a team's components, or a
+  pasted query URL, e.g. `/triage https://mzl.la/…`.
+
 ### Changed
 
 - **`/triage` reads a team profile** (`TRIAGE_TEAM`, default `av`). The A/V
