@@ -7,7 +7,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Changed
+- **`/open-review` keeps every repo on one Revue port.** It requires Revue
+  ≥ 0.3.1 and runs `revue --repo <repo>`, which adds the repo to the Revue
+  that is already running. Before, it probed port 7779 and a remembered port,
+  and when a Revue was already running it printed that URL without opening the
+  requested repo. `--port` is passed only when `$PORT` is set; a remote box
+  behind an SSH port forward saves its port once with `revue init --port`. The
+  `~/.fx-bug-toolkit/open-review.port` file is no longer used. (#73, #74)
 
 ## [0.7.3] — 2026-10-22
 
