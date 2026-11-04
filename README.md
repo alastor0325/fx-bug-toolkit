@@ -84,7 +84,7 @@ source plugin shown next to each.
 | `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (**always** spec, security/memory-safety, threading, code quality, tests; **plus** IPC, error-handling, API usage when relevant), adversarially verifies the serious findings, and writes a structured review doc |
-| `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use |
+| `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use. Every repo shares one Revue port, and the dashboard at `/` switches between them |
 | `/open-team [team]` | Open the [firefox-review-stats](https://alastor0325.github.io/firefox-review-stats/) team dashboards (review-load distribution + a digest of what each component shipped). Opens the live site — landing page by default, or `playback`/`webrtc`/`gfx` when named. No install |
 | `/update` | Update the plugin + its CLI dependencies to the latest |
 

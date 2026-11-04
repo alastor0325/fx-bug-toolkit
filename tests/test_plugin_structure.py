@@ -112,7 +112,7 @@ class TestSkills(unittest.TestCase):
 
     def test_open_triage_uses_stable_default_port(self):
         # The triage dashboard binds a stable default port so it can be
-        # bookmarked (mirrors the viewer's 9000 / Revue's 7779). Guard against a
+        # bookmarked (mirrors the viewer's 9000). Guard against a
         # silent regression to the old auto-pick, and never pick a port browsers
         # block as unsafe — e.g. 6000/x11, WHATWG Fetch §port-blocking.
         text = (SKILLS / "open-triage" / "SKILL.md").read_text(encoding="utf-8")
@@ -122,6 +122,18 @@ class TestSkills(unittest.TestCase):
         for bad in ("6000", "6566", "6665", "6666", "6667", "6668", "6669", "6697"):
             self.assertNotIn(f":-{bad}}}", text,
                              f"{bad} is a browser-blocked port (Fetch §port-blocking)")
+
+    def test_open_review_joins_the_running_revue(self):
+        # Revue >= 0.3.1 owns the port: one daemon serves every repo, and
+        # `revue --repo X` joins it. The skill must not probe or pick ports.
+        text = (SKILLS / "open-review" / "SKILL.md").read_text(encoding="utf-8")
+        floor = re.search(r'REQUIRED_REVUE="([0-9.]+)"', text).group(1)
+        self.assertGreaterEqual(tuple(map(int, floor.split("."))), (0, 3, 1))
+        for v in re.findall(r"Revue ≥ ([0-9]+\.[0-9]+\.[0-9]+)|\(≥ ([0-9.]+)\)", text):
+            self.assertEqual(v[0] or v[1], floor, "every stated Revue floor must match REQUIRED_REVUE")
+        self.assertIn('revue --repo "$REPO"', text)
+        for removed in ("open-review.port", "socket.socket", "SSH_CONNECTION"):
+            self.assertNotIn(removed, text, f"open-review must not manage ports itself: {removed!r}")
 
     def test_profiler_cli_installs_from_npm(self):
         # profiler-cli moved from a git clone + `npm link` that needed a
