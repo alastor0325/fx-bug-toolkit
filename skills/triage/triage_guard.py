@@ -146,7 +146,8 @@ def check_draft_text(path, text, team, fetch=fetch_bug):
             bug = fetch(draft_id(path))
         except Exception as e:  # noqa: BLE001
             return f"could not read the bug to check needinfo/CC targets ({e}); try again"
-    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path), locked=True)
+    ran = validate_draft.browsers_run(Path(path).parent.parent, draft_id(path))
+    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path), locked=True, browsers_ok=ran)
     if errors:
         return "draft rejected by validate_draft.py: " + "; ".join(errors)
     return None
@@ -156,6 +157,8 @@ def check_write(tool, tool_input, triage_dir, team):
     path = tool_input.get("file_path") or ""
     if not path or not inside(path, triage_dir):
         return f"writes are limited to the triage directory ({triage_dir})"
+    if Path(path).name == validate_draft.RESULTS_FILE:
+        return f"{validate_draft.RESULTS_FILE} is written only by run_testcases.py"
     if draft_id(path) is None:
         return None
     if tool == "Write":

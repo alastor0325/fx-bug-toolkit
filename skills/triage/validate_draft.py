@@ -19,6 +19,7 @@ import re
 import sys
 import unicodedata
 import urllib.parse
+from pathlib import Path
 
 ALLOWED_KEYS = {
     "bug_id", "title", "comment", "ni_targets", "priority", "severity", "blocks_add",
@@ -75,6 +76,8 @@ AI_NOTE = "(AI-assisted triage, with review.)"
 # camelCase or call-shaped words outside code spans and links, e.g. fooBar, foo().
 BARE_CODE = re.compile(r"(?<![\w`./-])(?:[a-z]+[A-Z]\w*(?:\([^)\s]*\))?|[A-Za-z_]\w*\(\))(?![\w`])")
 NOT_CODE = {"macOS", "iOS", "iPadOS", "iPhone", "iPad", "eBay", "mozregression"}
+# Written only by run_testcases.py, outside the model's reach.
+RESULTS_FILE = "testcase-results.json"
 TESTED_CLAIM = re.compile(r"(?i)\bI (?:tested|ran|reproduced|tried)\b")
 CANT_TEST = re.compile(r"(?i)\b(?:couldn't|could not|can't|cannot|unable to|wasn't able to)\s+(?:test|check|run|reproduce|verify|try)")
 DOM_KEYWORDS = {"spec-needed", "intermittent-failure", "regression", "testcase-wanted",
@@ -138,8 +141,21 @@ def participants(bug):
     return out
 
 
-def validate(draft, team="av", bug=None, expected_id=None, locked=False):
-    """Return (errors, warnings) for a draft dict. `locked`: a run without browsers."""
+def browsers_run(triage_dir, bug_id):
+    """Browsers with an `ok` testcase result for bug_id in RESULTS_FILE."""
+    try:
+        data = json.loads((Path(triage_dir) / RESULTS_FILE).read_text(encoding="utf-8"))
+        runs = data[str(bug_id)]["browsers"]
+        return frozenset(b for b, r in runs.items() if b in BROWSER_CHECKS and r.get("status") == "ok")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return frozenset()
+
+
+def validate(draft, team="av", bug=None, expected_id=None, locked=False, browsers_ok=frozenset()):
+    """Return (errors, warnings) for a draft dict.
+
+    `locked`: the model drove no browser, so browser checks need an `ok` result
+    from run_testcases.py (`browsers_ok`)."""
     errors, warnings = [], []
     if not isinstance(draft, dict):
         return ["draft is not a JSON object"], []
@@ -208,8 +224,10 @@ def validate(draft, team="av", bug=None, expected_id=None, locked=False):
         errors.append(f"checks must be a list of {sorted(CHECKS)}")
         checks = []
     checks = checks or []
-    if locked and BROWSER_CHECKS & set(checks):
-        errors.append("checks: no browser runs in a locked run")
+    unrun = sorted((BROWSER_CHECKS & set(checks)) - set(browsers_ok)) if locked else []
+    if unrun:
+        errors.append(f"checks: no ok result for {', '.join(unrun)} in {RESULTS_FILE}; "
+                      "only run_testcases.py runs browsers in a locked run")
 
     comment = draft.get("comment") or ""
     errors += text_problems(comment, "comment")
@@ -269,8 +287,11 @@ def main(argv=None):
         bug = json.loads(text[start:end + 1])
         if isinstance(bug, dict) and isinstance(bug.get("bugs"), list) and bug["bugs"]:
             bug = bug["bugs"][0]
-    errors, warnings = validate(draft, args.team, bug, int(m.group(1)) if m else None,
-                                locked=os.environ.get("FX_TRIAGE_LOCKED") == "1")
+    bug_id = int(m.group(1)) if m else None
+    locked = os.environ.get("FX_TRIAGE_LOCKED") == "1"
+    triage_dir = os.path.expanduser(os.environ.get("TRIAGE_DIR") or "~/firefox-triage")
+    errors, warnings = validate(draft, args.team, bug, bug_id, locked=locked,
+                                browsers_ok=browsers_run(triage_dir, bug_id) if locked else frozenset())
     for w in warnings:
         print(f"warning: {w}")
     for e in errors:

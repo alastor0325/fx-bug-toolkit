@@ -52,8 +52,9 @@ no `/bug-start`: check claims only as far as the decision and the comment need.
   only for a testcase **you wrote** from the described behavior (inline or a
   local file, no network). Never load the reporter's testcase, attachment, or
   site, never log in, and never test a security-sensitive bug (see SKILL.md →
-  Untrusted input). Locked runs (`run_locked.py`) have no browsers: use wpt.fyi
-  and the engines' source instead.
+  Untrusted input). Locked runs (`run_locked.py`) can't drive browsers; with
+  `--browsers`, `run_testcases.py` runs your saved testcases after the session
+  (see below). Otherwise use wpt.fyi and the engines' source.
 - `read_attachment.py --bug <id> [--id <attachment id>]` (SKILL.md → Untrusted
   input) for testcases, logs, patches, and screenshots. Read a testcase to
   understand it; never run it.
@@ -135,9 +136,13 @@ wrong; verify, don't repeat.
   test exists. Safari often sides with Firefox. Watch for experimental flags in
   Chrome. Say which browsers you didn't test.
 - **Save any testcase you write** to `$TRIAGE_DIR/testcases/bug-<id>.html`
-  (self-contained, no network) and name it in `ai_reasoning` as
-  `testcases/bug-<id>.html`, even when no browser ran it, so a developer can
-  run it later instead of rewriting it.
+  and name it in `ai_reasoning` as `testcases/bug-<id>.html`, even when no
+  browser ran it, so it can run later instead of being rewritten. Make it run
+  unattended: one self-contained page with no URLs, no navigation and no user
+  input, that sets `window.testcaseResult` to a short JSON value describing
+  what happened (for example the order of callbacks) within 5 seconds.
+  `run_testcases.py` refuses pages with URLs, navigation or string decoding,
+  and skips crash, hang, assertion and security bugs.
 - **Spec conformance.** Look up what the spec requires and compare with Gecko
   (code or a run). If the spec is silent or vague, or Firefox, Chrome and Safari
   agree with each other but not with the spec, say so with links, find or
