@@ -27,6 +27,11 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 - **`checks` in triage drafts**: what the triage actually did (spec, source,
   wpt.fyi, browsers, …), so the reviewer sees what it didn't. `dom-core`
   drafts set it; the validator rejects browser checks from locked runs.
+- **`run_locked.py --browsers`**: after a `--print` run, `run_testcases.py`
+  loads the testcases the run saved in Firefox Nightly, Chrome Canary and
+  Safari TP with no model in the loop, and a second locked pass adds the
+  results. Locked drafts may list a browser in `checks` only with an `ok`
+  result from it.
 
 ### Changed
 
