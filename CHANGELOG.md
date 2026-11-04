@@ -7,6 +7,10 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+_Nothing user-facing yet._
+
+## [0.8.0] — 2026-11-03
+
 ### Changed
 - **`/open-review` keeps every repo on one Revue port.** It requires Revue
   ≥ 0.3.1 and runs `revue --repo <repo>`, which adds the repo to the Revue
@@ -927,7 +931,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.3...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.0...HEAD
+[0.8.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.3...fx-bug-toolkit--v0.8.0
 [0.7.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...fx-bug-toolkit--v0.7.3
 [0.7.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...fx-bug-toolkit--v0.7.2
 [0.7.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.0...fx-bug-toolkit--v0.7.1
