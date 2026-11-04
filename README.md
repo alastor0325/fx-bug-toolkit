@@ -159,7 +159,15 @@ things live:
 > of public sites (no localhost or private network), plus the Bash sandbox.
 > Attachments are read with `read_attachment.py`: text as escaped text, images
 > after a magic-byte check, never archives or binaries. It is read-only and
-> anonymous. Review the drafts with `/open-triage` afterwards. On the **first run** the
+> anonymous. Add `--browsers` to a `--print` run to load the testcases it saved
+> in Firefox Nightly, Chrome Canary and Safari TP afterwards: `run_testcases.py`
+> does that with no model in the loop (pages served from 127.0.0.1 under a CSP,
+> a dead proxy for Firefox and Chrome, a fresh profile per page, crash and
+> security bugs skipped), then a second locked pass adds the results to the
+> drafts. It finds `geckodriver`/`chromedriver` on `PATH` or via
+> `FX_TRIAGE_GECKODRIVER`/`FX_TRIAGE_CHROMEDRIVER`, and browsers at their usual
+> paths or via `FX_TRIAGE_FIREFOX`/`FX_TRIAGE_CHROME`. Review the drafts with
+> `/open-triage` afterwards. On the **first run** the
 > skill shows the profile's components and asks whether to keep them or
 > customize; keeping the default writes nothing (unset = default), and
 > customizing persists a `;`-separated list (see

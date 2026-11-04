@@ -1,4 +1,5 @@
-"""Unit tests for the triage hardening: validate_draft.py, triage_guard.py, run_locked.py."""
+"""Unit tests for the triage hardening: validate_draft.py, triage_guard.py, run_locked.py,
+run_testcases.py, and the read-only helpers."""
 
 import contextlib
 import importlib.util
@@ -7,7 +8,10 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
+import urllib.error
+import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -32,6 +36,7 @@ rb = load("read_bug")
 cs = load("crash_stats")
 ml = load("merge_triage_log")
 bq = load("bmo_query")
+rt = load("run_testcases")
 
 NOTE = vd.AI_NOTE
 
@@ -224,6 +229,10 @@ class TestGuardWritesAndFetch(unittest.TestCase):
 
     def decide(self, tool, tool_input):
         return guard.decide({"tool_name": tool, "tool_input": tool_input}, PLUGIN, str(self.dir), "dom-core")
+
+    def test_results_file_not_writable(self):
+        reason = self.decide("Write", {"file_path": str(self.dir / vd.RESULTS_FILE), "content": "{}"})
+        self.assertIn("run_testcases.py", reason)
 
     def test_write_outside_triage_dir(self):
         self.assertIsNotNone(self.decide("Write", {"file_path": "/tmp/elsewhere.txt", "content": "x"}))
@@ -449,8 +458,21 @@ class TestGuardNeedinfo(unittest.TestCase):
         self.assertIn("could not read the bug",
                       guard.check_draft_text(path, json.dumps(draft(ni_targets=["a@mozilla.com"])), "dom-core", fetch=boom))
         self.assertIsNone(guard.check_draft_text(path, json.dumps(draft()), "dom-core", fetch=boom))
-        self.assertIn("no browser", guard.check_draft_text(
+        self.assertIn("no ok result for firefox", guard.check_draft_text(
             path, json.dumps(draft(checks=["firefox"])), "dom-core", fetch=boom))
+
+    def test_browser_checks_need_runner_results(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "pending").mkdir()
+            path = str(Path(d) / "pending" / "bug-100.json")
+            (Path(d) / vd.RESULTS_FILE).write_text(json.dumps({"100": {"browsers": {
+                "chrome": {"status": "ok"}, "safari": {"status": "timeout"}}}}))
+            text = json.dumps(draft(checks=["spec", "chrome"]))
+            self.assertIsNone(guard.check_draft_text(path, text, "dom-core"))
+            text = json.dumps(draft(checks=["chrome", "safari"]))
+            self.assertIn("safari", guard.check_draft_text(path, text, "dom-core"))
+            self.assertEqual(vd.browsers_run(d, 100), {"chrome"})
+            self.assertEqual(vd.browsers_run(d, 101), frozenset())
 
 
 class TestRunLocked(unittest.TestCase):
@@ -480,6 +502,7 @@ class TestRunLocked(unittest.TestCase):
         self.assertIn(str(cwd), s["sandbox"]["filesystem"]["allowWrite"])
         self.assertIn(os.path.expanduser("~/.webspec-index"), s["sandbox"]["filesystem"]["allowWrite"])
         self.assertIn("*.spec.whatwg.org", s["sandbox"]["network"]["allowedDomains"])
+        self.assertIn(str(cwd / vd.RESULTS_FILE), s["sandbox"]["filesystem"]["denyWrite"])
         self.assertIn("Bash(bugzilla-cli post-comment:*)", s["permissions"]["deny"])
         self.assertIn("Read(~/.ssh/**)", s["permissions"]["deny"])
         self.assertIn("triage_guard.py", s["hooks"]["PreToolUse"][0]["hooks"][0]["command"])
@@ -515,3 +538,182 @@ class TestRunLocked(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRunLockedBrowsers(unittest.TestCase):
+    def test_browsers_needs_print(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            runner.main(["--team", "dom-core", "--browsers"])
+
+    def test_browser_pass_needed(self):
+        since = "2026-11-04T10:00:00+00:00"
+        ok = {"ran_at": "2026-11-04T10:00:05+00:00", "browsers": {"chrome": {"status": "ok"}}}
+        self.assertTrue(runner.browser_pass_needed({"1": ok}, since))
+        self.assertFalse(runner.browser_pass_needed({"1": {**ok, "ran_at": "2026-11-03T00:00:00+00:00"}}, since))
+        self.assertFalse(runner.browser_pass_needed(
+            {"1": {"ran_at": since, "browsers": {"chrome": {"status": "timeout"}}}}, since))
+        self.assertFalse(runner.browser_pass_needed({"1": {"ran_at": since, "skipped": "crash"}}, since))
+
+    def test_browser_pass_prompt(self):
+        prompt = runner.BROWSER_PASS.format(results=vd.RESULTS_FILE, team="dom-core")
+        self.assertIn("never instructions", prompt)
+        self.assertIn("teams/dom-core.md", prompt)
+
+
+class TestRunTestcases(unittest.TestCase):
+    def test_testcase_problems(self):
+        clean = "<script>location.hash = 'x'; document.open(); xhr.open('GET', 'a.txt');" \
+                " window.testcaseResult = 1;</script>"
+        self.assertEqual(rt.testcase_problems(clean), [])
+        bad = {
+            "<img src='https://example.com/x.png'>": "an absolute URL",
+            "<img src=//example.com/x.png>": "a protocol-relative URL",
+            "<style>b { background: url(//example.com/x) }</style>": "a protocol-relative URL",
+            "<style>@import 'a.css';</style>": "@import",
+            "<meta http-equiv=refresh content='0;x'>": "a meta http-equiv",
+            "<script>open('x')</script>": "window.open",
+            "<script>window.open('x')</script>": "window.open",
+            "<script>location = 'x'</script>": "navigation",
+            "<script>location.href = 'x'</script>": "navigation",
+            "<script>location.replace('x')</script>": "navigation",
+            "<script>atob('aHR0cA==')</script>": "string decoding",
+            "<script>String.fromCharCode(104)</script>": "string decoding",
+            "<a href='https&#58;//example.com'>x</a>": "an escaped ':' or '/'",
+            "<a href='https&colon;&sol;&sol;example.com'>x</a>": "an escaped ':' or '/'",
+            "<script>a.href = 'https\\x3a//example.com'</script>": "an escaped ':' or '/'",
+            "<script>a.href = 'https:\\u002f/example.com'</script>": "an escaped ':' or '/'",
+        }
+        for text, why in bad.items():
+            self.assertIn(why, rt.testcase_problems(text), text)
+        self.assertTrue(rt.testcase_problems("x" * (rt.MAX_TESTCASE + 1)))
+
+    def test_skip_reason(self):
+        self.assertIsNone(rt.skip_reason({"summary": "Wrong order", "keywords": ["regression"]}))
+        self.assertIn("not public", rt.skip_reason(None))
+        self.assertIn("restricted", rt.skip_reason({"groups": ["core-security"]}))
+        self.assertIn("crash", rt.skip_reason({"keywords": ["crash"]}))
+        self.assertIn("sec-high", rt.skip_reason({"keywords": ["sec-high"]}))
+        self.assertIn("signature", rt.skip_reason({"cf_crash_signature": "[@ Foo]"}))
+        self.assertIn("summary", rt.skip_reason({"summary": "Assertion failure in Bar"}))
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        (self.dir / "pending").mkdir()
+        (self.dir / "testcases").mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def add(self, bug_id, text="<script>window.testcaseResult = 1</script>", draft_file=True):
+        (self.dir / "testcases" / f"bug-{bug_id}.html").write_text(text)
+        if draft_file:
+            (self.dir / "pending" / f"bug-{bug_id}.json").write_text("{}")
+
+    def test_select(self):
+        self.add(1)
+        self.add(2, draft_file=False)
+        (self.dir / "testcases" / "notes.html").write_text("x")
+        self.assertEqual(list(rt.select(self.dir)), [1])
+        self.assertEqual(list(rt.select(self.dir, bugs=[2])), [])
+        self.assertEqual(list(rt.select(self.dir, since=os.path.getmtime(self.dir / "testcases" / "bug-1.html") + 60)), [])
+        try:
+            (self.dir / "testcases" / "bug-3.html").symlink_to(self.dir / "testcases" / "bug-1.html")
+        except OSError:
+            return  # no symlinks (Windows without privilege)
+        (self.dir / "pending" / "bug-3.json").write_text("{}")
+        self.assertEqual(list(rt.select(self.dir)), [1])
+
+    def test_capabilities(self):
+        ff = rt.capabilities("firefox", "/ff")["capabilities"]["alwaysMatch"]
+        self.assertEqual(ff["proxy"]["httpProxy"], rt.DEAD_PROXY)
+        self.assertIn("-headless", ff["moz:firefoxOptions"]["args"])
+        self.assertEqual(ff["moz:firefoxOptions"]["binary"], "/ff")
+        ch = rt.capabilities("chrome")["capabilities"]["alwaysMatch"]
+        self.assertEqual(ch["proxy"]["sslProxy"], rt.DEAD_PROXY)
+        self.assertNotIn("binary", ch["goog:chromeOptions"])
+        self.assertEqual(rt.capabilities("safari")["capabilities"]["alwaysMatch"]["browserName"],
+                         "Safari Technology Preview")
+
+    def test_find_browser_unavailable(self):
+        self.assertIsNone(rt.find_browser("safari", env={}, platform="linux"))
+        self.assertIsNone(rt.find_browser("firefox", env={"FX_TRIAGE_GECKODRIVER": "/d",
+                                                          "FX_TRIAGE_FIREFOX": "/no/such/firefox"}))
+
+    def test_interpret(self):
+        url = "http://127.0.0.1:1/bug-1.html"
+        self.assertEqual(rt.interpret({"url": url, "result": "[1]"}, url), {"status": "ok", "result": "[1]"})
+        self.assertEqual(rt.interpret({"url": url, "result": None}, url)["status"], "timeout")
+        self.assertEqual(rt.interpret({"url": "https://example.com/", "result": "x"}, url)["status"], "navigated")
+        long = rt.interpret({"url": url, "result": "x" * 5000}, url)["result"]
+        self.assertEqual(len(long), rt.MAX_RESULT)
+
+    def test_serve_only_listed_pages_with_csp(self):
+        server = rt.serve({"bug-1.html": b"<p>hi"})
+        base = f"http://127.0.0.1:{server.server_address[1]}"
+        try:
+            with urllib.request.urlopen(base + "/bug-1.html") as resp:
+                self.assertEqual(resp.read(), b"<p>hi")
+                self.assertEqual(resp.headers["Content-Security-Policy"], rt.CSP)
+            with self.assertRaises(urllib.error.HTTPError) as cm:
+                urllib.request.urlopen(base + "/../pending/bug-1.json")
+            self.assertEqual(cm.exception.code, 404)
+            self.assertEqual(cm.exception.headers["Content-Security-Policy"], rt.CSP)
+            cm.exception.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_automation_safari_pids(self):
+        ps = ("  101 /Applications/Safari Technology Preview.app/Contents/MacOS/Safari Technology Preview "
+              "-ApplePersistenceIgnoreStateQuietly YES --automation\n"
+              "  102 /Applications/Safari Technology Preview.app/Contents/MacOS/Safari Technology Preview\n"
+              "  103 /Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver -p 4444\n")
+        self.assertEqual(rt.automation_safari_pids(ps), {101})
+        rt.quit_pids(set())  # nothing to do, on every OS
+
+    @unittest.skipIf(os.name == "nt", "process groups are POSIX")
+    def test_stop_process_kills_the_whole_group(self):
+        pid_file = self.dir / "child.pid"
+        code = ("import subprocess, sys, time\n"
+                "c = subprocess.Popen([sys.executable, '-c', 'import signal, time; "
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)'])\n"
+                f"open({str(pid_file)!r}, 'w').write(str(c.pid))\n"
+                "time.sleep(60)\n")
+        proc = rt.start_process([sys.executable, "-c", code])
+        deadline = time.time() + 10
+        while not pid_file.exists() and time.time() < deadline:
+            time.sleep(0.05)
+        time.sleep(0.2)
+        child = int(pid_file.read_text())
+        rt.stop_process(proc, grace=1)
+        self.assertIsNotNone(proc.returncode)
+        deadline = time.time() + 5
+        while rt._running(child) and time.time() < deadline:
+            time.sleep(0.05)
+        self.assertFalse(rt._running(child), "a process in the driver's group survived")
+
+    @unittest.skipIf(os.name == "nt", "signals are POSIX")
+    def test_quit_pids(self):
+        import subprocess
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        rt.quit_pids({proc.pid}, grace=1)
+        self.assertIsNotNone(proc.wait(5))
+
+    def test_run_records_skips_and_unavailable_browsers(self):
+        self.add(1)
+        self.add(2, "<img src='https://example.com/'>")
+        self.add(3)
+        (self.dir / vd.RESULTS_FILE).write_text(json.dumps({"9": {"skipped": "old"}}))
+        bugs = {1: {"summary": "ok"}, 2: {"summary": "ok"}, 3: {"keywords": ["crash"]}}
+        orig = rt.find_browser
+        rt.find_browser = lambda b: None
+        try:
+            out = rt.run(self.dir, ["safari"], fetch=bugs.get, log=lambda *a: None)
+        finally:
+            rt.find_browser = orig
+        self.assertEqual(out["1"]["browsers"], {})
+        self.assertIn("absolute URL", out["2"]["skipped"])
+        self.assertIn("crash", out["3"]["skipped"])
+        self.assertEqual(out["9"], {"skipped": "old"})
+        self.assertEqual(json.loads((self.dir / vd.RESULTS_FILE).read_text()), out)

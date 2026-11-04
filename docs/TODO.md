@@ -212,18 +212,21 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
   - Pin `webspec-index`, `searchfox-cli` and `bmo-search` in
     `versions.json`, and have the pre-flight record which ones work, so drafts
     from different machines are comparable.
-  - A verify step a developer runs locally: run the draft's testcase in
-    browsers (e.g. with the wpt runner), then add the results and browser
-    checks to the draft.
+  - A verify step for interactive locked runs: `run_testcases.py` works on
+    its own, but the second pass that adds results is only automatic with
+    `--print --browsers`.
 - [ ] **Triage hardening follow-ups** (raised 2026-11-03, with `run_locked.py`).
   - 🔴 The triage dashboard (firefox-triage-dashboard) accepts cross-site POSTs:
     any web page open in the user's browser can POST to `127.0.0.1:9001`
     (`/draft/<id>/refine` queues text for the Claude drain, `/apply` queues a
     write in reply mode, `/field` edits drafts). Check `Origin`/`Sec-Fetch-Site`
     and the `Host` header (DNS rebinding) there.
-  - Locked runs have no browsers. An isolated mode (fresh profile, no network
-    except a local server for a testcase the model wrote, never for
-    security-sensitive bugs) would bring back interop testing.
+  - `run_testcases.py` gaps (2026-11-04): Safari TP has no proxy setting, so a
+    scripted top-level navigation that dodges the static check can still reach
+    the network there; testcases needing user input (focus, clipboard, drag)
+    can't run; Firefox and Chrome run headless, which can differ for focus and
+    selection. Consider WebDriver actions for input, and a VM or container for
+    the browsers.
   - `bmo-to-md`, `bugzilla-cli` (TLS/DNS) and `socorro-cli` (TLS) fail inside
     the macOS Seatbelt sandbox, and `sandbox.excludedCommands` didn't exempt
     them. The sandbox proxy also drops the tail of replies when the server
