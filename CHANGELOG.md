@@ -27,6 +27,11 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 - **`checks` in triage drafts**: what the triage actually did (spec, source,
   wpt.fyi, browsers, …), so the reviewer sees what it didn't. `dom-core`
   drafts set it; the validator rejects browser checks from locked runs.
+- **`close-verifier` agent**: before a `dom-core` draft closes a bug
+  (DUPLICATE, INVALID, WONTFIX, WORKSFORME, INCOMPLETE), a fresh-context
+  subagent tries to prove the close wrong and records a verdict. Locked runs
+  reject a closing draft without a matching confirm, and `validate_draft.py`
+  checks it too.
 - **`run_locked.py --browsers`**: after a `--print` run, `run_testcases.py`
   loads the testcases the run saved in Firefox Nightly, Chrome Canary and
   Safari TP with no model in the loop, and a second locked pass adds the

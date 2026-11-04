@@ -227,6 +227,10 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
     (`/draft/<id>/refine` queues text for the Claude drain, `/apply` queues a
     write in reply mode, `/field` edits drafts). Check `Origin`/`Sec-Fetch-Site`
     and the `Host` header (DNS rebinding) there.
+  - Guard gaps (2026-11-09): a `close-verifier` may write a verdict for any
+    bug that has none yet, not only the `Bug: <id>` it was spawned for (map
+    spawns to verifier writes); `check_fetch` limits the query string but not
+    the path, so a non-doc host still carries data out in the path.
   - `run_testcases.py` gaps (2026-11-04): Safari TP has no proxy setting, so a
     scripted top-level navigation that dodges the static check can still reach
     the network there; testcases needing user input (focus, clipboard, drag)
