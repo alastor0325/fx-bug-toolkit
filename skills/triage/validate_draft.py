@@ -66,6 +66,11 @@ BARE_CODE = re.compile(r"(?<![\w`./-])(?:[a-z]+[A-Z]\w*(?:\([^)\s]*\))?|[A-Za-z_
 NOT_CODE = {"macOS", "iOS", "iPadOS", "iPhone", "iPad", "eBay", "mozregression"}
 # Written only by run_testcases.py, outside the model's reach.
 RESULTS_FILE = "testcase-results.json"
+# Close verdicts, written only by the close-verifier subagent (verdicts/bug-<id>.json).
+VERDICTS_DIR = "verdicts"
+VERIFIER = "close-verifier"
+CLOSE_RESOLUTIONS = {"DUPLICATE", "INVALID", "WONTFIX", "INCOMPLETE", "WORKSFORME"}
+VERDICT_KEYS = {"bug_id", "resolution", "dupe_of", "verdict", "reasons", "corrections"}
 TESTED_CLAIM = re.compile(r"(?i)\bI (?:tested|ran|reproduced|tried)\b")
 CANT_TEST = re.compile(r"(?i)\b(?:couldn't|could not|can't|cannot|unable to|wasn't able to)\s+(?:test|check|run|reproduce|verify|try)")
 DOM_KEYWORDS = {"spec-needed", "intermittent-failure", "regression", "testcase-wanted",
@@ -119,6 +124,63 @@ def participants(bug):
     return out
 
 
+def verdict_problems(verdict, bug_id):
+    """Errors in a close-verifier verdict for bug_id, or []."""
+    if not isinstance(verdict, dict):
+        return ["verdict is not a JSON object"]
+    errors = []
+    if set(verdict) != VERDICT_KEYS:
+        errors.append(f"verdict needs exactly the keys {sorted(VERDICT_KEYS)}")
+    if verdict.get("bug_id") != bug_id:
+        errors.append(f"verdict bug_id must be {bug_id}")
+    resolution, dupe_of = verdict.get("resolution"), verdict.get("dupe_of")
+    if resolution not in CLOSE_RESOLUTIONS:
+        errors.append(f"verdict resolution must be one of {sorted(CLOSE_RESOLUTIONS)}")
+    if resolution == "DUPLICATE":
+        if not isinstance(dupe_of, int) or dupe_of <= 0 or dupe_of == bug_id:
+            errors.append("a DUPLICATE verdict needs dupe_of, the target's bug id")
+    elif dupe_of is not None:
+        errors.append("verdict dupe_of goes only with DUPLICATE")
+    if verdict.get("verdict") not in ("confirm", "refute"):
+        errors.append("verdict must be confirm or refute")
+    reasons = verdict.get("reasons")
+    if not isinstance(reasons, str) or not reasons.strip():
+        errors.append("verdict needs reasons")
+    corrections = verdict.get("corrections")
+    if not isinstance(corrections, list) or not all(isinstance(c, str) for c in corrections):
+        errors.append("verdict corrections must be a list of strings")
+    return errors
+
+
+def load_verdict(triage_dir, bug_id, since=None):
+    """The verdict file for bug_id, if valid (and written after `since`), else None."""
+    path = Path(triage_dir) / VERDICTS_DIR / f"bug-{bug_id}.json"
+    try:
+        if since is not None and path.stat().st_mtime < since:
+            return None
+        verdict = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return None if verdict_problems(verdict, bug_id) else verdict
+
+
+def close_problem(draft, verdict):
+    """Why a closing draft lacks a matching confirm, or None."""
+    resolution = draft.get("resolution")
+    if resolution not in CLOSE_RESOLUTIONS:
+        return None
+    if verdict is None:
+        return (f"{resolution} needs a confirm from the {VERIFIER} subagent "
+                f"({VERDICTS_DIR}/bug-<id>.json); spawn it before writing this draft")
+    if verdict["verdict"] == "refute":
+        return (f"{VERIFIER} refuted closing this bug: don't close it, draft it open "
+                "and apply its corrections")
+    if (verdict["resolution"], verdict["dupe_of"]) != (resolution, draft.get("dupe_of")):
+        return (f"{VERIFIER} confirmed {verdict['resolution']} (dupe_of {verdict['dupe_of']}), "
+                f"not {resolution} (dupe_of {draft.get('dupe_of')})")
+    return None
+
+
 def browsers_run(triage_dir, bug_id):
     """Browsers with an `ok` testcase result for bug_id in RESULTS_FILE."""
     try:
@@ -129,11 +191,13 @@ def browsers_run(triage_dir, bug_id):
         return frozenset()
 
 
-def validate(draft, team="av", bug=None, expected_id=None, locked=False, browsers_ok=frozenset()):
+def validate(draft, team="av", bug=None, expected_id=None, locked=False, browsers_ok=frozenset(),
+             verdict=None, require_verdict=False):
     """Return (errors, warnings) for a draft dict.
 
     `locked`: the model drove no browser, so browser checks need an `ok` result
-    from run_testcases.py (`browsers_ok`)."""
+    from run_testcases.py (`browsers_ok`). `require_verdict`: a dom-core close
+    needs a matching confirm `verdict` from the close-verifier subagent."""
     errors, warnings = [], []
     if not isinstance(draft, dict):
         return ["draft is not a JSON object"], []
@@ -242,9 +306,22 @@ def validate(draft, team="av", bug=None, expected_id=None, locked=False, browser
         bare = sorted({m for m in BARE_CODE.findall(URL.sub("", prose)) if m not in NOT_CODE})
         if bare:
             warnings.append(f"comment: put code in backticks: {', '.join(bare)}")
+        if require_verdict:
+            problem = close_problem(draft, verdict)
+            if problem:
+                errors.append(problem)
         if CANT_TEST.search(comment):
             warnings.append("comment: say what you didn't test, not that you couldn't")
     return errors, warnings
+
+
+def run_started(env=None):
+    """FX_TRIAGE_RUN_STARTED (set by run_locked.py) as a float, or None."""
+    env = os.environ if env is None else env
+    try:
+        return float(env["FX_TRIAGE_RUN_STARTED"])
+    except (KeyError, ValueError):
+        return None
 
 
 def main(argv=None):
@@ -269,7 +346,9 @@ def main(argv=None):
     locked = os.environ.get("FX_TRIAGE_LOCKED") == "1"
     triage_dir = os.path.expanduser(os.environ.get("TRIAGE_DIR") or "~/firefox-triage")
     errors, warnings = validate(draft, args.team, bug, bug_id, locked=locked,
-                                browsers_ok=browsers_run(triage_dir, bug_id) if locked else frozenset())
+                                browsers_ok=browsers_run(triage_dir, bug_id) if locked else frozenset(),
+                                verdict=load_verdict(triage_dir, bug_id, run_started()),
+                                require_verdict=bug_id is not None)
     for w in warnings:
         print(f"warning: {w}")
     for e in errors:

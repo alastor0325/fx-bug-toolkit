@@ -42,7 +42,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import run_testcases  # noqa: E402
-from validate_draft import RESULTS_FILE  # noqa: E402
+from validate_draft import RESULTS_FILE, VERDICTS_DIR  # noqa: E402
 
 PLUGIN_DIR = HERE.parent.parent
 TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill,WebFetch,Agent"
@@ -76,6 +76,7 @@ LOCKED_NOTE = """Locked triage run (run_locked.py). Rules that override the skil
 - Read bugs with `python3 {scripts}/read_bug.py <id>` (fields, full emails, public comments, attachment list). Crash volume: `python3 {scripts}/crash_stats.py "<signature>"`. Merge parallel triage-log tmp files with `python3 {scripts}/merge_triage_log.py`. `bmo-to-md`, `bugzilla-cli` and `socorro-cli` are not available; `bmo-search` is, for duplicate searches.
 - Read attachments only with `python3 {scripts}/read_attachment.py --bug <id>` (list) and `--bug <id> --id <attachment id>` (text, or an image saved for the Read tool). It refuses archives and binaries; don't try to get around that.
 - You can't drive a browser. Save each testcase you write as the profile says; run_locked.py may run them afterwards with run_testcases.py. List firefox, chrome or safari in `checks` only for browsers with an `ok` result for that bug in `{triage_dir}/testcase-results.json`; the hook enforces it. Otherwise use wpt.fyi results and the engines' source. In comments, say what you didn't test, not that you couldn't.
+- Before writing a draft that closes a bug (DUPLICATE, INVALID, WONTFIX, WORKSFORME, INCOMPLETE), spawn the `fx-bug-toolkit:close-verifier` subagent as the profile says, and give it the path `{scripts}/read_bug.py`. The hook rejects a closing draft without its confirm, and allows one verifier per bug.
 - Validate every draft: `python3 {validator} <draft> --team {team}`. A hook rejects drafts that fail.
 - Don't open the dashboard; say the drafts are ready for /open-triage."""
 
@@ -122,13 +123,17 @@ def settings(python_exe, triage_dir):
             "network": {"allowedDomains": list(NET_HOSTS)},
             "filesystem": {"allowWrite": [str(triage_dir), "/tmp", os.path.expanduser(WEBSPEC_DB)],
                            "denyRead": list(DENY_READ),
-                           "denyWrite": [str(PLUGIN_DIR), str(triage_dir / RESULTS_FILE)]},
+                           "denyWrite": [str(PLUGIN_DIR), str(triage_dir / RESULTS_FILE),
+                                         str(triage_dir / VERDICTS_DIR)]},
         },
     }
 
 
-def build(args, env, python_exe=sys.executable):
-    """The claude argv, environment, and working directory for a locked run."""
+def build(args, env, python_exe=sys.executable, started=None):
+    """The claude argv, environment, and working directory for a locked run.
+
+    `started` (Unix time) marks the start of the whole run: verdicts written
+    before it don't count."""
     triage_dir = Path(os.path.expanduser(args.triage_dir)).resolve()
     note = LOCKED_NOTE.format(team=args.team, triage_dir=triage_dir, validator=(HERE / "validate_draft.py").as_posix(),
                               scripts=HERE.as_posix())
@@ -145,7 +150,8 @@ def build(args, env, python_exe=sys.executable):
         argv += ["--permission-prompts", "none", "-p", args.print]
     child = clean_env(env)
     child.update({"TRIAGE_TEAM": args.team, "TRIAGE_DIR": str(triage_dir), "FX_TRIAGE_LOCKED": "1",
-                  "FX_TRIAGE_PLUGIN_DIR": str(PLUGIN_DIR)})
+                  "FX_TRIAGE_PLUGIN_DIR": str(PLUGIN_DIR),
+                  "FX_TRIAGE_RUN_STARTED": str(time.time() if started is None else started)})
     if args.components:
         child["TRIAGE_COMPONENTS"] = args.components
     return argv, child, triage_dir
@@ -176,9 +182,9 @@ def main(argv=None):
     args = ap.parse_args(argv)
     if args.browsers and not args.print:
         ap.error("--browsers needs --print")
-    cmd, env, triage_dir = build(args, os.environ)
-    (triage_dir / "pending").mkdir(parents=True, exist_ok=True)
     started = time.time()
+    cmd, env, triage_dir = build(args, os.environ, started=started)
+    (triage_dir / "pending").mkdir(parents=True, exist_ok=True)
     rc = subprocess.run(cmd, env=env, cwd=triage_dir).returncode
     if rc or not args.browsers:
         return rc
@@ -190,7 +196,7 @@ def main(argv=None):
         return 0
     second = argparse.Namespace(**{**vars(args), "print": BROWSER_PASS.format(
         results=RESULTS_FILE, team=args.team)})
-    cmd, env, _ = build(second, os.environ)
+    cmd, env, _ = build(second, os.environ, started=started)
     return subprocess.run(cmd, env=env, cwd=triage_dir).returncode
 
 

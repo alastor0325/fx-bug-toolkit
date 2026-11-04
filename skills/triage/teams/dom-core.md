@@ -212,6 +212,23 @@ and the DOM Core team's calibration:
 | Works as intended | `resolution: "INVALID"`, comment with the spec or design link | close (§1c) |
 | Spec question, engines agree | `severity` (usually S3 or S4), `keywords_add: ["spec-needed"]`, `see_also_add` for the spec issue, comment | triaged (§1b) |
 
+**Verify every close first.** Before writing a draft with a `resolution`
+(DUPLICATE, INVALID, WONTFIX, WORKSFORME, INCOMPLETE), spawn the
+`fx-bug-toolkit:close-verifier` subagent with the Agent tool. It starts with a
+fresh context and tries to prove the close wrong, so give it only what it needs:
+a first line `Bug: <id>`, then the resolution, `dupe_of`, your reasons, the
+draft comment, and the path of `read_bug.py`. Wait for its verdict (it writes
+`verdicts/bug-<id>.json`):
+
+- **confirm**: write the closing draft with its corrections applied, and add
+  `Close verified: <its reason in a few words>.` to `ai_reasoning`.
+- **refute**: don't close the bug in this run. Draft it open (triaged with a
+  severity, or needs info) and use its corrections.
+
+Spawn one verifier per bug, never another one for the same bug. In locked runs
+the hook rejects a closing draft without a matching confirm, and
+`validate_draft.py` (which `/triage`'s apply step runs) checks the same.
+
 Needinfo whoever can make the next decision: the reporter for missing data, the
 regressor's author, or the owner of the code (from blame, or who implemented the
 feature) when a developer decision is needed. Keep it to one or two people.
