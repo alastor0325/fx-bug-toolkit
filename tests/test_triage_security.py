@@ -109,6 +109,18 @@ class TestValidateDraft(unittest.TestCase):
     def test_empty_comment_needs_no_note(self):
         self.assertEqual(self.errors(draft()), [])
 
+    def test_unhashable_values_are_errors(self):
+        for kw in ({"severity": []}, {"priority": {}}, {"resolution": ["DUPLICATE"]}):
+            self.assertTrue(self.errors(draft(**kw)), kw)
+        self.assertTrue(vd.verdict_problems({"bug_id": 100, "resolution": [], "dupe_of": None,
+                                             "verdict": [], "reasons": "r", "corrections": []}, 100))
+
+    def test_schemeless_links_rejected(self):
+        for c in ("See [this](//evil.example/x).", "See [this]( <//evil.example/x>).",
+                  "[x]: //evil.example/x", "See [this](\\\\evil.example/x)."):
+            self.assertTrue(vd.text_problems(c, "comment"), c)
+        self.assertEqual(vd.text_problems("A `// comment` and [a](https://searchfox.org/x).", "comment"), [])
+
     def test_unknown_field_and_wrong_id(self):
         e = self.errors(draft(evil=1, bug_id=101))
         self.assertTrue(any("unknown fields" in x for x in e))
@@ -242,6 +254,38 @@ class TestGuardWritesAndFetch(unittest.TestCase):
     def test_results_file_not_writable(self):
         reason = self.decide("Write", {"file_path": str(self.dir / vd.RESULTS_FILE), "content": "{}"})
         self.assertIn("run_testcases.py", reason)
+
+    def test_protected_paths_by_any_spelling(self):
+        # Dot-dot segments and other letter cases reach the same file on
+        # case-insensitive file systems, so they get the same checks.
+        bad = json.dumps(draft(priority="P1"))
+        for path in (self.dir / "pending" / "x" / ".." / "bug-100.json", self.dir / "PENDING" / "bug-100.json",
+                     self.dir / "pending" / "BUG-100.JSON"):
+            self.assertIn("never set priority", self.decide("Write", {"file_path": str(path), "content": bad}), path)
+        reason = self.decide("Write", {"file_path": str(self.dir / "VERDICTS" / "bug-100.json"), "content": "{}"})
+        self.assertIn("close-verifier", reason)
+        reason = self.decide("Write", {"file_path": str(self.dir / vd.RESULTS_FILE.upper()), "content": "{}"})
+        self.assertIn("run_testcases.py", reason)
+        # The triage directory itself must match exactly: on Linux another case is another
+        # folder. (Windows paths compare without case, and there it is the same folder.)
+        if os.name != "nt":
+            other = self.dir.parent / self.dir.name.swapcase() / "notes.md"
+            reason = self.decide("Write", {"file_path": str(other), "content": "x"})
+            self.assertIn("limited to the triage directory", reason)
+
+    def test_hook_fails_closed(self):
+        # A hook that crashes doesn't block the tool call, so main denies instead.
+        event = {"tool_name": "Write", "tool_input": {"file_path": str(self.dir / "pending" / "bug-100.json"),
+                                                      "content": "{}"}}
+        out = io.StringIO()
+        with unittest.mock.patch.object(guard, "decide", side_effect=TypeError("boom")), \
+                unittest.mock.patch.dict(os.environ, {"TRIAGE_DIR": str(self.dir)}), \
+                unittest.mock.patch("sys.stdin", io.StringIO(json.dumps(event))), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(guard.main(), 0)
+        decision = json.loads(out.getvalue())["hookSpecificOutput"]
+        self.assertEqual(decision["permissionDecision"], "deny")
+        self.assertIn("boom", decision["permissionDecisionReason"])
 
     def test_write_outside_triage_dir(self):
         self.assertIsNotNone(self.decide("Write", {"file_path": "/tmp/elsewhere.txt", "content": "x"}))
@@ -487,6 +531,27 @@ class TestGuardNeedinfo(unittest.TestCase):
             self.assertEqual(vd.browsers_run(d, 100), {"chrome"})
             self.assertEqual(vd.browsers_run(d, 101), frozenset())
 
+    def test_browser_results_from_earlier_runs_dont_count(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / vd.RESULTS_FILE).write_text(json.dumps({"100": {
+                "ran_at": "2026-11-03T10:00:00+00:00", "browsers": {"chrome": {"status": "ok"}}}}))
+            ran_at = 1793700000  # 2026-11-03T10:00:00Z
+            self.assertEqual(vd.browsers_run(d, 100, ran_at - 60), {"chrome"})
+            self.assertEqual(vd.browsers_run(d, 100, ran_at + 0.5), {"chrome"})
+            self.assertEqual(vd.browsers_run(d, 100, ran_at + 60), frozenset())
+
+    def test_hook_reads_bug_within_its_timeout(self):
+        calls = []
+
+        def get(url, limit=0, timeout=120, attempts=3):
+            calls.append((timeout, attempts))
+            raise OSError("down")
+        with unittest.mock.patch.object(rb.bmo_http, "get", get), \
+                unittest.mock.patch.dict(sys.modules, {"read_bug": rb}):
+            with self.assertRaises(OSError):
+                guard.fetch_bug(100)
+        self.assertEqual(calls, [(8, 1)])
+
 
 class TestRunLocked(unittest.TestCase):
     def build(self, **kw):
@@ -516,6 +581,7 @@ class TestRunLocked(unittest.TestCase):
         self.assertIn(os.path.expanduser("~/.webspec-index"), s["sandbox"]["filesystem"]["allowWrite"])
         self.assertIn("*.spec.whatwg.org", s["sandbox"]["network"]["allowedDomains"])
         self.assertIn(str(cwd / vd.RESULTS_FILE), s["sandbox"]["filesystem"]["denyWrite"])
+        self.assertIn(str(cwd / vd.VERDICTS_DIR), s["sandbox"]["filesystem"]["denyWrite"])
         self.assertIn("Bash(bugzilla-cli post-comment:*)", s["permissions"]["deny"])
         self.assertIn("Read(~/.ssh/**)", s["permissions"]["deny"])
         self.assertIn("triage_guard.py", s["hooks"]["PreToolUse"][0]["hooks"][0]["command"])
@@ -530,6 +596,7 @@ class TestRunLocked(unittest.TestCase):
         self.assertEqual(env["ANTHROPIC_API_KEY"], "keep")
         self.assertEqual(env["CLAUDE_CODE_USE_BEDROCK"], "1")
         self.assertEqual(env["FX_TRIAGE_LOCKED"], "1")
+        float(env["FX_TRIAGE_RUN_STARTED"])
         self.assertEqual(env["TRIAGE_TEAM"], "dom-core")
         self.assertEqual(env["TRIAGE_COMPONENTS"], "Core::XML")
 
@@ -551,6 +618,105 @@ class TestRunLocked(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def verdict(**kw):
+    v = {"bug_id": 100, "resolution": "DUPLICATE", "dupe_of": 5, "verdict": "confirm",
+         "reasons": "Same cause.", "corrections": []}
+    v.update(kw)
+    return v
+
+
+class TestCloseVerdicts(unittest.TestCase):
+    def test_verdict_problems(self):
+        self.assertEqual(vd.verdict_problems(verdict(), 100), [])
+        self.assertEqual(vd.verdict_problems(verdict(resolution="INVALID", dupe_of=None), 100), [])
+        for bad in (verdict(bug_id=101), verdict(resolution="FIXED"), verdict(dupe_of=None),
+                    verdict(resolution="INVALID"), verdict(verdict="maybe"), verdict(reasons=""),
+                    verdict(corrections="none"), {**verdict(), "extra": 1}, []):
+            self.assertTrue(vd.verdict_problems(bad, 100), bad)
+
+    def test_close_problem(self):
+        dup = draft(resolution="DUPLICATE", dupe_of=5, severity=None)
+        self.assertIsNone(vd.close_problem(draft(), None))
+        self.assertIn("needs a confirm", vd.close_problem(dup, None))
+        self.assertIsNone(vd.close_problem(dup, verdict()))
+        self.assertIn("refuted", vd.close_problem(dup, verdict(verdict="refute")))
+        self.assertIn("not DUPLICATE", vd.close_problem(dup, verdict(dupe_of=6)))
+        self.assertEqual(vd.validate(dup, "dom-core", None, 100, verdict=verdict(), require_verdict=True)[0], [])
+        self.assertTrue(vd.validate(dup, "dom-core", None, 100, require_verdict=True)[0])
+        self.assertEqual(vd.validate(dup, "av", None, 100, require_verdict=True)[0], [])
+
+    def test_load_verdict_and_run_started(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / vd.VERDICTS_DIR).mkdir()
+            path = Path(d) / vd.VERDICTS_DIR / "bug-100.json"
+            path.write_text(json.dumps(verdict()))
+            self.assertEqual(vd.load_verdict(d, 100), verdict())
+            self.assertIsNone(vd.load_verdict(d, 100, since=path.stat().st_mtime + 60))
+            self.assertIsNone(vd.load_verdict(d, 101))
+            path.write_text(json.dumps(verdict(verdict="maybe")))
+            self.assertIsNone(vd.load_verdict(d, 100))
+        self.assertEqual(vd.run_started({"FX_TRIAGE_RUN_STARTED": "12.5"}), 12.5)
+        self.assertIsNone(vd.run_started({}))
+
+
+class TestGuardCloseVerifier(unittest.TestCase):
+    VERIFIER = "fx-bug-toolkit:close-verifier"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        (self.dir / "pending").mkdir()
+        (self.dir / vd.VERDICTS_DIR).mkdir()
+        self.verdict_path = str(self.dir / vd.VERDICTS_DIR / "bug-100.json")
+        self.draft_path = str(self.dir / "pending" / "bug-100.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def decide(self, tool, tool_input, agent_type=None):
+        event = {"tool_name": tool, "tool_input": tool_input}
+        if agent_type:
+            event["agent_type"] = agent_type
+        return guard.decide(event, PLUGIN, str(self.dir), "dom-core")
+
+    def write_verdict(self, v=None, agent_type=VERIFIER):
+        return self.decide("Write", {"file_path": self.verdict_path,
+                                     "content": json.dumps(v or verdict())}, agent_type)
+
+    def test_only_verifier_writes_verdicts(self):
+        self.assertIn("only by the close-verifier", self.write_verdict(agent_type="general-purpose") or "")
+        self.assertIn("only by the close-verifier", self.write_verdict(agent_type=None) or "")
+        self.assertIsNone(self.write_verdict())
+        self.assertIn("rejected", self.write_verdict(verdict(verdict="maybe")))
+
+    def test_verdict_is_final(self):
+        Path(self.verdict_path).write_text(json.dumps(verdict(verdict="refute")))
+        self.assertIn("final", self.write_verdict())
+
+    def test_verifier_writes_nothing_else(self):
+        self.assertIsNotNone(self.decide("Write", {"file_path": self.draft_path,
+                                                   "content": json.dumps(draft())}, self.VERIFIER))
+        self.assertIsNotNone(self.decide("Edit", {"file_path": self.verdict_path, "old_string": "a",
+                                                  "new_string": "b"}, self.VERIFIER))
+
+    def test_closing_draft_needs_confirm(self):
+        dup = json.dumps(draft(resolution="DUPLICATE", dupe_of=5, severity=None))
+        self.assertIn("needs a confirm", self.decide("Write", {"file_path": self.draft_path, "content": dup}))
+        Path(self.verdict_path).write_text(json.dumps(verdict()))
+        self.assertIsNone(self.decide("Write", {"file_path": self.draft_path, "content": dup}))
+        Path(self.verdict_path).write_text(json.dumps(verdict(verdict="refute")))
+        self.assertIn("refuted", self.decide("Write", {"file_path": self.draft_path, "content": dup}))
+        self.assertIsNone(self.decide("Write", {"file_path": self.draft_path, "content": json.dumps(draft())}))
+
+    def test_one_spawn_per_bug(self):
+        spawn = {"subagent_type": self.VERIFIER, "prompt": "Bug: 100\nresolution DUPLICATE"}
+        self.assertIsNone(self.decide("Agent", spawn))
+        self.assertIn("Bug: <id>", self.decide("Agent", {**spawn, "prompt": "check bug 100"}))
+        self.assertIsNone(self.decide("Agent", {"subagent_type": "general-purpose", "prompt": "x"}))
+        Path(self.verdict_path).write_text(json.dumps(verdict()))
+        self.assertIn("already has", self.decide("Agent", spawn))
 
 
 class TestRunLockedBrowsers(unittest.TestCase):

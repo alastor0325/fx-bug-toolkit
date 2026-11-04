@@ -7,7 +7,9 @@ they run, independent of what the model was persuaded to do:
 - Bash: only read-only Bugzilla/searchfox/spec/crash CLIs and this plugin's
   scripts; no shell operators, substitutions, or attachment downloads.
 - Write/Edit: only inside $TRIAGE_DIR; pending drafts must pass
-  validate_draft.py.
+  validate_draft.py, and a DUPLICATE/INVALID/… close needs a confirm verdict
+  from the close-verifier subagent, which is the only writer of verdicts/.
+- Agent: one close-verifier per bug per run.
 - WebFetch: documentation hosts, and public http(s) sites; never local or
   private-network targets, credentials, odd ports, or long query strings.
 - Anything else that reaches the hook is denied.
@@ -146,19 +148,74 @@ def check_draft_text(path, text, team, fetch=fetch_bug):
             bug = fetch(draft_id(path))
         except Exception as e:  # noqa: BLE001
             return f"could not read the bug to check needinfo/CC targets ({e}); try again"
-    ran = validate_draft.browsers_run(Path(path).parent.parent, draft_id(path))
-    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path), locked=True, browsers_ok=ran)
+    root = Path(path).resolve().parent.parent
+    since = validate_draft.run_started()
+    ran = validate_draft.browsers_run(root, draft_id(path), since)
+    verdict = validate_draft.load_verdict(root, draft_id(path), since)
+    errors, _ = validate_draft.validate(draft, team, bug, draft_id(path), locked=True, browsers_ok=ran,
+                                        verdict=verdict, require_verdict=True)
     if errors:
         return "draft rejected by validate_draft.py: " + "; ".join(errors)
     return None
 
 
-def check_write(tool, tool_input, triage_dir, team):
+def is_verifier(name):
+    """Whether an agent type (`plugin:agent` or `agent`) is the close verifier."""
+    return (name or "").split(":")[-1] == validate_draft.VERIFIER
+
+
+def fresh_verdict_exists(triage_dir, bug_id):
+    """Whether bug_id already has a verdict file from this run."""
+    path = Path(triage_dir) / validate_draft.VERDICTS_DIR / f"bug-{bug_id}.json"
+    since = validate_draft.run_started()
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return False
+    return since is None or mtime >= since
+
+
+def check_verdict_write(tool, tool_input, triage_dir):
+    """The close verifier may only Write one new, valid verdicts/bug-<id>.json."""
+    path = Path(tool_input.get("file_path") or "")
+    m = re.fullmatch(r"bug-(\d+)\.json", path.name)
+    folder = (Path(triage_dir) / validate_draft.VERDICTS_DIR).resolve()
+    if tool != "Write" or not m or path.resolve().parent != folder:
+        return f"{validate_draft.VERIFIER} only writes {folder}/bug-<id>.json, once, with Write"
+    bug_id = int(m.group(1))
+    if fresh_verdict_exists(triage_dir, bug_id):
+        return f"bug {bug_id} already has a verdict in this run; a verdict is final"
+    try:
+        verdict = json.loads(tool_input.get("content") or "")
+    except json.JSONDecodeError as e:
+        return f"verdict is not valid JSON: {e}"
+    problems = validate_draft.verdict_problems(verdict, bug_id)
+    return "verdict rejected: " + "; ".join(problems) if problems else None
+
+
+def check_spawn(tool_input, triage_dir):
+    """One close verifier per bug per run, named by a leading `Bug: <id>` line."""
+    if not is_verifier(tool_input.get("subagent_type")):
+        return None
+    m = re.match(r"\s*Bug:\s*(\d+)", tool_input.get("prompt") or "")
+    if not m:
+        return f"start the {validate_draft.VERIFIER} prompt with a line `Bug: <id>`"
+    if fresh_verdict_exists(triage_dir, int(m.group(1))):
+        return (f"bug {m.group(1)} already has a {validate_draft.VERIFIER} verdict in this run; "
+                "a refute is final, so draft the bug open")
+    return None
+
+
+def check_write(tool, tool_input, triage_dir, team, agent_type=None):
     path = tool_input.get("file_path") or ""
     if not path or not inside(path, triage_dir):
         return f"writes are limited to the triage directory ({triage_dir})"
-    if Path(path).name == validate_draft.RESULTS_FILE:
+    if _canonical(path).name == validate_draft.RESULTS_FILE.lower():
         return f"{validate_draft.RESULTS_FILE} is written only by run_testcases.py"
+    if is_verifier(agent_type):
+        return check_verdict_write(tool, tool_input, triage_dir)
+    if inside(path, Path(triage_dir) / validate_draft.VERDICTS_DIR, fold_case=True):
+        return f"verdicts are written only by the {validate_draft.VERIFIER} subagent"
     if draft_id(path) is None:
         return None
     if tool == "Write":
@@ -232,10 +289,12 @@ def decide(event, plugin_dir, triage_dir, team):
     if tool == "Bash":
         return check_bash(tool_input.get("command") or "", plugin_dir)
     if tool in ("Write", "Edit"):
-        return check_write(tool, tool_input, triage_dir, team)
+        return check_write(tool, tool_input, triage_dir, team, event.get("agent_type"))
+    if tool in ("Agent", "Task"):
+        return check_spawn(tool_input, triage_dir)
     if tool == "WebFetch":
         return check_fetch(tool_input.get("url"))
-    if tool in ("Read", "Glob", "Grep", "Skill", "Agent", "Task", "TodoWrite"):
+    if tool in ("Read", "Glob", "Grep", "Skill", "TodoWrite"):
         return None
     return f"{tool} is not allowed in locked triage"
 

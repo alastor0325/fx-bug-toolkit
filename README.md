@@ -99,6 +99,7 @@ source plugin shown next to each.
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
 | `gecko-navigator` (agent) | Orients in the Gecko codebase and traces execution flows |
 | `firefox-review-aspect` (agent) | A single-dimension reviewer (spec/security/threading/IPC/…) that `/review` fans out to, one per dimension; also runs the adversarial verify pass. `/review` itself orchestrates from the main session |
+| `close-verifier` (agent) | Checks a closing `/triage` draft (DUPLICATE, INVALID, …) with a fresh context and tries to prove it wrong; spawned by `/triage`, not directly |
 
 These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
@@ -159,7 +160,9 @@ things live:
 > of public sites (no localhost or private network), plus the Bash sandbox.
 > Attachments are read with `read_attachment.py`: text as escaped text, images
 > after a magic-byte check, never archives or binaries. It is read-only and
-> anonymous. Add `--browsers` to a `--print` run to load the testcases it saved
+> anonymous. A DOM Core draft that closes a bug needs a confirm from the
+> `close-verifier` subagent, which rereads the bug with a fresh context and
+> tries to prove the close wrong. Add `--browsers` to a `--print` run to load the testcases it saved
 > in Firefox Nightly, Chrome Canary and Safari TP afterwards: `run_testcases.py`
 > does that with no model in the loop (pages served from 127.0.0.1 under a CSP,
 > a dead proxy for Firefox and Chrome, a fresh profile per page, crash and
