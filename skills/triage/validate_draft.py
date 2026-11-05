@@ -64,6 +64,8 @@ AI_NOTE = "(AI-assisted triage, with review.)"
 # camelCase or call-shaped words outside code spans and links, e.g. fooBar, foo().
 BARE_CODE = re.compile(r"(?<![\w`./-])(?:[a-z]+[A-Z]\w*(?:\([^)\s]*\))?|[A-Za-z_]\w*\(\))(?![\w`])")
 NOT_CODE = {"macOS", "iOS", "iPadOS", "iPhone", "iPad", "eBay", "mozregression"}
+# A URL that isn't the target of a Markdown link, e.g. "(https://…)" or <https://…>.
+BARE_URL = re.compile(r"(?<!\]\()https?://[^\s<>()\"'\]]+", re.I)
 # Written only by run_testcases.py, outside the model's reach.
 RESULTS_FILE = "testcase-results.json"
 # Close verdicts, written only by the close-verifier subagent (verdicts/bug-<id>.json).
@@ -306,6 +308,10 @@ def validate(draft, team="av", bug=None, expected_id=None, locked=False, browser
         bare = sorted({m for m in BARE_CODE.findall(URL.sub("", prose)) if m not in NOT_CODE})
         if bare:
             warnings.append(f"comment: put code in backticks: {', '.join(bare)}")
+        urls = BARE_URL.findall(re.sub(r"`[^`]*`", "", comment))
+        if urls:
+            warnings.append("comment: link the words that name the thing, [words](url), "
+                            f"instead of a bare URL: {', '.join(urls)}")
         if require_verdict:
             problem = close_problem(draft, verdict)
             if problem:
