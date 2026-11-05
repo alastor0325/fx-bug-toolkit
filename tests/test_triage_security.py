@@ -91,7 +91,16 @@ class TestValidateDraft(unittest.TestCase):
         for name in ("formAssociatedCallback", "disconnectedCallback", "remove()"):
             self.assertIn(name, w)
         ok = (f"`formAssociatedCallback(null)` runs in [`Element::UnbindFromTree`](https://searchfox.org/a/b#1) "
-              f"on macOS, see https://html.spec.whatwg.org/#fooBar.\n\n{NOTE}")
+              f"on macOS, see [the spec](https://html.spec.whatwg.org/#fooBar).\n\n{NOTE}")
+        self.assertEqual(self.warnings(draft(comment=ok)), [])
+
+    def test_bare_url_warns(self):
+        for c in ("This assertion (https://searchfox.org/a/b#1) fires.",
+                  "See https://html.spec.whatwg.org/#x.", "See <https://wpt.fyi/results/dom>."):
+            w = " ".join(self.warnings(draft(comment=f"{c}\n\n{NOTE}")))
+            self.assertIn("instead of a bare URL", w, c)
+        ok = (f"[This assertion](https://searchfox.org/a/b#1) fires; `curl https://example.test/` "
+              f"is code.\n\n{NOTE}")
         self.assertEqual(self.warnings(draft(comment=ok)), [])
 
     def test_cant_test_phrasing_warns(self):
