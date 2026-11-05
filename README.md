@@ -81,7 +81,7 @@ source plugin shown next to each.
 | `/analyze-profile <url>` | Analyze a Firefox Profiler capture |
 | `/check-log <path>` | Diagnose a Firefox log (great for media/EME/CDM crashes) |
 | `/open-investigation` | Open a local web viewer to search & read all your past investigations |
-| `/triage` | Firefox A/V weekly bug triage — sweep watched + recent bugs, write reviewable drafts |
+| `/triage` | Firefox bug triage for a team's components (A/V by default, DOM Core via `TRIAGE_TEAM=dom-core`) — sweep watched + untriaged bugs, write reviewable drafts |
 | `/open-triage` | Open the triage dashboard (web UI over the drafts); lazily installs it on first use |
 | `/review <D-rev\|local\|diff>` | AI patch review — routes the patch to per-aspect reviewers (**always** spec, security/memory-safety, threading, code quality, tests; **plus** IPC, error-handling, API usage when relevant), adversarially verifies the serious findings, and writes a structured review doc |
 | `/open-review [repo]` | Open **Revue**, the local web UI for reviewing a repo's patches by hand. Pass a repo/worktree path, or omit it to reuse your remembered repo (Revue's `revue init` default in `~/.revue/config.json`); lazily installs Revue on first use. Every repo shares one Revue port, and the dashboard at `/` switches between them |
@@ -99,6 +99,7 @@ source plugin shown next to each.
 | `source-links` | Makes sure every code/spec reference is a real, clickable link |
 | `gecko-navigator` (agent) | Orients in the Gecko codebase and traces execution flows |
 | `firefox-review-aspect` (agent) | A single-dimension reviewer (spec/security/threading/IPC/…) that `/review` fans out to, one per dimension; also runs the adversarial verify pass. `/review` itself orchestrates from the main session |
+| `close-verifier` (agent) | Checks a closing `/triage` draft (DUPLICATE, INVALID, …) with a fresh context and tries to prove it wrong; spawned by `/triage`, not directly |
 
 These are marked `user-invocable: false`, so they stay out of your command
 picker — `bug-start` and friends pull them in when needed.
@@ -131,7 +132,8 @@ things live:
 | `FX_REVIEW_DIR` | `~/.fx-bug-toolkit/patches-review` | where `/review` writes its review documents |
 | `TRIAGE_OWNER` | _(none — required for `/triage` **reply mode** only)_ | triage owner's Bugzilla email; CC'd/needinfo'd only when opted in per draft (dashboard "CC me"/"NI me", default off). Not needed in read-only mode |
 | `TRIAGE_DIR` | `~/firefox-triage/` | where `/triage` writes its drafts, watch list, and log |
-| `TRIAGE_COMPONENTS` | _(the default A/V set)_ | `;`-separated list of exact Bugzilla component names `/triage` covers; unset = the default eight (see [`skills/triage/components.md`](skills/triage/components.md)) |
+| `TRIAGE_TEAM` | `av` | which team profile `/triage` uses: `av` (Audio/Video) or `dom-core` (see [`skills/triage/teams/`](skills/triage/teams/)) |
+| `TRIAGE_COMPONENTS` | _(the team profile's set)_ | `;`-separated list of `Product::Component` (or bare component) names `/triage` covers; unset = the profile's default (see [`skills/triage/components.md`](skills/triage/components.md)) |
 | `FX_BUG_TOOLKIT_MODE` | _(unset: local mode)_ | set to `hackbot` only in the Hackbot cloud container; see [Hackbot mode](#hackbot-mode) |
 
 (The optional shared wiki has its own `WIKI_PATH` setting — see
@@ -144,14 +146,36 @@ things live:
 > so later runs reuse it; reply mode won't proceed without one, since it
 > CCs/needinfo's that address when writing.
 
-> **`TRIAGE_COMPONENTS` is optional.** The components `/triage` covers are
-> defined in [`skills/triage/components.md`](skills/triage/components.md) — the
-> single source of truth (the skill, the meta-bug search, and `bugzilla-cli
-> fetch` all read from it; the CLI no longer hardcodes the set). On the **first
-> run** the skill shows the default eight A/V components and asks whether to keep
-> them or customize; keeping the default writes nothing (unset = default), and
-> customizing persists a `;`-separated list. Every run prints the resolved set
-> before fetching so it's always clear which components it's triaging.
+> **`TRIAGE_TEAM` and `TRIAGE_COMPONENTS` are optional.** Each team profile in
+> [`skills/triage/teams/`](skills/triage/teams/) defines its components, queue,
+> per-bug workflow, severity standard, and comment rules. `av` (the default)
+> triages recent A/V bugs and hands fixable ones to `/bug-start`; `dom-core`
+> works BugBot's untriaged list (open defects with no severity and no pending
+> needinfo) and drafts a severity plus at most one comment per bug. You can also
+> pass BugBot's query link: `/triage https://mzl.la/…`. For bugs nobody has
+> vetted (anyone can file or comment), run it locked:
+> `python3 skills/triage/run_locked.py --team dom-core [--print "/triage …"]`.
+> That starts Claude Code with `--restricted`, no MCP servers, a hook that
+> allows only read-only tools, drafts that pass `validate_draft.py`, and fetches
+> of public sites (no localhost or private network), plus the Bash sandbox.
+> Attachments are read with `read_attachment.py`: text as escaped text, images
+> after a magic-byte check, never archives or binaries. It is read-only and
+> anonymous. A DOM Core draft that closes a bug needs a confirm from the
+> `close-verifier` subagent, which rereads the bug with a fresh context and
+> tries to prove the close wrong. Add `--browsers` to a `--print` run to load the testcases it saved
+> in Firefox Nightly, Chrome Canary and Safari TP afterwards: `run_testcases.py`
+> does that with no model in the loop (pages served from 127.0.0.1 under a CSP,
+> a dead proxy for Firefox and Chrome, a fresh profile per page, crash and
+> security bugs skipped), then a second locked pass adds the results to the
+> drafts. It finds `geckodriver`/`chromedriver` on `PATH` or via
+> `FX_TRIAGE_GECKODRIVER`/`FX_TRIAGE_CHROMEDRIVER`, and browsers at their usual
+> paths or via `FX_TRIAGE_FIREFOX`/`FX_TRIAGE_CHROME`. Review the drafts with
+> `/open-triage` afterwards. On the **first run** the
+> skill shows the profile's components and asks whether to keep them or
+> customize; keeping the default writes nothing (unset = default), and
+> customizing persists a `;`-separated list (see
+> [`skills/triage/components.md`](skills/triage/components.md)). Every run prints
+> the team and resolved set before fetching.
 
 > **Where to set them:** Claude Code runs skill commands in a **non-interactive**
 > shell, so `export` the variable in a file those shells read — not only an
@@ -221,6 +245,7 @@ multi-select to install them. Here's the lay of the land:
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |
 | [`firefox-wiki`](https://github.com/alastor0325/firefox-wiki-plugin) | knowledge accelerator | optional | guide-only |
+| [`bmo-search`](https://crates.io/crates/bmo-search) | `/triage` with `TRIAGE_TEAM=dom-core`: duplicate search by function name | optional | guide-only (`cargo install bmo-search`) |
 | [`webspec-index`](https://github.com/jnjaeschke/webspec-index) | `spec-check` reading WHATWG/W3C/TC39 sections — exact section, no truncation, plus anchor validation / cross-refs / WHATWG-PR previews; falls back to `WebFetch` if absent | optional | guide-only (`cargo install webspec-index`) |
 
 All the tools above the divider are **required** — `init` isn't "complete" until

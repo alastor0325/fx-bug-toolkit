@@ -196,6 +196,48 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
+- [ ] **Triage team profiles: follow-ups** (raised 2026-11-03, with the
+      `TRIAGE_TEAM` / `teams/dom-core.md` split).
+  - The dashboard's queue drain still handles `bug-start` entries, though
+    0.5.0 no longer queues them on apply; make sure no `dom-core` path
+    queues one.
+  - `bugzilla-cli fetch` has no `--product`, so `av` passes bare names; add it
+    so both queue types are product-scoped.
+  - Evaluate `dom-core` read-only on the live untriaged queue and on
+    already-triaged bugs (snapshot at triage time), then tune the profile.
+  - `triage-apply-feedback` lessons go to the shared wiki; decide whether
+    team-specific lessons should land in the team profile instead.
+  - Render a draft's `checks` in the dashboard (unchecked ones too); until
+    then `dom-core` repeats them at the start of `ai_reasoning`.
+  - Pin `webspec-index`, `searchfox-cli` and `bmo-search` in
+    `versions.json`, and have the pre-flight record which ones work, so drafts
+    from different machines are comparable.
+  - A verify step for interactive locked runs: `run_testcases.py` works on
+    its own, but the second pass that adds results is only automatic with
+    `--print --browsers`.
+- [ ] **Triage hardening follow-ups** (raised 2026-11-03, with `run_locked.py`).
+  - 🔴 The triage dashboard (firefox-triage-dashboard) accepts cross-site POSTs:
+    any web page open in the user's browser can POST to `127.0.0.1:9001`
+    (`/draft/<id>/refine` queues text for the Claude drain, `/apply` queues a
+    write in reply mode, `/field` edits drafts). Check `Origin`/`Sec-Fetch-Site`
+    and the `Host` header (DNS rebinding) there.
+  - `run_testcases.py` gaps (2026-11-04): Safari TP has no proxy setting, so a
+    scripted top-level navigation that dodges the static check can still reach
+    the network there; testcases needing user input (focus, clipboard, drag)
+    can't run; Firefox and Chrome run headless, which can differ for focus and
+    selection. Consider WebDriver actions for input, and a VM or container for
+    the browsers.
+  - `bmo-to-md`, `bugzilla-cli` (TLS/DNS) and `socorro-cli` (TLS) fail inside
+    the macOS Seatbelt sandbox, and `sandbox.excludedCommands` didn't exempt
+    them. The sandbox proxy also drops the tail of replies when the server
+    closes right after sending; `bmo_http.py` asks for gzip over a kept-alive
+    connection to avoid it. Locked runs use `read_bug.py`, `crash_stats.py`
+    and `bmo-search`. Revisit if those CLIs switch to rustls or the proxy is
+    fixed.
+  - The A/V profile still downloads attachments via `/download-guard` and
+    analyzes profiles; it isn't covered by `run_locked.py` yet (no
+    `profiler-cli`, no downloads there).
+
 - [ ] **Deprecate analyze-profile, check-log and spec-check in favor of the `gecko`
   plugin** (2026-10-22). Generic copies are moving to `plugins/gecko/` in
   mozilla/firefox-aidev-plugins. Once it lands: point `bug-start` and `/triage` at
@@ -208,7 +250,8 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
       is just orphaned transient files — no migration needed.)
 - [ ] **Move the posted-comment rules into one shared file** (raised
       2026-10-09). The comment voice, S/P, ASD-STE100 writing standard and
-      Length discipline blocks sit inside §1a of `skills/triage/SKILL.md`;
+      Length discipline blocks sit inside §1a of `skills/triage/teams/av.md`
+      (moved there from `SKILL.md` with the team-profile split, 2026-11-03);
       §1b/§1c point at them and `triage-apply-feedback` carries an inline
       summary because it never loads the triage skill. A shared
       `skills/triage/comment-standard.md` read by both skills would remove

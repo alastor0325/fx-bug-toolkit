@@ -1,51 +1,39 @@
 # Triage Components
 
-This is the **single source of truth** for which Bugzilla components `/triage`
-covers. The skill reads this list at setup time; `bugzilla-cli fetch` and the
-meta-bug search are both driven from it (the CLI no longer hardcodes the set —
-the caller passes it).
+Which Bugzilla components `/triage` covers comes from the **team profile**
+(`$TRIAGE_TEAM`, default `av`). Each profile's **Profile settings** section lists
+its default set:
 
-## Default components
+| Team | Profile | Default components |
+|---|---|---|
+| `av` (default) | [`teams/av.md`](teams/av.md) | the eight Firefox Audio/Video components |
+| `dom-core` | [`teams/dom-core.md`](teams/dom-core.md) | the twenty DOM Core components |
 
-Out of the box, `/triage` triages bugs in these eight Firefox Audio/Video
-components:
-
-| Component | Area |
-|---|---|
-| `Audio/Video` | General A/V |
-| `Audio/Video: cubeb` | Audio backend (cubeb) |
-| `Audio/Video: GMP` | Gecko Media Plugins / EME / CDM |
-| `Audio/Video: MediaStreamGraph` | MediaStreamGraph / real-time audio graph |
-| `Audio/Video: Playback` | Media playback pipeline |
-| `Audio/Video: Recording` | getUserMedia / MediaRecorder |
-| `Web Audio` | Web Audio API |
-| `Audio/Video: Web Codecs` | WebCodecs API |
+The queue fetch, the meta-bug search (if the profile uses one), and the
+pre-flight scope filter are all driven from the resolved set.
 
 ## Overriding the set — `$TRIAGE_COMPONENTS`
 
-The default is **optional to change**. To triage a different set (a narrower
-subset, or additional components), set the `$TRIAGE_COMPONENTS` environment
-variable to a **`;`-separated** list of exact Bugzilla component names:
+To triage a different set (a narrower subset, or additional components), set
+`$TRIAGE_COMPONENTS` to a **`;`-separated** list:
 
 ```sh
-export TRIAGE_COMPONENTS="Audio/Video: Playback;Audio/Video: GMP;Web Audio"
+export TRIAGE_COMPONENTS="Core::DOM: Navigation;Core::DOM: Events"
 ```
 
 Rules:
 
-- **Exact names.** Each entry must match the Bugzilla component name exactly
-  (case, spaces, and the `Audio/Video: ` prefix all matter).
+- **Exact names.** Each entry must match the Bugzilla product and component names
+  exactly (case and spaces matter).
+- **`Product::Component`**, or a bare component name, which takes the profile's
+  product (`Core` for both current profiles). Qualify names that exist in several
+  products, e.g. `Session Restore`.
 - **Separator is `;`.** Component names contain spaces, `/`, and `:`, but never
-  `;`, so a semicolon is an unambiguous delimiter.
-- **Unset = the default eight above.** Leaving `$TRIAGE_COMPONENTS` unset (the
-  common case) triages exactly the default set.
-- **Narrowing works everywhere.** A subset of A/V components is honored by the
-  full `/triage` run (fetch + meta search + scope filter) and by
-  `/triage <id>`.
-- **Adding non-A/V components** (e.g. a Graphics component) is honored by
-  `bugzilla-cli fetch --component …`, the meta-bug search, and the scope filter,
-  so a full `/triage` run will pull and triage them.
+  `;`.
+- **Unset = the profile's default set** (the common case).
+- **The override applies to whichever team is selected.** Unset it when you
+  switch teams.
 
-The first time you run `/triage`, the skill shows this default list and asks
+The first time you run `/triage`, the skill shows the profile's list and asks
 whether to keep it or customize it, then persists your choice to
 `~/.fx-bug-toolkit.env.sh` (see the skill's **Setup check**).

@@ -7,7 +7,44 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+### Added
+
+- **DOM Core triage profile** (`TRIAGE_TEAM=dom-core`): severity (never
+  priority) and at most one comment per bug, plus the field changes triage
+  implies. The rules come from a study of past DOM Core triage.
+- **`skills/triage/bmo_query.py`**: runs BugBot's untriaged query ("no
+  Severity field set and no pending needinfos") for a team's components, or a
+  pasted query URL, e.g. `/triage https://mzl.la/…`.
+- **Untrusted-input hardening for `/triage`.** Bug text, comments, and
+  attachments are treated as data from strangers:
+  - `validate_draft.py` checks every draft before it is shown or applied;
+  - `read_attachment.py` reads only text and verified images, and
+    `read_bug.py` returns a bug as escaped JSON with full emails;
+  - `crash_stats.py` gets crash volume from Socorro's public API;
+  - `run_locked.py` runs triage in Claude Code's `--restricted` mode with a
+    PreToolUse guard (`triage_guard.py`), the Bash sandbox, no MCP servers,
+    and no API keys, for bugs nobody has vetted.
+- **`checks` in triage drafts**: what the triage actually did (spec, source,
+  wpt.fyi, browsers, …), so the reviewer sees what it didn't. `dom-core`
+  drafts set it; the validator rejects browser checks from locked runs.
+- **`close-verifier` agent**: before a `dom-core` draft closes a bug
+  (DUPLICATE, INVALID, WONTFIX, WORKSFORME, INCOMPLETE), a fresh-context
+  subagent tries to prove the close wrong and records a verdict. Locked runs
+  reject a closing draft without a matching confirm, and `validate_draft.py`
+  checks it too.
+- **`run_locked.py --browsers`**: after a `--print` run, `run_testcases.py`
+  loads the testcases the run saved in Firefox Nightly, Chrome Canary and
+  Safari TP with no model in the loop, and a second locked pass adds the
+  results. Locked drafts may list a browser in `checks` only with an `ok`
+  result from it.
+
+### Changed
+
+- **`/triage` reads a team profile** (`TRIAGE_TEAM`, default `av`). The A/V
+  per-bug workflow moved word for word from `skills/triage/SKILL.md` to
+  `skills/triage/teams/av.md`; `SKILL.md` keeps setup, modes, the watch list,
+  pre-flight, drafts, and apply. `TRIAGE_COMPONENTS` entries may be
+  `Product::Component`, and the scope check compares the product too.
 
 ## [0.8.0] — 2026-11-03
 
