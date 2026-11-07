@@ -5,7 +5,7 @@ description: >
   by hand and generating a review prompt to hand back to Claude. The human-review
   companion to /review (which is the AI reviewer). Triggers on "/open-review",
   "open the review dashboard", "open revue", "review board", "human review UI".
-argument-hint: "[repo-path] (defaults to your remembered Revue repo)"
+argument-hint: "[worktree-path | worktree-name] (defaults to the worktree you are working in, else your remembered Revue repo)"
 allowed-tools: [Bash, AskUserQuestion]
 ---
 
@@ -17,50 +17,61 @@ inline comments, approve/deny per patch, and generate a structured review prompt
 to paste back to Claude. It is the human-review counterpart to `/review` (the AI
 reviewer). It runs as a local daemon and opens your browser.
 
-This skill resolves **which repo** Revue opens and launches it. It does not ship
+This skill resolves **which worktree** Revue opens and launches it. It does not ship
 Revue — Revue is installed lazily on first use (consent-gated).
 
-## Step 1 — Resolve the repo to open
+## Step 1 — Resolve the worktree to open
 
-Revue opens a git repo and lists **all its worktrees + patch series**, and **you
-switch between them in Revue's own UI**. So this skill only needs *a* repo to
-point at — **do not** pre-pick a worktree, prompt for one, or pre-flight the
-series. Resolve `REPO`, in order:
+Revue opens a git repo, lists **all its worktrees + patch series**, and shows
+one worktree at a time. Give it the **path of the worktree to show** as `--repo`:
+Revue mounts that repo's main checkout once and selects the worktree at that
+path. **Do not** prompt for a worktree, pre-flight the series, or work
+out Revue's worktree names yourself. Set `REPO` (and, in case 3 only,
+`WORKTREE`), in order:
 
-**1. A path was passed as the argument** → use its repo root:
+1. **The argument is a path** → `REPO` is that path.
+2. **The argument names the work, not a path** (for example "this", a bug
+   number, or a branch) → `REPO` is the absolute path of the worktree that work
+   lives in. If this session works in a git worktree (for example
+   `~/firefox-<bug>/`), that is "this".
+3. **The argument is a worktree name that Revue shows** (for example
+   `vtt-interop`) → `REPO` is the default repo (below) and `WORKTREE` is that
+   name.
+4. **No argument, and the session works in a git worktree** → `REPO` is that
+   worktree's path.
+5. **Otherwise** → `REPO` is Revue's remembered default repo (below). Do not use
+   the session's cwd as a fallback when it is not a worktree you work in: it is
+   often the main checkout, not the patches to review.
+
+For cases 1 and 2, check that the path is in a git worktree:
 ```bash
-REPO=$(cd "{argument}" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
-echo "REPO=${REPO:-<invalid>}"
+git -C "$REPO" rev-parse --show-toplevel >/dev/null 2>&1 && echo "REPO=$REPO" || echo "not a git worktree: $REPO"
 ```
-If it doesn't resolve to a git repo, tell the user and ask for a valid path.
+If it is not, tell the user and ask for a valid path.
 
-**2. No argument** → use Revue's **remembered default repo** (`~/.revue/config.json`,
-set with `revue init <path>`). Don't prompt, and don't auto-pick the current
-working directory (the cwd is the Claude session's dir, not the repo to review):
+**Default repo** (cases 3 and 5): Revue's remembered repo, `~/.revue/config.json`,
+set with `revue init <path>`. Don't prompt when it is set:
 ```bash
 PY="$(command -v python3 || command -v python)"   # python3 on macOS/Linux, python on Windows git-bash
 REPO=$("$PY" -c 'import json,os;p=os.path.expanduser("~/.revue/config.json");print(json.load(open(p)).get("defaultRepo","") if os.path.exists(p) else "")' 2>/dev/null)
 echo "default: ${REPO:-<none>}"
 ```
-- **A default is set** → use it as `REPO` and go straight to Step 2. (To review a
-  *different* repo, the user passes a path as the argument; worktrees *within* a
-  repo are switched in Revue's UI, not here.)
-- **No default is set** → ask the user once for the repo path, set `REPO` to its
-  repo root, and remember it (safe — there's nothing to clobber):
+- **A default is set** → use it as `REPO` and go to Step 2.
+- **No default is set** → ask the user once for the repo path, set `REPO` to it,
+  and remember it (safe — there's nothing to clobber):
   ```bash
   revue init "$REPO"
   ```
 
-## Step 2 — Ensure Revue ≥ 0.3.1 is installed (consent-gated)
+## Step 2 — Ensure Revue ≥ 0.3.2 is installed (consent-gated)
 
-Revue **0.3.1 or newer** is required. It runs one daemon for every repo on one
-port, which Step 3 relies on. Earlier floors fixed the diff base for esr/beta
-worktrees (0.2.0) and HEAD polling stalls (0.2.1).
+Revue **0.3.2 or newer** is required: Step 1 relies on it selecting the
+worktree at the `--repo` path, and Step 3 on one daemon serving every repo.
 
 Check the installed version against that floor:
 
 ```bash
-REQUIRED_REVUE="0.3.1"
+REQUIRED_REVUE="0.3.2"
 have="$(revue --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 if [ -z "$have" ]; then
   echo "NOT_INSTALLED"
@@ -82,24 +93,26 @@ fi
 
   > Install from GitHub, **not** `npm install -g revue` — the bare `revue` name on
   > the public npm registry is an unrelated package. The GitHub install pulls the
-  > latest (≥ 0.3.1). Requires Node.js ≥ 18.
+  > latest (≥ 0.3.2). Requires Node.js ≥ 18.
 
-  If the user declines, stop here and tell them `/open-review` needs Revue ≥ 0.3.1;
+  If the user declines, stop here and tell them `/open-review` needs Revue ≥ 0.3.2;
   they can run the command above later.
 
-## Step 3 — Open the repo in the running Revue
+## Step 3 — Open the worktree in the running Revue
 
 Revue keeps one daemon on one port for every repo. `revue --repo "$REPO"` adds
-the repo to the Revue that is already running, or starts one. **Do not probe,
-pick or remember ports.** Pass `--port` only when the user set `$PORT`:
+the repo to the Revue that is already running, or starts one. A `$WORKTREE`
+name (case 3) selects that worktree.
+**Do not probe, pick or remember ports.** Pass `--port` only when the user set
+`$PORT`:
 
 ```bash
-revue --repo "$REPO" ${PORT:+--port "$PORT"}
+revue --repo "$REPO" ${WORKTREE:+"$WORKTREE"} ${PORT:+--port "$PORT"}
 ```
 
-Revue prints `revue running at <URL>` and opens the browser. Tell the user that
-URL, and that the dashboard at `/` and the dropdown next to the **Revue**
-wordmark switch between repos.
+Revue prints `revue running at <URL>` and opens the browser on that worktree.
+Tell the user that URL and the worktree it shows, and that the dashboard at `/`
+and the dropdown next to the **Revue** wordmark switch between repos.
 
 Useful follow-ups (relay if the user asks):
 - `revue init --port <port>` — save a default port. Use it once on a remote box
