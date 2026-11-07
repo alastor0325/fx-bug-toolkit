@@ -125,15 +125,29 @@ class TestSkills(unittest.TestCase):
 
     def test_open_review_joins_the_running_revue(self):
         # Revue >= 0.3.1 owns the port: one daemon serves every repo, and
-        # `revue --repo X` joins it. The skill must not probe or pick ports.
+        # `revue --repo X` joins it; 0.3.2 selects the worktree at X. The
+        # skill must not probe or pick ports.
         text = (SKILLS / "open-review" / "SKILL.md").read_text(encoding="utf-8")
         floor = re.search(r'REQUIRED_REVUE="([0-9.]+)"', text).group(1)
-        self.assertGreaterEqual(tuple(map(int, floor.split("."))), (0, 3, 1))
+        self.assertGreaterEqual(tuple(map(int, floor.split("."))), (0, 3, 2))
         for v in re.findall(r"Revue ≥ ([0-9]+\.[0-9]+\.[0-9]+)|\(≥ ([0-9.]+)\)", text):
             self.assertEqual(v[0] or v[1], floor, "every stated Revue floor must match REQUIRED_REVUE")
-        self.assertIn('revue --repo "$REPO"', text)
+        self.assertIn('revue --repo "$REPO" ${WORKTREE:+"$WORKTREE"} ${PORT:+--port "$PORT"}', text)
         for removed in ("open-review.port", "socket.socket", "SSH_CONNECTION"):
             self.assertNotIn(removed, text, f"open-review must not manage ports itself: {removed!r}")
+
+    def test_open_review_passes_the_worktree_path_to_revue(self):
+        # Revue >= 0.3.2 selects the worktree at the --repo path, so the skill
+        # passes that path through and keeps no copy of Revue's naming rule.
+        text = (SKILLS / "open-review" / "SKILL.md").read_text(encoding="utf-8")
+        resolve = text[text.index("## Step 1"):text.index("## Step 2")]
+        cases = ["argument is a path", "names the work", "worktree name that Revue shows",
+                 "No argument, and the session works in a git worktree", "**Otherwise**"]
+        positions = [resolve.find(c) for c in cases]
+        self.assertNotIn(-1, positions, "every target case must be listed")
+        self.assertEqual(positions, sorted(positions), "target cases must stay in this order")
+        for rule in ("worktree list", "git-common-dir", "<<'EOF'"):
+            self.assertNotIn(rule, text, f"open-review must leave worktree naming to Revue: {rule!r}")
 
     def test_profiler_cli_installs_from_npm(self):
         # profiler-cli moved from a git clone + `npm link` that needed a

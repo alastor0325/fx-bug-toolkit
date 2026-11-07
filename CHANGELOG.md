@@ -7,7 +7,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
-_Nothing user-facing yet._
+## [0.8.1] — 2026-11-07
+
+### Fixed
+- **`/open-review` opens the requested worktree, not another one.** Given a
+  linked worktree's path, Revue 0.3.1 treated it as the repo and opened a
+  different worktree (or the one selected last). Revue 0.3.2 mounts the main
+  repo once and selects the worktree at the `--repo` path, so the skill now
+  requires Revue ≥ 0.3.2 and passes the worktree's path as `--repo`. With no
+  argument it prefers the worktree the session works in over the remembered
+  default repo.
 
 ## [0.8.0] — 2026-11-03
 
@@ -931,7 +940,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.0...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.1...HEAD
+[0.8.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.0...fx-bug-toolkit--v0.8.1
 [0.8.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.3...fx-bug-toolkit--v0.8.0
 [0.7.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...fx-bug-toolkit--v0.7.3
 [0.7.2]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.1...fx-bug-toolkit--v0.7.2
