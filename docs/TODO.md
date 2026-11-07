@@ -196,6 +196,13 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
 
 ## 🟢 Toolkit polish (this plugin, when we get to it)
 
+- [ ] **The investigation viewer's default port 9000 blocks `./mach wpt`** (2026-11-07).
+      The wptserve HTTP/2 server also uses port 9000, so a long-running viewer makes
+      every local WPT run fail with "Failed to start HTTP server on port 9000"
+      (seen while testing bug 1558431). Consider another default port, or document
+      `FX_VIEWER_PORT` for Firefox developers. Workaround: a git-ignored
+      `testing/web-platform/tests/config.json` with `{"ports": {"h2": [9123]}}`.
+
 - [ ] **Deprecate analyze-profile, check-log and spec-check in favor of the `gecko`
   plugin** (2026-10-22). Generic copies are moving to `plugins/gecko/` in
   mozilla/firefox-aidev-plugins. Once it lands: point `bug-start` and `/triage` at
