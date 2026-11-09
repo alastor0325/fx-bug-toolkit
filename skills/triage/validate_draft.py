@@ -88,6 +88,8 @@ CLOSE_RESOLUTIONS = {"DUPLICATE", "INVALID", "WONTFIX", "INCOMPLETE", "WORKSFORM
 VERDICT_KEYS = {"bug_id", "resolution", "dupe_of", "verdict", "reasons", "corrections"}
 TESTED_CLAIM = re.compile(r"(?i)\bI (?:tested|ran|reproduced|tried)\b")
 CANT_TEST = re.compile(r"(?i)\b(?:couldn't|could not|can't|cannot|unable to|wasn't able to)\s+(?:test|check|run|reproduce|verify|try)")
+# BMO takes GitHub issues and PRs (e.g. a spec issue) as See Also URLs.
+SEE_ALSO_URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/(?:issues|pull)/[1-9]\d*")
 DOM_KEYWORDS = {"spec-needed", "intermittent-failure", "regression", "testcase-wanted",
                 "parity-chrome", "parity-safari", "stalled", "perf"}
 
@@ -264,8 +266,13 @@ def validate(draft, team="av", bug=None, expected_id=None, locked=False, browser
 
     for key in ("blocks_add", "regressed_by_add", "see_also_add"):
         value = draft.get(key) or []
-        if not isinstance(value, list) or not all(isinstance(v, int) and v > 0 for v in value):
-            errors.append(f"{key} must be a list of bug ids")
+        urls_ok = key == "see_also_add"
+        if not isinstance(value, list) or not all(
+                (isinstance(v, int) and not isinstance(v, bool) and v > 0)
+                or (urls_ok and isinstance(v, str) and SEE_ALSO_URL.fullmatch(v))
+                for v in value):
+            errors.append(f"{key} must be a list of bug ids"
+                          + (" or GitHub issue/PR URLs" if urls_ok else ""))
         elif bug_id in value:
             errors.append(f"{key} contains the bug itself")
     keywords = draft.get("keywords_add") or []

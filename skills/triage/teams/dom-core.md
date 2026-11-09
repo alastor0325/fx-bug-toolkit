@@ -147,7 +147,8 @@ wrong; verify, don't repeat.
 - **Spec conformance.** Look up what the spec requires and compare with Gecko
   (code or a run). If the spec is silent or vague, or Firefox, Chrome and Safari
   agree with each other but not with the spec, say so with links, find or
-  suggest a spec issue, and add `spec-needed`. Don't call it a Gecko bug then.
+  suggest a spec issue, and add `spec-needed` (with the spec issue's URL in
+  `see_also_add` when there is one). Don't call it a Gecko bug then.
 - **Spec change.** Is the spec PR merged? Is there a wpt (and does wpt.fyi show
   Firefox failing)? Can Gecko's structure do it without a large redesign? Read
   the PR discussion: an objection matters only if it changes what Gecko should
@@ -199,7 +200,7 @@ and the DOM Core team's calibration:
 | Wrong component | `product` + `component` (the target), one-sentence comment on why, no severity (the new component's triager sets it) | close (§1c) |
 | Duplicate | `resolution: "DUPLICATE"`, `dupe_of`, one-sentence comment on the shared cause | close (§1c) |
 | Works as intended | `resolution: "INVALID"`, comment with the spec or design link | close (§1c) |
-| Spec question, engines agree | `severity` (usually S3 or S4), `keywords_add: ["spec-needed"]`, comment linking the spec issue | triaged (§1b) |
+| Spec question, engines agree | `severity` (usually S3 or S4), `keywords_add: ["spec-needed"]`, the spec issue's URL in `see_also_add` | triaged (§1b) |
 
 **Verify every close first.** Before writing a draft with a `resolution`
 (DUPLICATE, INVALID, WONTFIX, WORKSFORME, INCOMPLETE), spawn the

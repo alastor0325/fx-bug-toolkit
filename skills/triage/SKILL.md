@@ -661,11 +661,9 @@ passed to another team (e.g. a Graphics developer is now driving it via NI).
 > back. Skip this whole section when running read-only.
 
 > **Setting `See Also` (relating bugs).** When a refine asks to "set see also",
-> add the related bug IDs to the draft's **`see_also_add`** array. Apply writes
-> them via `set-fields --see-also-add` (mapping each ID to its canonical BMO URL).
-> This requires `bugzilla-cli` ≥ the build that added `--see-also-add`; if the
-> installed CLI predates it, the field is silently skipped — so also mention the
-> related bug in the **comment** (BMO auto-links the number) as a durable fallback.
+> add the related bug IDs, or GitHub issue/PR URLs (e.g. a spec issue), to the
+> draft's **`see_also_add`** array. Apply writes them via `set-fields --see-also-add`
+> (mapping each ID to its canonical BMO URL).
 > Use `blocks_add` only for a real blocks/meta relationship, never as a stand-in
 > for "see also". (Surfaced by bug 2044925.)
 

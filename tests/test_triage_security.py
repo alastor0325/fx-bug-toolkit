@@ -186,6 +186,17 @@ class TestValidateDraft(unittest.TestCase):
         self.assertTrue(self.errors(draft(blocks_add=["1"])))
         self.assertTrue(self.errors(draft(see_also_add=[100])))
 
+    def test_see_also_urls(self):
+        for url in ("https://github.com/whatwg/html/issues/10664",
+                    "https://github.com/w3c/csswg-drafts/pull/12"):
+            self.assertEqual(self.errors(draft(see_also_add=[5, url])), [], url)
+        for bad in ("https://drafts.csswg.org/cssom-view/", "http://github.com/whatwg/html/issues/1",
+                    "https://github.com.evil.example/a/b/issues/1",
+                    "https://github.com/whatwg/html/issues/1#x", "https://github.com/a/b/issues/0",
+                    "5", True):
+            self.assertTrue(self.errors(draft(see_also_add=[bad])), bad)
+        self.assertTrue(self.errors(draft(blocks_add=["https://github.com/whatwg/html/issues/1"])))
+
     def test_security_keywords_rejected(self):
         self.assertTrue(self.errors(draft(keywords_add=["sec-high"])))
         self.assertTrue(self.errors(draft(keywords_add=["topcrash"])))
