@@ -132,6 +132,8 @@ def skip_reason(bug):
         return "bug is restricted"
     for k in bug.get("keywords") or []:
         k = k.lower()
+        if k == "sec-want":  # a request for a security feature, not a vulnerability
+            continue
         if k.startswith(("sec-", "csectype")) or k in ("security", "crash", "hang", "assertion"):
             return f"keyword {k}"
     if (bug.get("cf_crash_signature") or "").strip():
