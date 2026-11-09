@@ -125,7 +125,7 @@ else
   # first use, not part of the core set). Keep the version in sync with
   # `.claude-plugin/versions.json` (enforced by tests/test_plugin_structure.py).
   if command -v bugzilla-cli >/dev/null; then
-    cargo_report bugzilla-cli bugzilla-cli --version 0.2.0
+    cargo_report bugzilla-cli bugzilla-cli --version 0.3.0
   else
     echo "skip bugzilla-cli (not installed — /triage installs it on first use)"
   fi
@@ -172,7 +172,7 @@ Install the version this plugin pins — keep `REQUIRED` in sync with
 ```bash
 VENV="$HOME/.fx-bug-toolkit/venv"
 BIN="$VENV/bin"; [ -d "$BIN" ] || BIN="$VENV/Scripts"
-REQUIRED="0.5.0"
+REQUIRED="0.6.0"
 if [ -x "$BIN/pip" ]; then
   "$BIN/pip" install --quiet --upgrade "triage-dashboard==$REQUIRED" \
     && echo "✅ triage dashboard updated to v$REQUIRED" || echo "⚠️  triage dashboard update FAILED"

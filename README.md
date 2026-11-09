@@ -240,7 +240,7 @@ multi-select to install them. Here's the lay of the land:
 | [`cargo`](https://rustup.rs) (Rust) | building the two CLIs above | **required** | yes (via rustup) |
 | [`node`](https://nodejs.org) ≥ 24 + `npm` | installing/running profiler-cli | **required** | yes (via nvm) |
 | [`git`](https://git-scm.com), [`python3`](https://www.python.org) | source links, helper scripts | **required** | guide-only (use your system) |
-| [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) | `/triage` Bugzilla I/O — reads need **no** API key; writes (reply mode) need one | **for `/triage`** | yes (on first `/triage`, pinned `v0.2.0`) |
+| [`bugzilla-cli`](https://github.com/alastor0325/bugzilla-cli) | `/triage` Bugzilla I/O — reads need **no** API key; writes (reply mode) need one | **for `/triage`** | yes (on first `/triage`, pinned `v0.3.0`) |
 | [`mach`](https://firefox-source-docs.mozilla.org/mach/) + a mozilla-central checkout | local build / spec checks | optional | guide-only |
 | `moz` MCP server | Bugzilla/Phabricator MCP lookups | optional | guide-only |
 | [`revue`](https://github.com/alastor0325/revue) | `/open-review` (human patch review UI) | optional | yes (lazily, on first `/open-review`) |

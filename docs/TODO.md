@@ -222,11 +222,6 @@ and the viewer is browser-based. The launcher was bash; now `serve.py`
     its own, but the second pass that adds results is only automatic with
     `--print --browsers`.
 - [ ] **Triage hardening follow-ups** (raised 2026-11-03, with `run_locked.py`).
-  - 🔴 The triage dashboard (firefox-triage-dashboard) accepts cross-site POSTs:
-    any web page open in the user's browser can POST to `127.0.0.1:9001`
-    (`/draft/<id>/refine` queues text for the Claude drain, `/apply` queues a
-    write in reply mode, `/field` edits drafts). Check `Origin`/`Sec-Fetch-Site`
-    and the `Host` header (DNS rebinding) there.
   - Guard gaps (2026-11-09): a `close-verifier` may write a verdict for any
     bug that has none yet, not only the `Bug: <id>` it was spawned for (map
     spawns to verifier writes); `check_fetch` limits the query string but not
