@@ -789,6 +789,8 @@ class TestRunTestcases(unittest.TestCase):
         self.assertIn("restricted", rt.skip_reason({"groups": ["core-security"]}))
         self.assertIn("crash", rt.skip_reason({"keywords": ["crash"]}))
         self.assertIn("sec-high", rt.skip_reason({"keywords": ["sec-high"]}))
+        self.assertIsNone(rt.skip_reason({"keywords": ["sec-want"]}))
+        self.assertIn("sec-low", rt.skip_reason({"keywords": ["sec-want", "sec-low"]}))
         self.assertIn("signature", rt.skip_reason({"cf_crash_signature": "[@ Foo]"}))
         self.assertIn("summary", rt.skip_reason({"summary": "Assertion failure in Bar"}))
 

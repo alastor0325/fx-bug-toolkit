@@ -88,8 +88,9 @@ Decide these first; each one ends the workflow.
 - **Perf alert** (`perf-alert`, filed by perf sheriffs): no draft; print
   `Skipping bug {id} — perf alert, handled by the patch author and perf sheriffs.`
   Move a misfiled component only.
-- **Security-sensitive** (any `sec-*` keyword, or a report of a sandbox escape,
-  UAF, info leak or other vulnerability): no draft; print
+- **Security-sensitive** (any `sec-*` keyword except `sec-want`, which asks for
+  a security feature, or a report of a sandbox escape, UAF, info leak or other
+  vulnerability): no draft; print
   `Skipping bug {id} — may be security-sensitive, needs the security group.`
 
 ### 3. Classify
