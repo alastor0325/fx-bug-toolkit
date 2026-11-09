@@ -148,7 +148,7 @@ installed; if missing, install the version this plugin targets:
 ```bash
 bugzilla-cli --version 2>/dev/null || echo "NOT FOUND"
 ```
-If not found: "Run `cargo install bugzilla-cli --version 0.2.0`." (Needs `cargo` — see `/init`.)
+If not found, or older than 0.3.0: "Run `cargo install bugzilla-cli --version 0.3.0`." (Needs `cargo` — see `/init`.)
 
 ### Mode — reply vs read-only
 
