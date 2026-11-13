@@ -9,6 +9,11 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ### Added
 
+- **Review rule: values that later input can change.** The `spec`,
+  `code-quality` and `tests` lenses treat a value derived from input that can
+  still arrive as provisional: a value only grown while later input can land
+  inside it is a BLOCKER, and tests must deliver the input in the smallest
+  units, out of order.
 - **DOM Core triage profile** (`TRIAGE_TEAM=dom-core`): severity (never
   priority) and at most one comment per bug, plus the field changes triage
   implies. The rules come from a study of past DOM Core triage.
