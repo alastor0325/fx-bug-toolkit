@@ -32,6 +32,13 @@ def parse_frontmatter(path: Path) -> dict:
     return data
 
 
+
+def aspect_section(text, heading):
+    """Returns the text from an `###` heading up to the next `###` heading."""
+    start = text.index(heading)
+    end = text.find("\n### ", start + len(heading))
+    return text[start:end if end != -1 else len(text)]
+
 class TestManifests(unittest.TestCase):
     def test_plugin_json_valid(self):
         d = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text())
@@ -333,13 +340,27 @@ class TestHackbotMode(unittest.TestCase):
             for needle in needles:
                 self.assertIn(needle, section, f"{name}: Hackbot mode lacks {needle!r}")
 
+    def test_provisional_value_rule(self):
+        # bug 1955763: a value only grown while later input lands inside it.
+        aspect = (ROOT / "agents" / "firefox-review-aspect.md").read_text(encoding="utf-8")
+        rule = aspect_section(aspect, "### Values that later input can change")
+        for needle in (
+            "that value is\nprovisional",
+            "concrete input order",
+            "is a **BLOCKER** correctness finding",
+        ):
+            self.assertIn(needle, rule, f"review-aspect provisional rule lacks {needle!r}")
+        self.assertIn("If every test uses large in-order chunks, that is a missing-test", aspect,
+                      "review-aspect: tests lens lacks the smallest-unit input rule")
+        self.assertGreaterEqual(aspect.count("**Values that later input can change**"), 4,
+                                "review-aspect: lenses or verifier do not reference the provisional rule")
+
     def test_spec_first_fix_rules(self):
         # A guard for a state the spec or design can never produce is a review
         # blocker whose fix goes to the cause; investigations treat crash and
         # security bugs on spec algorithm paths as spec work.
         aspect = (ROOT / "agents" / "firefox-review-aspect.md").read_text(encoding="utf-8")
-        rule_start = aspect.index("### Guards for forbidden states")
-        rule = aspect[rule_start:aspect.index("### Dimension checklists")]
+        rule = aspect_section(aspect, "### Guards for forbidden states")
         for needle, why in (
             ("ask whether the spec or the design can ever produce that", "no spec/design question"),
             ("a use-site guard alone is not a valid `fix`", "use-site guard still a valid fix"),

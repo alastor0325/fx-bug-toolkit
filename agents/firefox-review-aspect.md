@@ -92,9 +92,22 @@ state.
   (`MOZ_ASSERT(x); if (NS_WARN_IF(!x)) return;`) is fine when the cause is fixed
   in the same patch or stack. It is not a substitute for that fix.
 
+### Values that later input can change
+
+The `spec`, `code-quality` and `tests` lenses and the verifier apply this rule.
+When a patch stores a value derived from input that can still arrive (the next
+frame, packet, chunk, fragment, append, message or event), that value is
+provisional: ask what later input does to it (input ordered or shown inside
+it, a re-send, a removal, a reset), and name a concrete input order. If later
+input can land inside the value and the patch only grows it, or never revisits
+it, the stale value is a **BLOCKER** correctness finding, and the `fix` says
+how the value is corrected when that input arrives.
+
 ### Dimension checklists
 
-**`spec`** — purpose verification & spec compliance.
+**`spec`** — purpose verification & spec compliance. A value the spec derives
+from later input (a duration that ends at the next item): apply
+**Values that later input can change**.
 - State the core technical claim the patch makes (e.g. "SEI payload type 5 is
   `user_data_unregistered`"; "this IPC ordering is spec-correct").
 - Verify each claim against authoritative sources by invoking `spec-check` for
@@ -210,7 +223,8 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
 - Platform/external calls (WMF, ffmpeg, OS) used per their documented contract;
   for non-obvious contracts, confirm via `gecko-navigator` or vendor docs.
 
-**`code-quality`** — correctness, style, comments, scope.
+**`code-quality`** — correctness, style, comments, scope. Provisional values:
+apply **Values that later input can change**.
 - Does the code do what the commit says? Edge cases (null, empty, boundary,
   unexpected state)?
 - New guards around an existing assertion: apply **Guards for forbidden states**.
@@ -225,6 +239,11 @@ memory-safety of untrusted bytes; you own the IPC-specific concerns).
 **`tests`** — test coverage & quality.
 - Behaviour change without a test → finding. Tests in the right layer (WPT vs
   mochitest vs gtest vs xpcshell)?
+- Provisional values (**Values that later input can change**): a test must
+  deliver the input in the smallest units the format allows, out of order where
+  it can be (one byte per network read; for media, one frame per fragment with
+  B-frames). If every test uses large in-order chunks, that is a missing-test
+  finding.
 - Cover main case, edge cases, and error paths? Readable and self-explanatory?
 - Do they actually assert the fixed invariant (not just exercise the code)?
 
@@ -276,6 +295,10 @@ until the real code proves it right.** Read the actual code at `base_revision`
   elsewhere, guarded by a caller, false premise). Say exactly why.
 - `uncertain` — cannot confirm or refute from available evidence (e.g. needs a
   spec you couldn't reach, or runtime behaviour). Explain what's missing.
+
+Judge a finding under **Values that later input can change** by whether the
+format or protocol allows the later input, not by what callers or tests send
+today.
 
 Judge the premise first, then the `fix`, using **Guards for forbidden states**:
 - If the state the finding claims cannot occur on any real path, the premise is
