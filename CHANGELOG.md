@@ -7,8 +7,16 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-18
+
 ### Added
 
+- **Review rule: effect check for new web APIs.** The orchestrator writes an
+  effect table for each web-exposed member the series adds (what it controls,
+  the subsystem code it reaches, the test that observes it), and passes it to
+  the reviewers. A member that reaches no subsystem is a stub and a BLOCKER,
+  even when the spec allows the user agent to do nothing. The `tests` lens
+  flags tests that would pass on a stub.
 - **Review rule: values that later input can change.** The `spec`,
   `code-quality` and `tests` lenses treat a value derived from input that can
   still arrive as provisional: a value only grown while later input can land
@@ -984,7 +992,8 @@ First public release.
   tutorial); GitHub Actions runs them on every push across all three OSes.
 - **Getting-started tutorial** published via GitHub Pages.
 
-[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.1...HEAD
+[Unreleased]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.9.0...HEAD
+[0.9.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.1...fx-bug-toolkit--v0.9.0
 [0.8.1]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.8.0...fx-bug-toolkit--v0.8.1
 [0.8.0]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.3...fx-bug-toolkit--v0.8.0
 [0.7.3]: https://github.com/alastor0325/fx-bug-toolkit/compare/fx-bug-toolkit--v0.7.2...fx-bug-toolkit--v0.7.3

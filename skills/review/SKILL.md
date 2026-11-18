@@ -110,6 +110,14 @@ main..HEAD --stat`), approach, and components. And the **commit-message check**
 lead with the **solution** then the **reason**; a missing body/reason or reversed
 order is an **IMPORTANT** issue.
 
+**Effect check** (yours too, before the fan-out): for each web-exposed member
+the series adds (WebIDL method, attribute, event), write one row: what it
+controls, the existing subsystem code the patch calls to do it, and the test
+that observes the effect. Put the table in `context.md`. A row with no
+subsystem code is a stub, and a stub is a **BLOCKER** even when the spec allows
+the user agent to do nothing, because the page gets no feature. Never let
+passing WPTs that only check that a member exists stand in for this.
+
 Write a one-paragraph summary of what the patch does and why (opens the document).
 
 ---
@@ -134,8 +142,8 @@ mkdir -p "$CTX_DIR"
   **base revision** for searchfox links (the Searchfox-indexed revision from
   `searchfox-cli -q <term> -p <path> --permalink`, never the diff's Base
   Revision or a local `git merge-base`, which Searchfox may not have indexed;
-  see `source-links`), the **Patch Set Intention**, and the **changed-files
-  list** (`--stat`).
+  see `source-links`), the **Patch Set Intention**, the **Effect check**
+  table from Step 1, and the **changed-files list** (`--stat`).
 
 This bundle may hold security-sensitive diff content — delete it in Step 6.
 
@@ -241,6 +249,8 @@ patches the line is at the base revision).
 
 ## Purpose Verification
 {From `spec`: the core technical claim, then verified/unverified/partial + spec citation (section + table).}
+
+**Effect check**: {the Step 1 table: each new web-exposed member, what it controls, the subsystem code it reaches, the test that observes it. Any stub row is also listed as a BLOCKER below.}
 
 ## Spec Compliance
 {Web-exposed or on a web-spec algorithm path: compliance verdict + citation, including whether any state the patch handles can occur per spec. "N/A" only when the touched code is on no spec algorithm path.}

@@ -116,6 +116,13 @@ from later input (a duration that ends at the next item): apply
   memory. If a claim cannot be verified, emit it as a finding stating that.
 - Does the *approach* match the purpose? (correct field/type, sufficient scope,
   nothing else that should also be handled).
+- **Effect check** for every web-exposed member the patch adds (WebIDL method,
+  attribute, event): name what it controls, the existing subsystem code the
+  patch calls to do it, and the test that observes that effect. A member that
+  reaches no subsystem (it only resolves a promise, returns a default, or uses
+  a spec branch where the user agent may do nothing) is a **stub**: report it
+  as a BLOCKER, even when that branch is spec-compliant, and even if the
+  commit title says "Implement".
 - For web-exposed behaviour: is it spec-compliant, and do WPTs cover it?
 - If the patch touches code on a web-spec algorithm path, check it even when
   the patch claims no web-visible change (lifetime, crash, sec fixes); never
@@ -239,6 +246,10 @@ apply **Values that later input can change**.
 **`tests`** — test coverage & quality.
 - Behaviour change without a test → finding. Tests in the right layer (WPT vs
   mochitest vs gtest vs xpcshell)?
+- A test for a new web-exposed member must assert the effect the member exists
+  for (a muted track, a fired event, a changed device or UI state), not only
+  that a promise settles or that the member exists. Tests that would pass on a
+  stub are a missing-test finding.
 - Provisional values (**Values that later input can change**): a test must
   deliver the input in the smallest units the format allows, out of order where
   it can be (one byte per network read; for media, one frame per fragment with
