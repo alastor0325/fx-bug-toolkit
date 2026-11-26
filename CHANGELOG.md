@@ -7,6 +7,14 @@ follows [Keep a Changelog](https://keepachangelog.com/), and the project uses
 
 ## [Unreleased]
 
+### Fixed
+
+- **`bmo-to-md` installs from GitHub again.** The crate is no longer on
+  crates.io, so `cargo install bmo-to-md` failed in `/init` and `/update`. Both
+  now run `cargo install --git https://github.com/padenot/bmo-to-md bmo-to-md`,
+  which also replaces an existing crates.io install. Installing from GitHub may
+  need approval in auto mode again.
+
 ## [0.9.0] — 2026-11-18
 
 ### Added
