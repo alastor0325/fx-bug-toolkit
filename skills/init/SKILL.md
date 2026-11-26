@@ -176,7 +176,7 @@ Then install **only the selected** items, in this dependency order:
    *Windows:* use [nvm-windows](https://github.com/coreybutler/nvm-windows) or install Node from <https://nodejs.org>.
 3. **cargo CLIs** (`bmo-to-md`, `searchfox-cli`, if selected) — require `cargo`:
    ```bash
-   cargo install bmo-to-md       # bmo-to-md (crates.io)
+   cargo install --git https://github.com/padenot/bmo-to-md bmo-to-md  # bmo-to-md (GitHub; not on crates.io)
    cargo install searchfox-cli   # searchfox-cli (crates.io)
    # Confirm the installed version (not just "done") so the setup log records
    # which build landed — mirrors /update's version reporting:

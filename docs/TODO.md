@@ -94,7 +94,7 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
         so `/init` + `/update` now use `cargo install bmo-to-md` (registry) instead
         of `--git`. Caveat: crates.io 0.1.0 may lag HEAD if padenot ships unpublished
         commits — acceptable for an agent-installable path.
-        - 🟡 **(2026-06-15) revisit bmo-to-md source.** crates.io `bmo-to-md` is
+        - ✅ **(2026-06-15) revisit bmo-to-md source.** crates.io `bmo-to-md` is
           still 0.1.0, last published **2025-07-29** (~11mo stale). A user on
           Windows with the old `--git` build saw `/update` recompile + migrate
           git→crates.io (one-time), which can be a silent downgrade if padenot's
@@ -102,6 +102,8 @@ version-pinned — that's a dependency, not a "plugin," and is unaffected.)
           padenot's repo HEAD is canonical; if HEAD, move `bmo-to-md` back to
           `cargo install --git …` (rebuilds only on a new commit). (This is the
           "(b)" the version-visibility reporting work deferred.)
+          **Done (0.9.1, 2026-11-26):** the crate is gone from crates.io, so
+          `/init` + `/update` install from padenot's repo with `--git` again.
       - ✅ **profiler-cli** now installs from npm (`@firefox-devtools/profiler-cli`),
         no `git clone` step left to be blocked (2026-10-01).
       - ⚠️ **nvm bootstrap** (`skills/init/SKILL.md:166`) is a `curl …raw.githubusercontent…|bash`

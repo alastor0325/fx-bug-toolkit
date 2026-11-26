@@ -118,7 +118,7 @@ else
     fi
   }
 
-  cargo_report bmo-to-md     bmo-to-md
+  cargo_report bmo-to-md     --git https://github.com/padenot/bmo-to-md bmo-to-md  # not on crates.io
   cargo_report searchfox-cli searchfox-cli
   # bugzilla-cli (triage Bugzilla I/O) — refresh to the **pinned version** from
   # crates.io, but only if it's installed (it's a /triage tool, installed lazily on
